@@ -76,7 +76,7 @@ export class TourRenderer {
   private readonly camera = new PerspectiveCamera(58, 16 / 9, 0.3, 4000);
   private readonly hemi = new HemisphereLight('#ffffff', '#444444', 1);
   private readonly sun = new DirectionalLight('#ffffff', 2);
-  private readonly headlights = new SpotLight('#fff1d6', 0, 190, 0.62, 0.75, 0.9);
+  private readonly headlights = new SpotLight('#f4f2ec', 0, 190, 0.42, 0.85, 1.0);
   private readonly fog = new Fog('#cccccc', 60, 880);
 
   private readonly schedule = new EnvSchedule();
@@ -504,7 +504,7 @@ export class TourRenderer {
     this.sun.color.copy(light.sun);
     this.sun.intensity = light.sunIntensity * 1.9 * (1 - this.inside * 0.9) * smoothstep(-6, 2, light.sunElevation);
     this.sun.position.copy(this.sunDir).multiplyScalar(200);
-    this.headlights.intensity = Math.max(light.night, this.inside * 0.6) * 60;
+    this.headlights.intensity = Math.max(light.night, this.inside * 0.6) * 34;
     this.fog.color.copy(light.fog).multiplyScalar(1 - this.inside * 0.7);
     this.fog.near = light.fogNear;
     this.fog.far = light.fogFar;

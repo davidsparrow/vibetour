@@ -331,9 +331,9 @@ export function sideHeight(side: Required<SideEnv>, s: number, lat: number, e: n
     case 'lake': {
       const slope = smoothstep(1, 40, t);
       let y = lerp(base, SEA_LEVEL - 6, slope);
-      const farShore = smoothstep(150, 225, t);
-      y = lerp(y, base + H * (0.5 + 0.6 * fbm(s / 200 + seed, 7.7)), farShore);
-      return y;
+      const farShore = smoothstep(140, 230, t);
+      const shore = base + H * (0.2 + 0.8 * ridged(s / 210 + seed, lat / 160, 4)) + (fbm(s / 35, lat / 30) - 0.5) * 8;
+      return lerp(y, shore, farShore);
     }
   }
 }

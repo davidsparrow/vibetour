@@ -92,7 +92,6 @@ class VibeTourHost implements CommandHost {
     this.project = vscode.workspace.workspaceFolders?.[0]?.name ?? vscode.workspace.name;
     this.streaming = cfg.get<boolean>('privacy.streamingMode', false);
     this.detectExternalEdits = cfg.get<boolean>('agents.detectExternalEdits', true);
-    // The session reads `autoResume` from this object on every event, so it can be changed live.
     this.sessionOptions = {
       packs: BUILTIN_PACKS,
       globalStore: this.globalStore,
@@ -212,7 +211,7 @@ class VibeTourHost implements CommandHost {
       this.panel.post(this.hello('panel'));
       this.server?.broadcast(this.hello('companion'));
     }
-    if (e.affectsConfiguration('vibetour.journey.autoResume')) this.sessionOptions.autoResume = cfg.get<boolean>('journey.autoResume', true);
+    if (e.affectsConfiguration('vibetour.journey.autoResume')) this.session.setAutoResume(cfg.get<boolean>('journey.autoResume', true));
     if (e.affectsConfiguration('vibetour.statusBar.enabled')) this.statusBar.setEnabled(cfg.get<boolean>('statusBar.enabled', true));
     if (e.affectsConfiguration('vibetour.agents.detectExternalEdits')) this.detectExternalEdits = cfg.get<boolean>('agents.detectExternalEdits', true);
     if (e.affectsConfiguration('vibetour.companion')) {

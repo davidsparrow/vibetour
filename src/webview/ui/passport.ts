@@ -84,7 +84,7 @@ export class ArrivalCard {
       `${formatDuration(j!.travelMs)} traveling`,
       `${j!.sessions} coding session${j!.sessions > 1 ? 's' : ''}`,
       j!.objective ? `Completed: ${j!.objective}` : 'Objective complete',
-      `${j!.stats.filesChanged} files changed`,
+      j!.stats.filesChanged ? `${j!.stats.filesChanged} file${j!.stats.filesChanged > 1 ? 's' : ''} changed` : null,
       tests ? (tests.ok ? 'Tests passing' : 'Tests need attention') : null,
     ].filter(Boolean) as string[];
     const note = h('textarea', { class: 'memory-note', rows: '2', maxlength: '280', placeholder: 'Save a memory of this trip (optional)', 'aria-label': 'Travel memory' }) as HTMLTextAreaElement;

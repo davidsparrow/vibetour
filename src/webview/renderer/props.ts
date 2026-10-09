@@ -246,10 +246,10 @@ function buildingMaterial(night: { value: number }): MeshLambertMaterial {
         `#include <emissivemap_fragment>
         vec2 cell = floor(vFacade / vec2(3.0, 3.3));
         vec2 f = fract(vFacade / vec2(3.0, 3.3));
-        float win = step(0.2, f.x) * step(f.x, 0.8) * step(0.28, f.y) * step(f.y, 0.78) * (1.0 - vRoof) * step(1.0, cell.y);
+        float win = step(0.26, f.x) * step(f.x, 0.74) * step(0.32, f.y) * step(f.y, 0.74) * (1.0 - vRoof) * step(1.0, cell.y);
         float lit = step(0.52, wHash(cell + vec2(floor(vSeed * 13.0), floor(vSeed * 5.0))));
         diffuseColor.rgb *= 1.0 - win * 0.45;
-        totalEmissiveRadiance += win * lit * uNight * vec3(1.0, 0.78, 0.5) * 0.75;`,
+        totalEmissiveRadiance += win * lit * uNight * vec3(1.0, 0.78, 0.5) * 0.5;`,
       );
   };
   return m;

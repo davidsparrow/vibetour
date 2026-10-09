@@ -91,6 +91,7 @@ export class VibeTourSession {
   private stopKey?: string;
   private lastStampId?: string;
   private streaming: boolean;
+  private autoResume: boolean;
   private readonly listeners = new Set<(s: TourSnapshot) => void>();
   private readonly catalogListeners = new Set<(c: Catalog) => void>();
   private latest?: TourSnapshot;
@@ -100,6 +101,7 @@ export class VibeTourSession {
     this.now = opts.now ?? Date.now;
     this.newId = opts.newId ?? defaultId;
     this.streaming = !!opts.streaming;
+    this.autoResume = opts.autoResume !== false;
     const now = this.now();
     this.lastTick = now;
     this.sessionStartedAt = now;
@@ -117,7 +119,7 @@ export class VibeTourSession {
     this.activity.ingest(event);
     const productive =
       event.type === 'editor.edit' || event.type === 'editor.save' || event.type === 'fs.external' || (event.type === 'agent' && (event.status === 'working' || event.status === 'tool'));
-    if (productive && this.journey?.phase === 'parked' && this.parkedBy === 'close' && this.opts.autoResume !== false) {
+    if (productive && this.journey?.phase === 'parked' && this.parkedBy === 'close' && this.autoResume) {
       this.resume();
     }
   }
@@ -135,6 +137,10 @@ export class VibeTourSession {
   setStreaming(on: boolean): void {
     this.streaming = on;
     this.emitCatalog();
+  }
+
+  setAutoResume(on: boolean): void {
+    this.autoResume = on;
   }
 
   get latestSnapshot(): TourSnapshot | undefined {

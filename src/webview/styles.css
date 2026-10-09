@@ -2025,7 +2025,7 @@ button.problem:hover {
     min-height: 140px;
   }
   .mirror {
-    top: 62px;
+    display: none;
   }
   .pane-nav.active {
     grid-template-columns: 1fr;

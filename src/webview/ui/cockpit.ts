@@ -401,7 +401,7 @@ export class Cockpit {
       for (const w of pack.route.waypoints) this.stripTicks.append(h('i', { style: `left:${w.at * 100}%`, title: w.name }));
     }
     text(this.stripTitle, `${pack.route.from} → ${pack.route.to}`);
-    text(this.stripLoc, `${j.location.label} · ${snap.motion.caption}`);
+    text(this.stripLoc, snap.motion.caption === j.location.label ? j.location.label : `${j.location.label} · ${snap.motion.caption}`);
     const p = j.scope === 'free-drive' ? (j.travelMs / 3_600_000) % 1 : j.progress;
     this.stripProgress.style.width = `${(p * 100).toFixed(2)}%`;
     this.stripCar.style.left = `${(p * 100).toFixed(2)}%`;
