@@ -1,0 +1,152 @@
+{
+  "id": "scottish-highlands",
+  "version": "1.0.0",
+  "title": "Scottish Highlands",
+  "subtitle": "Glencoe → Eilean Donan",
+  "region": "Highlands",
+  "country": "United Kingdom",
+  "countryCode": "GB",
+  "continent": "Europe",
+  "type": "route",
+  "authenticity": "scenic",
+  "travelMode": "drive",
+  "drivingSide": "left",
+  "description": "Through Glencoe, past Ben Nevis and along the lochs to the Five Sisters of Kintail and Eilean Donan Castle.",
+  "tags": ["mountains", "lochs", "castles", "moorland"],
+  "moods": ["mountains", "quiet", "rain"],
+  "cruiseSpeed": 19,
+  "route": {
+    "name": "A82 & A87",
+    "from": "Glencoe",
+    "to": "Eilean Donan",
+    "distanceLabel": "Glens, lochs and a castle",
+    "waypoints": [
+      { "name": "Glencoe", "at": 0, "x": 0.45, "y": 0.92 },
+      { "name": "Ballachulish", "at": 0.1, "x": 0.4, "y": 0.85 },
+      { "name": "Fort William", "at": 0.3, "x": 0.45, "y": 0.7 },
+      { "name": "Spean Bridge", "at": 0.42, "x": 0.52, "y": 0.6 },
+      { "name": "Invergarry", "at": 0.58, "x": 0.5, "y": 0.45 },
+      { "name": "Glen Shiel", "at": 0.8, "x": 0.3, "y": 0.3 },
+      { "name": "Eilean Donan", "at": 1, "x": 0.15, "y": 0.18 }
+    ]
+  },
+  "ticket": { "priceLabel": "Included", "original": true, "badges": ["VibeTour Original", "Route Journey"], "approxMinutes": 120 },
+  "variants": [
+    { "id": "drizzle", "label": "Highland Drizzle", "timeOfDay": "day", "weather": "rain", "default": true },
+    { "id": "summer-evening", "label": "Long Summer Evening", "timeOfDay": "golden", "arrivalTimeOfDay": "sunset", "weather": "clear" },
+    { "id": "mist", "label": "Morning Mist", "timeOfDay": "morning", "weather": "fog" },
+    { "id": "sunshine", "label": "Rare Sunshine", "timeOfDay": "day", "weather": "clear" }
+  ],
+  "palette": {
+    "ground": "#6b7a45",
+    "groundFar": "#7c6e4e",
+    "rock": "#6a6560",
+    "snow": "#eef0f2",
+    "sand": "#b9a98a",
+    "road": "#4c4d52",
+    "roadLine": "#f2f2f2",
+    "foliage": "#5c7a3f",
+    "foliageDark": "#2f4a2e",
+    "water": "#2f4d5c",
+    "building": "#d8d4cc",
+    "accents": ["#7a5c8e", "#c9a227", "#9b3d2f"]
+  },
+  "environment": {
+    "left": { "terrain": "mountains", "height": 160 },
+    "right": { "terrain": "hills", "height": 80 },
+    "props": { "rock": 2, "bush": 2.5, "sheep": 1, "stonewall": 1.5, "pine": 0.6, "pole": 0.2 },
+    "curvature": 1,
+    "hilliness": 0.6,
+    "checkpoint": "straight",
+    "sunAzimuth": 60
+  },
+  "sceneGraph": {
+    "start": "glencoe",
+    "nodes": {
+      "glencoe": {
+        "kind": "departure",
+        "label": "Glencoe",
+        "weight": 1.2,
+        "env": {
+          "left": { "terrain": "mountains", "height": 220 },
+          "right": { "terrain": "mountains", "height": 200 },
+          "props": { "rock": 3, "bush": 3, "sheep": 0.6 }
+        },
+        "next": ["loch-leven"]
+      },
+      "loch-leven": {
+        "kind": "cruise",
+        "label": "Loch Leven shore",
+        "weight": 1.5,
+        "env": { "right": { "terrain": "lake", "height": 140 }, "props": { "pine": 2, "bush": 2, "rock": 1 }, "guardrail": true },
+        "next": ["fort-william"]
+      },
+      "fort-william": {
+        "kind": "cruise",
+        "label": "Fort William & Ben Nevis",
+        "weight": 1.5,
+        "env": { "left": { "terrain": "mountains", "height": 280 }, "props": { "building": 1.5, "streetlight": 1.2, "broadleaf": 1.5, "stonewall": 1 } },
+        "next": ["loch-lochy", "moorland"]
+      },
+      "loch-lochy": {
+        "kind": "cruise",
+        "label": "Loch Lochy",
+        "weight": 2,
+        "env": { "right": { "terrain": "lake", "height": 160 }, "props": { "pine": 4, "broadleaf": 1 }, "guardrail": true },
+        "next": ["glen-shiel"]
+      },
+      "moorland": {
+        "kind": "cruise",
+        "label": "Commando Memorial moorland",
+        "weight": 2,
+        "env": { "left": { "terrain": "hills", "height": 90 }, "right": { "terrain": "hills", "height": 70 }, "props": { "sheep": 3, "stonewall": 3, "bush": 3, "rock": 1 } },
+        "next": ["glen-shiel"]
+      },
+      "glen-shiel": {
+        "kind": "cruise",
+        "label": "Glen Shiel — the Five Sisters",
+        "weight": 2,
+        "env": { "left": { "terrain": "mountains", "height": 240 }, "right": { "terrain": "mountains", "height": 220 }, "props": { "rock": 2.5, "bush": 2, "pine": 1 }, "curvature": 1.3 },
+        "next": ["loch-duich"]
+      },
+      "loch-duich": {
+        "kind": "cruise",
+        "label": "Loch Duich",
+        "weight": 1.5,
+        "env": { "right": { "terrain": "lake", "height": 180 }, "props": { "sheep": 1.5, "stonewall": 2, "bush": 2 } },
+        "next": ["eilean-donan"]
+      },
+      "eilean-donan": {
+        "kind": "arrival",
+        "label": "Eilean Donan",
+        "weight": 1,
+        "env": {
+          "landmark": "castle",
+          "landmarkSide": "right",
+          "right": { "terrain": "lake", "height": 160 },
+          "props": { "bush": 2, "stonewall": 1, "building": 0.6, "lantern": 0.6 }
+        }
+      }
+    }
+  },
+  "scenicStops": [
+    { "name": "the Three Sisters viewpoint", "kind": "viewpoint" },
+    { "name": "a lochside lay-by", "kind": "rest-area" },
+    { "name": "a café in Fort William", "kind": "cafe" },
+    { "name": "the Commando Memorial", "kind": "overlook" },
+    { "name": "a passing place in Glen Shiel", "kind": "viewpoint" }
+  ],
+  "arrival": { "name": "Eilean Donan", "scene": "Eilean Donan Castle on Loch Duich" },
+  "facts": [
+    "Ben Nevis, above Fort William, is the highest mountain in the British Isles at 1,345 m.",
+    "Eilean Donan Castle stands where three sea lochs meet.",
+    "Buachaille Etive Mòr guards the eastern entrance to Glencoe."
+  ],
+  "audio": { "ambience": ["wind", "rain", "stream"] },
+  "provenance": {
+    "creator": "VibeTour Originals",
+    "generation": "procedural",
+    "license": "Included with VibeTour",
+    "sources": ["Procedural environment inspired by the West Highlands of Scotland"]
+  }
+}

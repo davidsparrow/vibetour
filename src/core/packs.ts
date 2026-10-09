@@ -18,6 +18,7 @@ export type TerrainKind = 'ocean' | 'cliffs' | 'hills' | 'mountains' | 'flat' | 
 export const PROP_KINDS = [
   'pine',
   'cypress',
+  'windswept',
   'broadleaf',
   'palm',
   'rock',
@@ -71,6 +72,8 @@ export interface Palette {
   water: string;
   building: string;
   accents: string[];
+  /** Optional sky tint, e.g. a butterscotch Martian sky. */
+  skyTint?: string;
 }
 
 export interface EnvParams {
@@ -86,6 +89,8 @@ export interface EnvParams {
   hilliness?: number;
   tunnel?: boolean;
   bridge?: boolean;
+  /** Sun bearing in degrees relative to the direction of travel (+ = right). */
+  sunAzimuth?: number;
   /** How "tests running" is staged on this road (PRD §41). */
   checkpoint?: 'tunnel' | 'gallery' | 'straight';
   guardrail?: boolean;
@@ -110,6 +115,8 @@ export interface Variant {
   /** Optional time of day reached at arrival ("the sun is setting"). */
   arrivalTimeOfDay?: TimeOfDay;
   weather: Weather;
+  /** Overrides the pack's sky tint for this variant (e.g. a blue Martian sunset). */
+  skyTint?: string;
   default?: boolean;
 }
 
@@ -274,6 +281,7 @@ export function validatePack(raw: unknown): ValidationResult {
     const visit = (id: string, stack: Set<string>): boolean => {
       if (canArrive.has(id)) return canArrive.get(id)!;
       const node = graph.nodes[id];
+      if (!node) return false;
       if (node.kind === 'arrival') {
         canArrive.set(id, true);
         return true;

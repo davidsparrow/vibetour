@@ -1,0 +1,158 @@
+{
+  "id": "tuscany",
+  "version": "1.0.0",
+  "title": "Tuscany Golden Hour",
+  "subtitle": "Florence → Siena",
+  "region": "Chianti",
+  "country": "Italy",
+  "countryCode": "IT",
+  "continent": "Europe",
+  "type": "route",
+  "authenticity": "scenic",
+  "travelMode": "drive",
+  "drivingSide": "right",
+  "description": "The Chiantigiana through vineyards, cypress avenues and hilltop villages, arriving in Siena as the sun sets.",
+  "tags": ["vineyards", "hills", "villages", "sunset"],
+  "moods": ["warm", "quiet"],
+  "cruiseSpeed": 18,
+  "route": {
+    "name": "SR222 Chiantigiana",
+    "from": "Florence",
+    "to": "Siena",
+    "distanceLabel": "Through the heart of Chianti",
+    "waypoints": [
+      { "name": "Florence", "at": 0, "x": 0.45, "y": 0.08 },
+      { "name": "Strada in Chianti", "at": 0.15, "x": 0.47, "y": 0.22 },
+      { "name": "Greve in Chianti", "at": 0.32, "x": 0.5, "y": 0.36 },
+      { "name": "Panzano", "at": 0.45, "x": 0.49, "y": 0.47 },
+      { "name": "Castellina in Chianti", "at": 0.62, "x": 0.44, "y": 0.62 },
+      { "name": "Quercegrossa", "at": 0.82, "x": 0.47, "y": 0.78 },
+      { "name": "Siena", "at": 1, "x": 0.5, "y": 0.92 }
+    ]
+  },
+  "ticket": { "priceLabel": "Included", "original": true, "badges": ["VibeTour Original", "Route Journey"], "approxMinutes": 120 },
+  "variants": [
+    { "id": "golden", "label": "Golden Hour → Sunset", "timeOfDay": "golden", "arrivalTimeOfDay": "sunset", "weather": "clear", "default": true },
+    { "id": "misty-morning", "label": "Misty Morning", "timeOfDay": "morning", "weather": "fog" },
+    { "id": "summer", "label": "Summer Afternoon", "timeOfDay": "day", "weather": "clear" },
+    { "id": "evening", "label": "Evening in Chianti", "timeOfDay": "dusk", "weather": "clear" }
+  ],
+  "palette": {
+    "ground": "#a3a85e",
+    "groundFar": "#c9b57c",
+    "rock": "#a08a6d",
+    "snow": "#f2efe8",
+    "sand": "#d8c08e",
+    "road": "#57565c",
+    "roadLine": "#f2f2f2",
+    "foliage": "#6f8a45",
+    "foliageDark": "#3a5530",
+    "water": "#4a7d8c",
+    "building": "#dcbb8c",
+    "accents": ["#b5562f", "#e0a458", "#7a3b2e"]
+  },
+  "environment": {
+    "left": { "terrain": "hills", "height": 45 },
+    "right": { "terrain": "hills", "height": 35 },
+    "props": { "cypress": 3, "vineyard": 4, "farmhouse": 0.5, "broadleaf": 0.8 },
+    "curvature": 1,
+    "hilliness": 1,
+    "checkpoint": "tunnel",
+    "sunAzimuth": 70
+  },
+  "sceneGraph": {
+    "start": "florence",
+    "nodes": {
+      "florence": {
+        "kind": "departure",
+        "label": "Leaving Florence",
+        "weight": 1,
+        "env": {
+          "left": { "terrain": "hills", "height": 25 },
+          "right": { "terrain": "hills", "height": 20 },
+          "props": { "building": 3, "cypress": 2, "streetlight": 1.5, "broadleaf": 1 },
+          "curvature": 0.6
+        },
+        "next": ["vineyards"]
+      },
+      "vineyards": {
+        "kind": "cruise",
+        "label": "Chianti vineyards",
+        "weight": 2.5,
+        "env": { "props": { "vineyard": 6, "cypress": 2, "farmhouse": 0.4 } },
+        "next": ["cypress-avenue", "olive-groves"]
+      },
+      "cypress-avenue": {
+        "kind": "cruise",
+        "label": "Cypress avenue",
+        "weight": 1.5,
+        "env": { "props": { "cypress": 9, "vineyard": 3 }, "curvature": 0.5 },
+        "next": ["greve"]
+      },
+      "olive-groves": {
+        "kind": "cruise",
+        "label": "Olive groves",
+        "weight": 1.5,
+        "env": { "props": { "broadleaf": 5, "stonewall": 2, "cypress": 1 } },
+        "next": ["greve"]
+      },
+      "greve": {
+        "kind": "cruise",
+        "label": "Greve in Chianti",
+        "weight": 1.5,
+        "env": { "props": { "farmhouse": 1.4, "building": 1, "cypress": 2, "vineyard": 3, "lantern": 0.6 } },
+        "next": ["castellina"]
+      },
+      "castellina": {
+        "kind": "landmark",
+        "label": "Castellina in Chianti",
+        "weight": 1.5,
+        "env": { "landmark": "hill-town", "landmarkSide": "left", "props": { "vineyard": 4, "cypress": 2 } },
+        "next": ["rolling-hills"]
+      },
+      "rolling-hills": {
+        "kind": "cruise",
+        "label": "Rolling hills",
+        "weight": 2,
+        "env": {
+          "left": { "terrain": "hills", "height": 65 },
+          "right": { "terrain": "hills", "height": 55 },
+          "props": { "vineyard": 3, "farmhouse": 1, "cypress": 2.5 },
+          "hilliness": 1.2
+        },
+        "next": ["siena"]
+      },
+      "siena": {
+        "kind": "arrival",
+        "label": "Siena",
+        "weight": 1,
+        "env": {
+          "landmark": "bell-tower",
+          "landmarkSide": "right",
+          "props": { "building": 4, "streetlight": 2, "cypress": 1, "lantern": 1 },
+          "curvature": 0.5
+        }
+      }
+    }
+  },
+  "scenicStops": [
+    { "name": "a cypress-lined viewpoint", "kind": "viewpoint" },
+    { "name": "an enoteca in Greve in Chianti", "kind": "cafe" },
+    { "name": "a farmhouse agriturismo", "kind": "hotel" },
+    { "name": "a hilltop piazza in Castellina", "kind": "village" },
+    { "name": "a roadside shrine above the vineyards", "kind": "overlook" }
+  ],
+  "arrival": { "name": "Siena", "scene": "Piazza del Campo at sunset" },
+  "facts": [
+    "The Chiantigiana (SR222) winds through the Chianti wine region between Florence and Siena.",
+    "Siena's Torre del Mangia, completed in 1348, rises over Piazza del Campo.",
+    "Chianti Classico wines carry the black rooster emblem."
+  ],
+  "audio": { "ambience": ["birds", "wind"] },
+  "provenance": {
+    "creator": "VibeTour Originals",
+    "generation": "procedural",
+    "license": "Included with VibeTour",
+    "sources": ["Procedural environment inspired by the Chianti region of Tuscany"]
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "id": "mars-colony",
+  "version": "1.0.0",
+  "title": "Mars Colony Drive",
+  "subtitle": "Jezero Rim → Ares Prime",
+  "region": "Jezero Crater",
+  "country": "Mars",
+  "countryCode": "MARS",
+  "continent": "Off-World",
+  "type": "fantasy",
+  "authenticity": "dream",
+  "travelMode": "drive",
+  "drivingSide": "right",
+  "description": "A pressurised rover glides from the rim of Jezero Crater, over dune seas and through a lava tube, to the domes of a fictional colony under a blue sunset.",
+  "tags": ["fantasy", "space", "desert", "domes"],
+  "moods": ["fantasy", "quiet"],
+  "cruiseSpeed": 22,
+  "route": {
+    "name": "Colony Highway 1",
+    "from": "Jezero Rim",
+    "to": "Ares Prime",
+    "distanceLabel": "A fictional colony road",
+    "waypoints": [
+      { "name": "Jezero Rim", "at": 0, "x": 0.2, "y": 0.3 },
+      { "name": "Dune Sea", "at": 0.3, "x": 0.38, "y": 0.42 },
+      { "name": "Tharsis Gap", "at": 0.55, "x": 0.55, "y": 0.5 },
+      { "name": "Solar Fields", "at": 0.78, "x": 0.7, "y": 0.62 },
+      { "name": "Ares Prime", "at": 1, "x": 0.84, "y": 0.72 }
+    ]
+  },
+  "ticket": { "priceLabel": "Included", "original": true, "badges": ["VibeTour Original", "Fantasy Journey"], "approxMinutes": 60 },
+  "variants": [
+    { "id": "sol-day", "label": "Butterscotch Day", "timeOfDay": "day", "weather": "clear", "default": true },
+    { "id": "blue-sunset", "label": "Blue Sunset", "timeOfDay": "sunset", "weather": "clear", "skyTint": "#6f8fc9" },
+    { "id": "dust-storm", "label": "Dust Storm", "timeOfDay": "day", "weather": "fog" },
+    { "id": "phobos", "label": "Phobos Rising", "timeOfDay": "night", "weather": "clear" }
+  ],
+  "palette": {
+    "ground": "#b5653a",
+    "groundFar": "#c98a5a",
+    "rock": "#7a3e28",
+    "snow": "#e8d6c4",
+    "sand": "#d39a6a",
+    "road": "#3e3738",
+    "roadLine": "#7fe0ff",
+    "foliage": "#7a6a5a",
+    "foliageDark": "#4a3d35",
+    "water": "#4a3d35",
+    "building": "#e8e6e2",
+    "accents": ["#7fe0ff", "#ff9e3d", "#b5f1ff"],
+    "skyTint": "#d9a066"
+  },
+  "environment": {
+    "left": { "terrain": "dunes", "height": 20 },
+    "right": { "terrain": "mountains", "height": 120 },
+    "props": { "rock": 3, "dome": 0.4, "pole": 0.3 },
+    "curvature": 0.8,
+    "hilliness": 0.5,
+    "checkpoint": "tunnel",
+    "sunAzimuth": 30
+  },
+  "sceneGraph": {
+    "start": "jezero",
+    "nodes": {
+      "jezero": {
+        "kind": "departure",
+        "label": "Jezero Crater rim",
+        "weight": 1,
+        "env": { "props": { "dome": 1.5, "rock": 2, "streetlight": 1 } },
+        "next": ["dunes"]
+      },
+      "dunes": {
+        "kind": "cruise",
+        "label": "Dune sea",
+        "weight": 2.5,
+        "env": { "left": { "terrain": "dunes", "height": 30 }, "right": { "terrain": "dunes", "height": 25 }, "props": { "rock": 1 }, "curvature": 0.6 },
+        "next": ["lava-tube", "canyon"]
+      },
+      "lava-tube": {
+        "kind": "transition",
+        "label": "Lava tube",
+        "weight": 1,
+        "env": { "tunnel": true, "props": { "rock": 2 } },
+        "next": ["solar-fields"]
+      },
+      "canyon": {
+        "kind": "cruise",
+        "label": "Tharsis Gap canyon",
+        "weight": 2,
+        "env": { "left": { "terrain": "mountains", "height": 170 }, "right": { "terrain": "mountains", "height": 160 }, "props": { "rock": 4 }, "curvature": 1.2 },
+        "next": ["solar-fields"]
+      },
+      "solar-fields": {
+        "kind": "cruise",
+        "label": "Solar fields",
+        "weight": 2,
+        "env": { "left": { "terrain": "flat" }, "props": { "pole": 3, "dome": 0.6, "rock": 1, "streetlight": 0.8 } },
+        "next": ["approach"]
+      },
+      "approach": {
+        "kind": "landmark",
+        "label": "Ares Prime skyline",
+        "weight": 1.5,
+        "env": { "landmark": "dome-city", "landmarkSide": "right", "props": { "dome": 1, "rock": 1.5, "streetlight": 1.5 } },
+        "next": ["ares-prime"]
+      },
+      "ares-prime": {
+        "kind": "arrival",
+        "label": "Ares Prime",
+        "weight": 1,
+        "env": { "props": { "dome": 3, "streetlight": 2, "rock": 1 }, "curvature": 0.4 }
+      }
+    }
+  },
+  "scenicStops": [
+    { "name": "a pressurised rover rest stop", "kind": "rest-area" },
+    { "name": "the crater rim overlook", "kind": "overlook" },
+    { "name": "a solar farm service bay", "kind": "station" },
+    { "name": "the Ares Prime observation deck", "kind": "viewpoint" }
+  ],
+  "arrival": { "name": "Ares Prime", "scene": "the habitat domes under a blue sunset" },
+  "facts": [
+    "Sunsets on Mars glow blue because fine dust scatters blue light towards the observer.",
+    "A Martian day — a sol — lasts about 24 hours and 39 minutes.",
+    "Jezero Crater, explored by NASA's Perseverance rover, once held a lake. Ares Prime is fictional."
+  ],
+  "audio": { "ambience": ["wind", "hum"] },
+  "provenance": {
+    "creator": "VibeTour Originals",
+    "generation": "procedural",
+    "license": "Included with VibeTour",
+    "sources": ["Fictional journey inspired by Jezero Crater; colony and road are imaginary"]
+  }
+}

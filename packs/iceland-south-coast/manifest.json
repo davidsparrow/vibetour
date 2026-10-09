@@ -1,0 +1,141 @@
+{
+  "id": "iceland-south-coast",
+  "version": "1.0.0",
+  "title": "Iceland South Coast",
+  "subtitle": "Seljalandsfoss → Vík",
+  "region": "Suðurland",
+  "country": "Iceland",
+  "countryCode": "IS",
+  "continent": "Europe",
+  "type": "route",
+  "authenticity": "scenic",
+  "travelMode": "drive",
+  "drivingSide": "right",
+  "description": "The Ring Road along the south coast: waterfalls pouring off old sea cliffs, glacier-capped volcanoes, black sand and the sea stacks of Vík.",
+  "tags": ["waterfalls", "volcanic", "black sand", "ocean"],
+  "moods": ["quiet", "ocean"],
+  "cruiseSpeed": 22,
+  "route": {
+    "name": "Route 1 — the Ring Road",
+    "from": "Seljalandsfoss",
+    "to": "Vík",
+    "distanceLabel": "Along the south coast",
+    "waypoints": [
+      { "name": "Seljalandsfoss", "at": 0, "x": 0.12, "y": 0.42 },
+      { "name": "Eyjafjallajökull", "at": 0.22, "x": 0.28, "y": 0.5 },
+      { "name": "Skógafoss", "at": 0.4, "x": 0.42, "y": 0.56 },
+      { "name": "Sólheimasandur", "at": 0.55, "x": 0.52, "y": 0.6 },
+      { "name": "Dyrhólaey", "at": 0.78, "x": 0.7, "y": 0.7 },
+      { "name": "Vík", "at": 1, "x": 0.86, "y": 0.62 }
+    ]
+  },
+  "ticket": { "priceLabel": "Included", "original": true, "badges": ["VibeTour Original", "Route Journey"], "approxMinutes": 90 },
+  "variants": [
+    { "id": "overcast", "label": "Moody Overcast", "timeOfDay": "day", "weather": "cloudy", "default": true },
+    { "id": "midnight-sun", "label": "Midnight Sun", "timeOfDay": "golden", "weather": "clear" },
+    { "id": "squall", "label": "Atlantic Squall", "timeOfDay": "day", "weather": "rain" },
+    { "id": "winter", "label": "Winter Twilight", "timeOfDay": "dusk", "weather": "snow" }
+  ],
+  "palette": {
+    "ground": "#6e7f48",
+    "groundFar": "#5f6852",
+    "rock": "#423f3c",
+    "snow": "#eef2f6",
+    "sand": "#2d2d30",
+    "road": "#4a4b50",
+    "roadLine": "#f0f0f0",
+    "foliage": "#7b8d4c",
+    "foliageDark": "#4e5f36",
+    "water": "#2f566b",
+    "building": "#f2f0ea",
+    "accents": ["#c7372f", "#e8b04a", "#4e7fa1"]
+  },
+  "environment": {
+    "left": { "terrain": "mountains", "height": 150 },
+    "right": { "terrain": "ocean" },
+    "props": { "rock": 1.5, "bush": 0.8, "snowpole": 1, "pole": 0.3 },
+    "curvature": 0.6,
+    "hilliness": 0.3,
+    "checkpoint": "straight",
+    "sunAzimuth": 60
+  },
+  "sceneGraph": {
+    "start": "seljalandsfoss",
+    "nodes": {
+      "seljalandsfoss": {
+        "kind": "departure",
+        "label": "Seljalandsfoss",
+        "weight": 1,
+        "env": { "landmark": "waterfall", "landmarkSide": "left", "left": { "terrain": "mountains", "height": 110 } },
+        "next": ["foothills"]
+      },
+      "foothills": {
+        "kind": "cruise",
+        "label": "Eyjafjallajökull foothills",
+        "weight": 2.5,
+        "env": { "left": { "terrain": "mountains", "height": 220 }, "props": { "rock": 2, "bush": 1, "snowpole": 1, "farmhouse": 0.2 } },
+        "next": ["black-sand", "skogafoss"]
+      },
+      "black-sand": {
+        "kind": "cruise",
+        "label": "Black sand plains",
+        "weight": 1.5,
+        "env": { "left": { "terrain": "flat" }, "right": { "terrain": "ocean" }, "props": { "rock": 2.5, "snowpole": 1 }, "curvature": 0.3 },
+        "next": ["solheimasandur"]
+      },
+      "skogafoss": {
+        "kind": "landmark",
+        "label": "Skógafoss",
+        "weight": 1.5,
+        "env": { "landmark": "waterfall", "landmarkSide": "left", "props": { "rock": 1, "bush": 1 } },
+        "next": ["solheimasandur"]
+      },
+      "solheimasandur": {
+        "kind": "cruise",
+        "label": "Sólheimasandur",
+        "weight": 2,
+        "env": { "left": { "terrain": "mountains", "height": 180 }, "right": { "terrain": "ocean" }, "props": { "rock": 1.5, "snowpole": 1 } },
+        "next": ["dyrholaey"]
+      },
+      "dyrholaey": {
+        "kind": "landmark",
+        "label": "Dyrhólaey lighthouse",
+        "weight": 1.5,
+        "env": { "landmark": "lighthouse", "landmarkSide": "right", "right": { "terrain": "cliffs", "height": 40 }, "guardrail": true },
+        "next": ["vik"]
+      },
+      "vik": {
+        "kind": "arrival",
+        "label": "Vík í Mýrdal",
+        "weight": 1,
+        "env": {
+          "landmark": "chapel",
+          "landmarkSide": "left",
+          "left": { "terrain": "hills", "height": 90 },
+          "right": { "terrain": "ocean" },
+          "props": { "building": 1.2, "rock": 3, "streetlight": 1 }
+        }
+      }
+    }
+  },
+  "scenicStops": [
+    { "name": "the Seljalandsfoss car park", "kind": "viewpoint" },
+    { "name": "a lay-by beneath Eyjafjallajökull", "kind": "rest-area" },
+    { "name": "the Skógafoss viewpoint", "kind": "overlook" },
+    { "name": "Reynisfjara black sand beach", "kind": "beach" },
+    { "name": "a roadside café in Vík", "kind": "cafe" }
+  ],
+  "arrival": { "name": "Vík", "scene": "Reynisdrangar sea stacks beyond the black sand" },
+  "facts": [
+    "Route 1, Iceland's Ring Road, circles the island for about 1,332 km.",
+    "You can walk behind the curtain of water at Seljalandsfoss.",
+    "Reynisdrangar are basalt sea stacks just off the black sand beach at Vík."
+  ],
+  "audio": { "ambience": ["ocean", "wind"] },
+  "provenance": {
+    "creator": "VibeTour Originals",
+    "generation": "procedural",
+    "license": "Included with VibeTour",
+    "sources": ["Procedural environment inspired by Iceland's south coast"]
+  }
+}

@@ -18,6 +18,7 @@ const AGENT_BINARIES = new Set([
   'copilot',
   'qwen',
   'crush',
+  'claude-code',
 ]);
 
 const TEST_RE =
@@ -46,13 +47,17 @@ function tokens(commandLine: string): string[] {
   return parts.slice(i).map((p, idx) => (idx === 0 ? p.split(/[\\/]/).pop() || p : p));
 }
 
-function scrubToken(token: string): string | undefined {
-  if (token.startsWith('-')) return undefined;
-  if (/[=@:]/.test(token) && !/^[a-z]+:[a-z:-]+$/i.test(token)) return undefined;
-  if (token.length > 24) return undefined;
-  if (/^[0-9a-f]{12,}$/i.test(token)) return undefined;
-  if (/^['"]/.test(token)) return undefined;
-  return token;
+/** The program name: anything that looks like a plain executable name. */
+function scrubProgram(token: string): string | undefined {
+  return /^[A-Za-z0-9][\w.+-]{0,30}$/.test(token) && !/[0-9a-f]{12,}/i.test(token) ? token : undefined;
+}
+
+/**
+ * Sub-commands must be plain words (`test`, `run`, `test:unit`). Anything with
+ * digits, dots, slashes, quotes or `=` might be a path, value or secret.
+ */
+function scrubWord(token: string): string | undefined {
+  return token.length <= 24 && /^[a-z]+(?:[:-][a-z]+)*$/i.test(token) ? token : undefined;
 }
 
 export function safeLabel(commandLine: string, maxTokens = 3): string {
@@ -61,9 +66,9 @@ export function safeLabel(commandLine: string, maxTokens = 3): string {
   for (const tok of t) {
     if (out.length >= maxTokens) break;
     if (/^(&&|\|\||;|\|)$/.test(tok)) break;
-    const s = scrubToken(tok);
-    if (s) out.push(s);
-    else if (out.length > 0) break;
+    const s = out.length === 0 ? scrubProgram(tok) : scrubWord(tok);
+    if (!s) break;
+    out.push(s);
   }
   return out.join(' ') || 'command';
 }
@@ -74,9 +79,9 @@ export function classifyCommand(commandLine: string): Classification {
   const label = safeLabel(first);
   if (t.length === 0) return { kind: 'other', label };
   const bin = t[0].toLowerCase().replace(/\.(exe|cmd|bat|sh)$/, '');
-  if (AGENT_BINARIES.has(bin) || (bin === 'npx' && t[1] && AGENT_BINARIES.has(t[1].replace(/^@[^/]+\//, '')))) {
-    return { kind: 'agent', label: bin === 'npx' ? t[1] : bin };
-  }
+  const viaRunner = (bin === 'npx' || bin === 'bunx' || bin === 'pnpx') && t[1] ? t[1].replace(/^@[^/]+\//, '').replace(/@.*$/, '') : undefined;
+  const agent = AGENT_BINARIES.has(bin) ? bin : viaRunner && AGENT_BINARIES.has(viaRunner) ? viaRunner : undefined;
+  if (agent) return { kind: 'agent', label: agent === 'claude-code' ? 'claude' : agent };
   if (bin === 'git' || bin === 'gh') return { kind: 'git', label };
   const rest = t.join(' ');
   if (INSTALL_RE.test(rest)) return { kind: 'install', label };

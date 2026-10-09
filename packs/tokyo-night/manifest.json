@@ -1,0 +1,159 @@
+{
+  "id": "tokyo-night",
+  "version": "1.0.0",
+  "title": "Tokyo After Dark",
+  "subtitle": "Shibuya → Odaiba",
+  "region": "Tokyo",
+  "country": "Japan",
+  "countryCode": "JP",
+  "continent": "Asia",
+  "type": "landmark",
+  "authenticity": "scenic",
+  "travelMode": "drive",
+  "drivingSide": "left",
+  "description": "Neon canyons, rain-slick streets and the Shuto Expressway, past Tokyo Tower and over the Rainbow Bridge to the bay.",
+  "tags": ["city", "night", "neon", "rain"],
+  "moods": ["city-night", "rain"],
+  "cruiseSpeed": 14,
+  "route": {
+    "name": "Shuto Expressway",
+    "from": "Shibuya",
+    "to": "Odaiba",
+    "distanceLabel": "Across the city to the bay",
+    "waypoints": [
+      { "name": "Shibuya", "at": 0, "x": 0.16, "y": 0.34 },
+      { "name": "Roppongi", "at": 0.25, "x": 0.35, "y": 0.38 },
+      { "name": "Tokyo Tower", "at": 0.45, "x": 0.48, "y": 0.48 },
+      { "name": "Shibaura", "at": 0.65, "x": 0.62, "y": 0.6 },
+      { "name": "Rainbow Bridge", "at": 0.8, "x": 0.72, "y": 0.7 },
+      { "name": "Odaiba", "at": 1, "x": 0.84, "y": 0.8 }
+    ]
+  },
+  "ticket": { "priceLabel": "Included", "original": true, "badges": ["VibeTour Original", "Night City"], "approxMinutes": 60 },
+  "variants": [
+    { "id": "neon-night", "label": "Neon Night", "timeOfDay": "night", "weather": "clear", "default": true },
+    { "id": "neon-rain", "label": "Tokyo Rain", "timeOfDay": "night", "weather": "rain" },
+    { "id": "magic-hour", "label": "Magic Hour", "timeOfDay": "dusk", "weather": "clear" },
+    { "id": "day", "label": "Tokyo Day", "timeOfDay": "day", "weather": "cloudy" }
+  ],
+  "palette": {
+    "ground": "#3b3e47",
+    "groundFar": "#30333c",
+    "rock": "#5a5b61",
+    "snow": "#e6e9ef",
+    "sand": "#8d8778",
+    "road": "#43454d",
+    "roadLine": "#f0f0f0",
+    "foliage": "#3f6b48",
+    "foliageDark": "#284a33",
+    "water": "#16324a",
+    "building": "#8e94a3",
+    "accents": ["#ff3b8d", "#29d3ff", "#ffd23f", "#7cff6b", "#ff7a29"]
+  },
+  "environment": {
+    "left": { "terrain": "city" },
+    "right": { "terrain": "city" },
+    "props": { "building": 7, "neon": 6, "streetlight": 2.5 },
+    "curvature": 0.5,
+    "hilliness": 0.15,
+    "checkpoint": "tunnel",
+    "sunAzimuth": -30
+  },
+  "sceneGraph": {
+    "start": "shibuya",
+    "nodes": {
+      "shibuya": {
+        "kind": "departure",
+        "label": "Shibuya Crossing",
+        "weight": 1,
+        "env": { "props": { "building": 9, "neon": 9, "streetlight": 2 }, "curvature": 0.3 },
+        "next": ["shuto"]
+      },
+      "shuto": {
+        "kind": "cruise",
+        "label": "Shuto Expressway",
+        "weight": 2.5,
+        "env": { "props": { "building": 6, "neon": 4, "streetlight": 2.5 }, "guardrail": true },
+        "next": ["roppongi", "yamate"]
+      },
+      "roppongi": {
+        "kind": "cruise",
+        "label": "Roppongi lights",
+        "weight": 2,
+        "env": { "props": { "building": 8, "neon": 8, "streetlight": 2 } },
+        "next": ["tower"]
+      },
+      "yamate": {
+        "kind": "transition",
+        "label": "Yamate Tunnel",
+        "weight": 1,
+        "env": { "tunnel": true, "props": { "building": 5, "neon": 3, "streetlight": 2 } },
+        "next": ["tower"]
+      },
+      "tower": {
+        "kind": "landmark",
+        "label": "Tokyo Tower",
+        "weight": 1.5,
+        "env": { "landmark": "lattice-tower", "landmarkSide": "right", "props": { "building": 4, "neon": 3, "streetlight": 2.5, "broadleaf": 2 } },
+        "next": ["shibaura"]
+      },
+      "shibaura": {
+        "kind": "cruise",
+        "label": "Shibaura waterfront",
+        "weight": 2,
+        "env": {
+          "left": { "terrain": "city" },
+          "right": { "terrain": "lake", "height": 30 },
+          "props": { "building": 5, "neon": 2, "streetlight": 2.5 },
+          "guardrail": true
+        },
+        "next": ["rainbow"]
+      },
+      "rainbow": {
+        "kind": "landmark",
+        "label": "Rainbow Bridge",
+        "weight": 1.5,
+        "env": {
+          "left": { "terrain": "lake", "height": 40 },
+          "right": { "terrain": "lake", "height": 40 },
+          "landmark": "suspension-bridge",
+          "bridge": true,
+          "props": { "streetlight": 2 },
+          "curvature": 0.2
+        },
+        "next": ["odaiba"]
+      },
+      "odaiba": {
+        "kind": "arrival",
+        "label": "Odaiba",
+        "weight": 1,
+        "env": {
+          "left": { "terrain": "city" },
+          "right": { "terrain": "ocean" },
+          "props": { "building": 3, "palm": 1.5, "streetlight": 2, "lantern": 1, "neon": 2 },
+          "curvature": 0.4
+        }
+      }
+    }
+  },
+  "scenicStops": [
+    { "name": "a Shibuya rooftop parking deck", "kind": "viewpoint" },
+    { "name": "a konbini on a quiet side street", "kind": "cafe" },
+    { "name": "Shiba Park beneath Tokyo Tower", "kind": "viewpoint" },
+    { "name": "the Odaiba seaside promenade", "kind": "beach" },
+    { "name": "Daikoku Parking Area", "kind": "rest-area" }
+  ],
+  "arrival": { "name": "Odaiba", "scene": "Odaiba Seaside Park, skyline across the bay" },
+  "facts": [
+    "Tokyo Tower, completed in 1958, stands 333 metres tall and wears international orange and white for aviation safety.",
+    "The Rainbow Bridge opened in 1993, linking Shibaura Pier with the Odaiba waterfront.",
+    "Japan drives on the left — so does this journey."
+  ],
+  "audio": { "ambience": ["city", "hum", "rain"] },
+  "provenance": {
+    "creator": "VibeTour Originals",
+    "generation": "procedural",
+    "license": "Included with VibeTour",
+    "sources": ["Procedural night city inspired by central Tokyo and the Shuto Expressway"]
+  }
+}

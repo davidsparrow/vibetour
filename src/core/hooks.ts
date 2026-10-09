@@ -47,11 +47,17 @@ function prettyTool(tool: string): string {
   return tool;
 }
 
+interface SubAgent {
+  id: string;
+  toolUseId?: string;
+}
+
 /**
- * Stateful mapper: remembers sub-agents so SubagentStop can retire them.
+ * Stateful mapper: remembers which crew agent belongs to which delegating tool
+ * call, so parallel sub-agents are retired correctly.
  */
 export class AgentHookMapper {
-  private readonly subagents = new Map<string, string[]>();
+  private readonly subagents = new Map<string, SubAgent[]>();
   private counter = 0;
 
   map(payload: AgentHookPayload): DevEventBody[] {
@@ -72,13 +78,13 @@ export class AgentHookMapper {
         return [{ ...base, status: 'working', detail: 'Working on your request' }];
       case 'PreToolUse': {
         if (SUBAGENT_TOOLS.has(tool)) {
-          const subId = `${agentId}:sub:${payload.tool_use_id?.slice(-8) ?? ++this.counter}`;
-          this.subagents.set(agentId, [...subs, subId]);
+          const sub: SubAgent = { id: `${agentId}:sub:${payload.tool_use_id?.slice(-12) ?? ++this.counter}`, toolUseId: payload.tool_use_id };
+          this.subagents.set(agentId, [...subs, sub]);
           return [
             { ...base, status: 'tool', detail: 'Delegating to a crew agent' },
             {
               type: 'agent',
-              agentId: subId,
+              agentId: sub.id,
               name: crewName(payload.subagent_type),
               role: crewRole(payload.subagent_type),
               status: 'working',
@@ -92,23 +98,23 @@ export class AgentHookMapper {
       case 'PostToolUse': {
         const events: DevEventBody[] = [{ ...base, status: 'working', detail: 'Working' }];
         if (SUBAGENT_TOOLS.has(tool)) {
-          const idSuffix = payload.tool_use_id?.slice(-8);
-          const subId = subs.find((s) => idSuffix && s.endsWith(idSuffix)) ?? subs[0];
-          if (subId) {
-            this.subagents.set(agentId, subs.filter((s) => s !== subId));
-            events.push({ type: 'agent.remove', agentId: subId });
+          // Match the exact delegating call; fall back to the oldest only without an id.
+          const sub = payload.tool_use_id ? subs.find((x) => x.toolUseId === payload.tool_use_id) : subs[0];
+          if (sub) {
+            this.subagents.set(
+              agentId,
+              subs.filter((x) => x !== sub),
+            );
+            events.push({ type: 'agent.remove', agentId: sub.id });
           }
         }
         return events;
       }
       case 'SubagentStart':
+      case 'SubagentStop':
+        // The matching PostToolUse retires the crew agent with its exact id;
+        // SubagentStop fires first and does not say which one finished.
         return [];
-      case 'SubagentStop': {
-        const subId = subs[0];
-        if (!subId) return [];
-        this.subagents.set(agentId, subs.slice(1));
-        return [{ type: 'agent.remove', agentId: subId }];
-      }
       case 'Notification':
         return [
           {
@@ -123,7 +129,7 @@ export class AgentHookMapper {
         return [{ ...base, status: 'tool', detail: 'Compacting context' }];
       case 'SessionEnd':
         this.subagents.delete(agentId);
-        return [{ type: 'agent.remove', agentId }, ...subs.map((s) => ({ type: 'agent.remove' as const, agentId: s }))];
+        return [{ type: 'agent.remove', agentId }, ...subs.map((x) => ({ type: 'agent.remove' as const, agentId: x.id }))];
       default:
         return [];
     }

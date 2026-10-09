@@ -227,28 +227,46 @@ export const MOOD_LABELS: Record<Mood | 'anywhere' | 'surprise', string> = {
   surprise: 'Surprise Me Completely',
 };
 
+const isStr = (v: unknown, max = 200): v is string => typeof v === 'string' && v.length <= max;
+const SCOPE_IDS = ['coffee-run', 'day-trip', 'scenic-drive', 'road-trip', 'expedition', 'free-drive'];
+
+/** Validates a command from an untrusted display (e.g. a companion browser tab). */
 export function isClientCommand(raw: unknown): raw is ClientCommand {
   if (!raw || typeof raw !== 'object') return false;
-  const t = (raw as { type?: unknown }).type;
-  return (
-    typeof t === 'string' &&
-    [
-      'ready',
-      'startJourney',
-      'saveTicket',
-      'toggleFavorite',
-      'completeObjective',
-      'setObjective',
-      'park',
-      'resume',
-      'stay',
-      'endJourney',
-      'saveMemory',
-      'openDocs',
-      'openFile',
-      'focusIde',
-      'savePrefs',
-      'saveCapture',
-    ].includes(t)
-  );
+  const c = raw as Record<string, unknown>;
+  switch (c.type) {
+    case 'ready':
+    case 'completeObjective':
+    case 'park':
+    case 'resume':
+    case 'stay':
+    case 'endJourney':
+    case 'openDocs':
+    case 'focusIde':
+      return true;
+    case 'startJourney':
+      return (
+        isStr(c.packId, 64) &&
+        typeof c.scope === 'string' &&
+        SCOPE_IDS.includes(c.scope) &&
+        (c.variantId === undefined || isStr(c.variantId, 64)) &&
+        (c.objective === undefined || isStr(c.objective, 500))
+      );
+    case 'saveTicket':
+      return isStr(c.packId, 64) && typeof c.saved === 'boolean';
+    case 'toggleFavorite':
+      return isStr(c.packId, 64);
+    case 'setObjective':
+      return isStr(c.objective, 500);
+    case 'saveMemory':
+      return isStr(c.stampId, 100) && isStr(c.note, 2000);
+    case 'openFile':
+      return isStr(c.path, 1024) && (c.line === undefined || (Number.isInteger(c.line) && (c.line as number) >= 0));
+    case 'savePrefs':
+      return !!c.prefs && typeof c.prefs === 'object' && !Array.isArray(c.prefs);
+    case 'saveCapture':
+      return isStr(c.dataUrl, 20_000_000) && (c.dataUrl as string).startsWith('data:image/png;base64,') && isStr(c.fileName, 200);
+    default:
+      return false;
+  }
 }
