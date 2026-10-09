@@ -1,0 +1,205 @@
+{
+  "id": "california-coast",
+  "version": "1.0.0",
+  "title": "California Coast",
+  "subtitle": "Monterey → Big Sur",
+  "region": "California",
+  "country": "United States",
+  "countryCode": "US",
+  "continent": "North America",
+  "type": "route",
+  "authenticity": "scenic",
+  "travelMode": "drive",
+  "drivingSide": "right",
+  "description": "Pacific Coast Highway at golden hour. Cypress, sea cliffs, Bixby Creek Bridge and the long, slow fade into a Big Sur sunset.",
+  "tags": ["coast", "ocean", "cliffs", "sunset"],
+  "moods": ["ocean", "warm"],
+  "cruiseSpeed": 20,
+  "route": {
+    "name": "Highway 1",
+    "from": "Monterey",
+    "to": "Big Sur",
+    "distanceLabel": "About 30 miles of coastline",
+    "waypoints": [
+      { "name": "Monterey", "at": 0, "x": 0.36, "y": 0.06 },
+      { "name": "Carmel-by-the-Sea", "at": 0.12, "x": 0.33, "y": 0.19 },
+      { "name": "Point Lobos", "at": 0.25, "x": 0.29, "y": 0.28 },
+      { "name": "Garrapata", "at": 0.38, "x": 0.33, "y": 0.39 },
+      { "name": "Bixby Creek Bridge", "at": 0.55, "x": 0.39, "y": 0.52 },
+      { "name": "Point Sur", "at": 0.68, "x": 0.41, "y": 0.64 },
+      { "name": "Andrew Molera", "at": 0.82, "x": 0.5, "y": 0.77 },
+      { "name": "Big Sur", "at": 1, "x": 0.6, "y": 0.92 }
+    ]
+  },
+  "ticket": {
+    "priceLabel": "Included",
+    "original": true,
+    "badges": ["VibeTour Original", "Route Journey"],
+    "approxMinutes": 90
+  },
+  "variants": [
+    { "id": "golden", "label": "Golden Hour → Sunset", "timeOfDay": "golden", "arrivalTimeOfDay": "sunset", "weather": "clear", "default": true },
+    { "id": "morning-fog", "label": "Morning Marine Layer", "timeOfDay": "morning", "weather": "fog" },
+    { "id": "day", "label": "Bright Afternoon", "timeOfDay": "day", "weather": "clear" },
+    { "id": "drizzle", "label": "Winter Drizzle", "timeOfDay": "day", "weather": "rain" },
+    { "id": "night", "label": "Moonlit Coast", "timeOfDay": "night", "weather": "clear" }
+  ],
+  "palette": {
+    "ground": "#7f8a4c",
+    "groundFar": "#a59b63",
+    "rock": "#8c7360",
+    "snow": "#eef0f2",
+    "sand": "#d9c49b",
+    "road": "#3b3b42",
+    "roadLine": "#f2cf62",
+    "foliage": "#56703c",
+    "foliageDark": "#2f4a2d",
+    "water": "#2a6a8c",
+    "building": "#dccdb2",
+    "accents": ["#ff8a4c", "#ffd27a", "#c7543a"]
+  },
+  "environment": {
+    "left": { "terrain": "hills", "height": 70 },
+    "right": { "terrain": "cliffs", "height": 45 },
+    "props": { "cypress": 1.2, "bush": 3, "rock": 1.2, "pole": 0.4 },
+    "curvature": 1,
+    "hilliness": 0.6,
+    "guardrail": true,
+    "checkpoint": "gallery"
+  },
+  "sceneGraph": {
+    "start": "departure",
+    "nodes": {
+      "departure": {
+        "kind": "departure",
+        "label": "Leaving Monterey",
+        "weight": 1,
+        "env": {
+          "left": { "terrain": "hills", "height": 30 },
+          "right": { "terrain": "ocean" },
+          "props": { "building": 2.2, "palm": 1.5, "streetlight": 1.5, "cypress": 0.8, "bush": 2 },
+          "curvature": 0.5,
+          "guardrail": false
+        },
+        "next": ["carmel"]
+      },
+      "carmel": {
+        "kind": "cruise",
+        "label": "Carmel pines",
+        "weight": 2,
+        "env": {
+          "left": { "terrain": "hills", "height": 45 },
+          "right": { "terrain": "ocean" },
+          "props": { "pine": 3.5, "cypress": 2.5, "bush": 2, "rock": 0.6 },
+          "curvature": 0.8,
+          "guardrail": false
+        },
+        "next": ["coast-a"]
+      },
+      "coast-a": {
+        "kind": "cruise",
+        "label": "Coastal road",
+        "weight": 3,
+        "next": ["cliffs", "canyon"]
+      },
+      "cliffs": {
+        "kind": "cruise",
+        "label": "Garrapata cliffs",
+        "weight": 2,
+        "env": {
+          "left": { "terrain": "mountains", "height": 110 },
+          "right": { "terrain": "cliffs", "height": 70 },
+          "props": { "bush": 4, "rock": 2, "cypress": 0.6 },
+          "curvature": 1.3
+        },
+        "next": ["bixby"]
+      },
+      "canyon": {
+        "kind": "cruise",
+        "label": "Redwood canyon",
+        "weight": 2,
+        "env": {
+          "left": { "terrain": "mountains", "height": 90 },
+          "right": { "terrain": "hills", "height": 60 },
+          "props": { "pine": 7, "broadleaf": 1.5, "bush": 2 },
+          "curvature": 1.4,
+          "guardrail": false
+        },
+        "next": ["bixby"]
+      },
+      "bixby": {
+        "kind": "landmark",
+        "label": "Bixby Creek Bridge",
+        "weight": 1.2,
+        "env": { "landmark": "arch-bridge", "bridge": true, "curvature": 0.4 },
+        "next": ["point-sur"]
+      },
+      "point-sur": {
+        "kind": "landmark",
+        "label": "Point Sur Lighthouse",
+        "weight": 1.5,
+        "env": {
+          "landmark": "lighthouse",
+          "landmarkSide": "right",
+          "left": { "terrain": "hills", "height": 50 },
+          "right": { "terrain": "ocean" },
+          "props": { "bush": 3, "rock": 0.8 },
+          "curvature": 0.6
+        },
+        "next": ["switchbacks", "coast-b"]
+      },
+      "switchbacks": {
+        "kind": "cruise",
+        "label": "Santa Lucia switchbacks",
+        "weight": 2,
+        "env": {
+          "left": { "terrain": "mountains", "height": 150 },
+          "right": { "terrain": "cliffs", "height": 90 },
+          "props": { "bush": 3, "rock": 2, "pine": 1 },
+          "curvature": 1.6
+        },
+        "next": ["arrival"]
+      },
+      "coast-b": {
+        "kind": "cruise",
+        "label": "Big Sur coastline",
+        "weight": 2,
+        "env": { "props": { "bush": 3, "cypress": 1.5, "rock": 1.5 }, "curvature": 1.1 },
+        "next": ["arrival"]
+      },
+      "arrival": {
+        "kind": "arrival",
+        "label": "Big Sur",
+        "weight": 1,
+        "env": {
+          "left": { "terrain": "mountains", "height": 120 },
+          "right": { "terrain": "ocean" },
+          "props": { "pine": 4, "broadleaf": 2, "farmhouse": 0.6, "lantern": 1 },
+          "curvature": 0.5,
+          "guardrail": false
+        }
+      }
+    }
+  },
+  "scenicStops": [
+    { "name": "Bixby Creek Overlook", "kind": "overlook" },
+    { "name": "Garrapata State Park pullout", "kind": "viewpoint" },
+    { "name": "a cliffside café in Big Sur", "kind": "cafe" },
+    { "name": "Pfeiffer Beach parking area", "kind": "beach" },
+    { "name": "the Point Sur turnout", "kind": "viewpoint" },
+    { "name": "a Carmel Highlands gas station", "kind": "rest-area" }
+  ],
+  "arrival": { "name": "Big Sur", "scene": "Pfeiffer Beach at sunset" },
+  "facts": [
+    "Bixby Creek Bridge was completed in 1932 and is one of the most photographed bridges on the West Coast.",
+    "The Big Sur stretch of Highway 1 took eighteen years to build and opened in 1937.",
+    "Point Sur Lighthouse has stood on its volcanic rock since 1889."
+  ],
+  "audio": { "ambience": ["ocean", "birds", "wind"] },
+  "provenance": {
+    "creator": "VibeTour Originals",
+    "generation": "procedural",
+    "license": "Included with VibeTour",
+    "sources": ["Procedural environment inspired by California State Route 1"]
+  }
+}
