@@ -1,0 +1,2726 @@
+I’d position **VibeTour** around “ambient travel while coding” first, and only secondarily around the vehicle/IDE transformation.
+
+# VibeTour
+## Product Requirements Document
+
+**Working name:** VibeTour  
+**Category:** Immersive developer environment / ambient coding / spatial IDE interface  
+**Initial platform:** VS Code-compatible extension + companion display  
+**Future platforms:** Cursor, Windsurf, standalone desktop environment, Claude Code/Codex integrations  
+**Core promise:** **See the world while you build.**
+
+---
+
+# 1. Product Summary
+
+VibeTour transforms a coding session into an immersive journey through real and imagined destinations.
+
+While the user codes, reviews AI-generated work, runs tests, uses tools, or supervises coding agents, they appear to travel through a destination of their choosing: coastal California, Tokyo at night, the Swiss Alps, Tuscany, Iceland, Route 66, Paris, the Scottish Highlands, or other environments.
+
+The user experiences the journey from inside a vehicle or cockpit.
+
+The cockpit is not merely decorative.
+
+Its dashboard, navigation screen, mirrors, instruments, indicators, radio, center console, windshield, and other surfaces become graphical representations of development information such as:
+
+- files
+- Git status
+- tests
+- errors
+- AI agents
+- context usage
+- terminal activity
+- current task
+- project progress
+- documentation
+- chat
+
+VibeTour should feel less like a game layered onto an IDE and more like:
+
+> **A working vacation for people who spend all day inside code editors.**
+
+The user gets the psychological experience of movement, scenery, novelty, and destination while still retaining fast access to a professional coding environment.
+
+---
+
+# 2. Product Thesis
+
+Modern developers increasingly spend long stretches looking at nearly identical windows:
+
+- editor
+- terminal
+- AI chat
+- file tree
+- browser
+- Git
+- test output
+
+The actual work may be exciting, but the visual environment rarely changes.
+
+At the same time, AI-assisted coding is shifting developers from constant typing toward a mix of:
+
+- instructing
+- watching
+- reviewing
+- waiting
+- approving
+- debugging
+- supervising agents
+
+This creates an opportunity for the visual workspace itself to become more experiential.
+
+VibeTour asks:
+
+> What if spending four hours coding could also feel like spending four hours traveling through Japan?
+
+Instead of measuring productivity primarily through keystrokes, VibeTour interprets meaningful development activity and translates it into motion through an environment.
+
+The destination becomes an ambient representation of a work session.
+
+---
+
+# 3. Positioning
+
+VibeTour should **not** primarily market itself as:
+
+“Gamified coding.”
+
+“Drive a car while you program.”
+
+“A racing game for developers.”
+
+Those descriptions make the product sound disposable.
+
+Preferred positioning:
+
+> **See the world while you code.**
+
+> **Turn coding sessions into journeys.**
+
+> **Your IDE could use a better view.**
+
+> **Work somewhere new every day.**
+
+> **Code in California today. Tuscany tomorrow. Tokyo tomorrow night.**
+
+The transportation metaphor supports the experience but should not overwhelm it.
+
+The user is not racing.
+
+They are traveling.
+
+---
+
+# 4. Core Product Principles
+
+## 4.1 Travel first
+
+The scenery and sensation of moving through a place are core value, not wallpaper.
+
+Destinations should feel distinctive.
+
+Tokyo should not simply be “generic road + Japanese signs.”
+
+Routes should eventually include recognizable architectural, geographic, environmental, and atmospheric characteristics.
+
+---
+
+## 4.2 Coding remains primary
+
+VibeTour must never make ordinary development substantially slower.
+
+Every immersive interaction must have a fast conventional equivalent.
+
+A user can enjoy opening the “glovebox” to retrieve documentation, but they should never be forced to watch a glovebox animation when a keyboard shortcut would be faster.
+
+---
+
+## 4.3 Information becomes instruments
+
+Instead of permanently showing dozens of panels, VibeTour collapses information into meaningful visual indicators.
+
+Details expand only when requested.
+
+This allows a quieter workspace without hiding important state.
+
+---
+
+## 4.4 Movement represents useful activity
+
+Vehicle movement should not equal keystrokes.
+
+Useful activity can include:
+
+- user coding
+- AI coding
+- reviewing
+- navigating
+- running commands
+- searching
+- tests
+- builds
+- agent activity
+
+Thinking is part of programming and must not be punished.
+
+---
+
+## 4.5 Arrival has meaning
+
+Reaching a destination should correspond to meaningful progress.
+
+It should not simply mean “you typed for 45 minutes.”
+
+A journey may represent:
+
+- one coding session
+- one issue
+- one feature
+- one milestone
+- one project phase
+
+---
+
+# 5. Primary Users
+
+## AI-assisted developer
+
+Uses Cursor, Claude Code, Codex, Windsurf or similar tools.
+
+Often spends significant time supervising AI rather than manually typing every line.
+
+VibeTour provides an ambient representation of what the human and agents are doing.
+
+---
+
+## Vibe coder / indie builder
+
+Builds apps for several hours at a time.
+
+Values enjoyable environments, customization and visual novelty.
+
+This may become VibeTour's strongest early adopter group.
+
+---
+
+## Remote developer
+
+Works from the same office or room every day.
+
+VibeTour provides psychological variety without requiring additional physical travel.
+
+---
+
+## Developer streamer/content creator
+
+Uses VibeTour because it creates a visually distinctive coding environment for:
+
+- YouTube
+- Twitch
+- TikTok
+- X
+- demos
+- build-in-public content
+
+This could become an important organic distribution channel.
+
+---
+
+# 6. Core Experience
+
+The user opens VibeTour.
+
+They see:
+
+**WHERE DO YOU WANT TO WORK TODAY?**
+
+Example destinations:
+
+San Francisco → Big Sur  
+Tokyo at Night  
+Swiss Alps  
+Tuscany  
+Scottish Highlands  
+Iceland Ring Road  
+Pacific Northwest  
+French Riviera
+
+The user chooses:
+
+**Tokyo at Night**
+
+Then chooses a journey length:
+
+- Quick Trip
+- Coding Session
+- Feature Journey
+- Long Project
+- Free Drive
+
+VibeTour opens the current project.
+
+The user sits inside the vehicle.
+
+Rain reflects against Tokyo streets.
+
+The dashboard contains a small number of instruments.
+
+The user begins working.
+
+The car begins moving.
+
+Claude begins making changes.
+
+The vehicle continues cruising.
+
+Tests start.
+
+A small dashboard indicator shows that verification is underway.
+
+Tests pass.
+
+The road opens up.
+
+The agent asks the user a question.
+
+The car slows and reaches a scenic stopping point.
+
+The user responds.
+
+The journey resumes.
+
+When the task is complete, the vehicle reaches the selected destination.
+
+---
+
+# 7. Primary Display Modes
+
+## Mode A — Tour Mode
+
+The most immersive experience.
+
+The exterior environment occupies most of the screen.
+
+Minimal development information remains visible.
+
+Ideal for:
+
+- agent work
+- thinking
+- reviewing
+- ambient sessions
+- second monitor
+
+---
+
+## Mode B — Dashboard Mode
+
+The cockpit remains visible, but development instruments become more prominent.
+
+Useful during active work.
+
+Example visible state:
+
+- active file
+- task
+- Git changes
+- errors
+- agent status
+- test status
+- context
+- project progress
+
+---
+
+## Mode C — Work Mode
+
+The windshield and dashboard transform into a high-density coding workspace.
+
+The outside environment recedes or disappears.
+
+The user gets something close to a conventional IDE arrangement.
+
+Example:
+
+Explorer | Editor | AI
+
+Terminal along bottom.
+
+Tour continues invisibly in the background.
+
+Returning to Tour Mode restores the exterior environment.
+
+---
+
+## Mode D — Companion Mode
+
+VibeTour runs on a second display while the user keeps their existing IDE untouched.
+
+This may be extremely important for V1 adoption.
+
+The companion display shows:
+
+- route
+- scenery
+- activity
+- agents
+- tests
+- context
+- task state
+- Git state
+- journey progress
+
+Companion Mode lets users experience VibeTour without changing their established coding workflow.
+
+---
+
+# 8. Vehicle Interface Mapping
+
+The cockpit should act as a spatial development interface.
+
+Example mappings:
+
+**Navigation display**  
+Project tree, current task, destination and route.
+
+**Speedometer**  
+Current development activity.
+
+**Tachometer**  
+Tool/agent activity.
+
+**Fuel / battery**  
+Context-window usage or configurable resource.
+
+**Temperature gauge**  
+Warning/error intensity.
+
+**Check-engine indicator**  
+Build/test/runtime failure.
+
+**Rear-view mirror**  
+Recent activity, history or Git timeline.
+
+**Side mirrors**  
+Background agents or secondary tasks.
+
+**Radio / infotainment**  
+AI chat and voice interaction.
+
+**Center console**  
+Terminal.
+
+**HUD**  
+Current file, function, task or agent.
+
+**Glovebox**  
+Documentation and references.
+
+**Trip computer**  
+Session statistics.
+
+**Gear selector**  
+Current working mode:
+
+P — Paused  
+D — Build/Edit  
+R — Review  
+N — Thinking/Idle
+
+An airplane version could replace these with aviation equivalents.
+
+---
+
+# 9. Activity Engine
+
+VibeTour requires a normalized activity model.
+
+The application observes events from the development environment and converts them into an abstract state.
+
+Possible states:
+
+**IDLE**
+
+No meaningful development activity.
+
+**THINKING**
+
+User is present but not actively manipulating the IDE.
+
+**ACTIVE**
+
+Editing, navigating or interacting.
+
+**AGENT_ACTIVE**
+
+Coding agent is performing meaningful work.
+
+**VERIFYING**
+
+Tests, builds or checks running.
+
+**WAITING_FOR_USER**
+
+Agent or process requires user action.
+
+**WARNING**
+
+Non-blocking issue exists.
+
+**BLOCKED**
+
+Work cannot continue without intervention.
+
+**COMPLETE**
+
+Current journey objective is finished.
+
+These states should drive movement and environment behavior.
+
+---
+
+# 10. Motion Rules
+
+Vehicle movement should be calm rather than twitchy.
+
+A few seconds without keyboard input must not cause the vehicle to stop.
+
+Suggested behavior:
+
+Human working → normal travel
+
+Agent working → normal travel
+
+Human reviewing → normal or slower travel
+
+Tests/builds running → cruising / checkpoint
+
+Thinking → gentle cruising
+
+Extended inactivity → pull into scenic location
+
+Agent waiting for approval → scenic stop/rest area
+
+Blocking error → safely pull over
+
+Task complete → approach destination
+
+Session manually ended → park
+
+Application closed → garage/end scene
+
+Never represent an error using a literal crash.
+
+---
+
+# 11. Journey System
+
+Users should be able to associate journeys with different scopes.
+
+## Free Drive
+
+No defined destination.
+
+Simply creates ambient movement while coding.
+
+## Session Journey
+
+Designed around one work session.
+
+## Task Journey
+
+Connected to a specific task.
+
+Example:
+
+“Build onboarding flow.”
+
+## Feature Journey
+
+Longer route representing a feature.
+
+## Project Journey
+
+Potentially spans days or weeks.
+
+The route persists between sessions.
+
+Example:
+
+**Seattle → Los Angeles**
+
+Day 1: Seattle → Portland  
+Day 2: Portland → Northern California  
+Day 3: Northern California → San Francisco  
+Day 4: San Francisco → Los Angeles
+
+This could become a compelling long-term progression mechanism.
+
+---
+
+# 12. Destinations
+
+Destinations are central content.
+
+A destination package may eventually contain:
+
+- road/environment geometry
+- architecture
+- vegetation
+- weather
+- lighting
+- traffic style
+- ambient audio
+- road signage
+- landmarks
+- day/night variations
+- seasonal variations
+
+Initial V1 environments should prioritize mood over geographic completeness.
+
+For example:
+
+**California Coast**
+
+Rather than attempting to reproduce the entire real Highway 1 accurately, VibeTour can create an evocative procedural version inspired by the region.
+
+This dramatically reduces content-production requirements.
+
+---
+
+# 13. Real vs Inspired Routes
+
+VibeTour should support two classes.
+
+## Inspired Tours
+
+Procedurally generated environments capturing the character of a region.
+
+Examples:
+
+Tokyo Night Drive  
+Tuscan Countryside  
+Swiss Mountain Pass
+
+Easier to create.
+
+---
+
+## Landmark Tours
+
+More carefully modeled routes containing recognizable real locations.
+
+Examples:
+
+Golden Gate → Big Sur  
+Paris Evening Tour  
+Monaco Coast
+
+These may eventually become premium destination packs.
+
+---
+
+# 14. Tour Audio
+
+Audio should increase immersion without becoming distracting.
+
+Optional layers:
+
+- engine
+- road
+- wind
+- rain
+- birds
+- city ambience
+- airport ambience
+- local radio-inspired soundscape
+- instrumental background music
+
+Audio must always be independently adjustable.
+
+Possible future integration:
+
+**Focus Mix**
+
+Music intensity subtly adapts to development state.
+
+---
+
+# 15. AI Agent Integration
+
+Agentic development is especially suited to VibeTour.
+
+Agents should appear as meaningful cockpit entities.
+
+For automotive mode:
+
+Main agent = driver/copilot computer
+
+Background agents = mirrors/dashboard indicators
+
+For aviation mode:
+
+User = captain
+
+Primary coding agent = copilot
+
+Specialist agents = crew
+
+Examples:
+
+NAV — planning
+
+ENG — code
+
+QA — testing
+
+COMMS — documentation/search
+
+OPS — deployment
+
+Users should be able to inspect an agent by selecting its instrument.
+
+---
+
+# 16. Development Events
+
+V1 should attempt to read as much as practical from VS Code APIs.
+
+Potential events include:
+
+- file opened
+- file changed
+- file saved
+- diagnostics changed
+- terminal opened
+- command executed
+- task started
+- task completed
+- test started
+- test passed
+- test failed
+- Git change
+- Git commit
+- branch change
+- build status
+
+AI integrations may require provider-specific adapters.
+
+VibeTour should use a provider-neutral internal event model.
+
+---
+
+# 17. Architecture
+
+## V1
+
+VS Code-compatible extension.
+
+Components:
+
+**IDE Adapter**
+
+Captures editor and development events.
+
+**Activity Engine**
+
+Normalizes events into VibeTour states.
+
+**Journey Engine**
+
+Determines route movement and progression.
+
+**Tour Renderer**
+
+WebGL/Three.js environment.
+
+**Cockpit UI**
+
+Interactive spatial interface.
+
+**State Store**
+
+Persists journey progress and preferences.
+
+---
+
+## Rendering
+
+Recommended:
+
+Three.js / WebGL.
+
+Avoid attempting photorealism initially.
+
+A highly polished stylized environment will be much more achievable.
+
+Target:
+
+“Premium driving game menu / cinematic visualization”
+
+rather than:
+
+“AAA driving simulator.”
+
+---
+
+# 18. V0 Prototype
+
+The V0 should answer only one question:
+
+> Does coding feel meaningfully better when it feels like traveling somewhere?
+
+V0 needs only:
+
+- one vehicle cockpit
+- one route
+- day/night
+- basic road movement
+- VS Code connection
+- coding activity detection
+- agent/activity detection if practical
+- active file indicator
+- Git status indicator
+- diagnostic/error indicator
+- journey progress
+- Tour Mode
+- Work Mode
+- Companion Mode
+
+Suggested first route:
+
+**California Coast at sunset.**
+
+It fits VibeTour perfectly and allows dramatic scenery without huge urban asset requirements.
+
+---
+
+# 19. V1
+
+Add:
+
+- destination picker
+- 5–8 tours
+- weather
+- day/night
+- journey length
+- persistent routes
+- configurable dashboard widgets
+- keyboard shortcuts
+- terminal panel
+- AI panel
+- file navigator
+- richer Git integration
+- test integration
+- journey statistics
+- screenshots/share cards
+
+---
+
+# 20. V2
+
+Add:
+
+- aircraft cockpit
+- real landmark routes
+- procedural route generator
+- multiplayer/passenger mode
+- richer agent visualization
+- route creator
+- destination marketplace
+- custom vehicles
+- custom cockpit themes
+- streaming mode
+- achievements/passport
+- journey history map
+
+---
+
+# 21. VibeTour Passport
+
+A lightweight progression system could add considerable retention without turning the product into a game.
+
+Each completed journey earns a passport entry.
+
+Example:
+
+TOKYO NIGHT TOUR  
+October 9  
+2h 14m  
+23 files changed  
+187 tests passed  
+Feature completed: Authentication
+
+Users gradually create a visual map of places where they have “worked.”
+
+This could become highly shareable.
+
+Example social post:
+
+> “Apparently I built the new billing system somewhere between Florence and Siena.”
+
+---
+
+# 22. Tourism Without Productivity Theater
+
+VibeTour should avoid fake metrics.
+
+Do not tell users:
+
+“You traveled 84 miles because you wrote 847 lines.”
+
+Lines written are not meaningful productivity.
+
+Journey progression should be intentionally abstract.
+
+The experience represents productive momentum, not a scientific measurement of output.
+
+---
+
+# 23. Idle Experience
+
+Idle time presents an opportunity rather than a failure.
+
+Short inactivity:
+
+vehicle continues moving.
+
+Medium inactivity:
+
+slows naturally.
+
+Long inactivity:
+
+pulls into an interesting location.
+
+Examples:
+
+- viewpoint
+- roadside café
+- scenic turnout
+- gas station
+- hotel
+- mountain overlook
+- beach parking area
+
+Returning to work resumes the journey.
+
+This creates natural moments of visual reward.
+
+---
+
+# 24. Accessibility
+
+VibeTour must include:
+
+- Reduced Motion
+- Static Scenery
+- Low GPU Mode
+- Disable Weather Effects
+- Disable Camera Movement
+- scalable UI
+- keyboard navigation
+- high-contrast instruments
+- screen-reader-accessible equivalent controls
+- independent sound controls
+
+Users prone to motion sickness must be able to enjoy VibeTour without simulated vehicle motion.
+
+Static Mode could show a rotating sequence of scenic working locations instead.
+
+---
+
+# 25. Performance Requirements
+
+VibeTour must not materially interfere with the developer's actual work.
+
+Targets:
+
+- renderer isolated from critical IDE processes
+- configurable FPS
+- 30 FPS low-power option
+- 60 FPS premium option
+- automatic GPU throttling
+- pause rendering when hidden
+- minimal CPU usage when Work Mode occupies the screen
+- low memory overhead
+- graceful fallback for integrated graphics
+
+Laptop battery impact should be visible and controllable.
+
+---
+
+# 26. Privacy
+
+VibeTour should not require source code to leave the user's machine merely to animate the environment.
+
+The activity engine should preferably consume metadata such as:
+
+- editing active
+- tests running
+- agent active
+- diagnostics count
+
+rather than source contents.
+
+Any cloud features requiring code access must be separately disclosed and optional.
+
+---
+
+# 27. Monetization
+
+A freemium model fits the product naturally.
+
+## Free
+
+Core VibeTour extension.
+
+One vehicle.
+
+Several free tours.
+
+Companion Mode.
+
+Basic cockpit.
+
+Core IDE status.
+
+---
+
+## VibeTour Plus
+
+Possible target:
+
+**$5–10/month**
+
+Includes:
+
+- all standard destinations
+- weather
+- additional vehicles
+- aircraft
+- advanced cockpit customization
+- persistent project journeys
+- passport
+- richer AI-agent displays
+- premium scenery
+
+---
+
+## Destination Packs
+
+One-time purchases could also work.
+
+Examples:
+
+Japan Pack
+
+European Alps Pack
+
+California Pack
+
+Great Drives Pack
+
+Night Cities Pack
+
+---
+
+# 28. Marketplace
+
+Long term, VibeTour could allow creators to build:
+
+- tours
+- vehicle interiors
+- cockpits
+- soundscapes
+- dashboards
+
+This creates a potential “themes, but dramatically more interesting” ecosystem.
+
+A creator might publish:
+
+**Norway Fjords Tour — $6**
+
+or
+
+**Cyberpunk Tokyo — $4**
+
+or
+
+**Classic 1980s Supercar Cockpit — $5**
+
+VibeTour takes a marketplace percentage.
+
+---
+
+# 29. Sharing / Viral Loop
+
+VibeTour is inherently visual.
+
+Include a one-click:
+
+**CAPTURE MY WORKPLACE**
+
+This creates a polished screenshot showing:
+
+Tokyo skyline  
+VibeTour cockpit  
+current destination  
+optional project name
+
+Caption:
+
+**Coding from Tokyo tonight.**
+
+Users should be able to hide all potentially private development information before capture.
+
+Streaming Mode should similarly sanitize:
+
+- file names
+- repositories
+- paths
+- terminal content
+- messages
+
+---
+
+# 30. Brand Direction
+
+VibeTour should feel:
+
+- cinematic
+- relaxing
+- aspirational
+- slightly futuristic
+- adventurous
+- premium
+- playful without being childish
+
+Avoid visual branding that makes it look like a racing game.
+
+The emotional reference is closer to:
+
+**road trip + travel documentary + beautiful workspace + cockpit interface**
+
+than:
+
+**Need for Speed for programmers.**
+
+---
+
+# 31. Possible Taglines
+
+Primary:
+
+**See the world while you code.**
+
+Alternatives:
+
+**Your IDE could use a better view.**
+
+**Go somewhere while you build something.**
+
+**Turn coding sessions into journeys.**
+
+**Work somewhere new today.**
+
+**The scenic route to shipping software.**
+
+**Your code stays local. You don't have to.**
+
+---
+
+# 32. Important Product Constraint
+
+VibeTour must preserve instant access to a conventional coding interface.
+
+At any time, one keyboard shortcut should transform the experience from:
+
+**tour**
+
+into:
+
+**full working IDE**
+
+without changing applications.
+
+Another shortcut restores the journey.
+
+This transformation may become one of VibeTour's signature interactions.
+
+---
+
+# 33. Recommended Launch Strategy
+
+Do not launch VibeTour initially as an IDE replacement.
+
+Launch it as:
+
+> **An immersive companion for VS Code/Cursor that turns coding sessions into journeys.**
+
+Companion Mode creates the lowest-friction entry point.
+
+Users can place VibeTour on:
+
+- second monitor
+- ultrawide side panel
+- spare laptop
+- tablet via browser companion later
+
+Once users trust the experience, Full Cockpit Mode can progressively absorb more IDE functionality.
+
+---
+
+# 34. North-Star Moment
+
+The product has succeeded when this happens:
+
+A developer starts work intending to complete a feature.
+
+They select:
+
+**Tuscany — Florence to Siena.**
+
+For the next two hours they code, talk to an agent, run tests and review changes.
+
+Occasionally they look up and realize vineyards, villages and hills have been passing by.
+
+Their tests pass.
+
+The feature is complete.
+
+The sun is setting.
+
+The vehicle enters Siena.
+
+A subtle card appears:
+
+**ARRIVED**
+
+**Feature complete.**
+
+No points explosion.
+
+No cartoon confetti.
+
+Just the feeling:
+
+> *I built something — and went somewhere.*
+
+That should be VibeTour.
+
+One thing I’d prioritize even more after writing this: **VibeTour probably starts as a second-screen product, not an IDE replacement.** That lets the travel experience be spectacular immediately while you gradually earn the right to take over more of the actual coding UI.
+
+
+  ---------
+  PRD Addendum:
+
+  # VibeTour PRD Addendum
+## Journey Packs, Tickets & the Destination Economy
+
+---
+
+# 35. Journey Packs
+
+VibeTour’s primary content object should be called a:
+
+# **Journey Pack**
+
+A Journey Pack is a reusable immersive destination package that allows a user to “travel” somewhere while coding.
+
+The emotional model should not be:
+
+> Buy a background video.
+
+It should be:
+
+> **Buy your ticket. Go somewhere while you build.**
+
+A Journey Pack may contain:
+
+- route/environment footage
+- departure sequence
+- cruising segments
+- landmark moments
+- alternate road sections
+- scenic stops
+- arrival sequence
+- route metadata
+- map
+- weather variants
+- ambient audio
+- cover image
+- destination artwork
+- optional cockpit recommendations
+- optional travel facts
+- optional local music/soundscape
+- optional achievement/passport assets
+
+Journey Packs should be portable, cacheable and reusable across unlimited coding sessions unless explicitly offered under another license.
+
+---
+
+# 36. Journey Pack as “Ticket”
+
+The commercial UX should borrow lightly from travel booking rather than traditional digital marketplaces.
+
+Instead of:
+
+**BUY PACK — $3.99**
+
+prefer:
+
+**GET TICKET — $3.99**
+
+or:
+
+**BOOK THIS JOURNEY**
+
+Example:
+
+---
+
+### CALIFORNIA COAST
+
+**Monterey → Big Sur**
+
+Pacific Coast Highway  
+Golden Hour  
+Relaxed Drive  
+Approximately 90 minutes of journey progression
+
+**Ticket: $3.99**
+
+[ GET TICKET ]
+
+---
+
+After purchase:
+
+> **Your ticket is ready.**
+
+Then:
+
+**DEPART NOW**
+
+or
+
+**SAVE FOR LATER**
+
+This subtle framing makes purchasing digital scenery feel much more experiential.
+
+---
+
+# 37. Journey Pack Types
+
+Journey Packs can exist at several levels.
+
+## Scenic Journey
+
+Inspired by a location without claiming geographic accuracy.
+
+Examples:
+
+- Tuscan Countryside
+- Tokyo Night Drive
+- Alpine Pass
+- California Coast
+
+These should be easier and cheaper to create.
+
+---
+
+## Route Journey
+
+Based on an actual road or travel corridor.
+
+Examples:
+
+- Highway 1: Monterey → Big Sur
+- Route 66: Flagstaff → Kingman
+- Iceland Route 1: South Coast
+- Great Ocean Road
+- Scottish Highlands: Glencoe Route
+
+Important landmarks and environmental transitions should occur in approximately sensible sequence.
+
+---
+
+## Landmark Journey
+
+Highly curated journey built around recognizable places.
+
+Examples:
+
+- Golden Gate → Big Sur
+- Paris Evening Drive
+- Monaco Coast
+- Amalfi Coast
+- Tokyo → Mount Fuji
+
+These can command premium pricing.
+
+---
+
+## Fantasy Journey
+
+VibeTour should not restrict itself to Earth.
+
+Examples:
+
+- Mars Colony Drive
+- Cyberpunk Tokyo 2099
+- Moon Highway
+- Floating Mediterranean City
+- Ancient Rome
+- Middle Earth-inspired countryside
+- Retro-futuristic America
+
+Avoid copyrighted worlds unless properly licensed.
+
+This category could become extremely popular with creators.
+
+---
+
+# 38. Journey Length
+
+Journey Packs should not necessarily have fixed video duration.
+
+Instead they have a:
+
+**Journey Scope**
+
+Examples:
+
+### Coffee Run
+15–30 minute work session
+
+### Day Trip
+45–90 minutes
+
+### Scenic Drive
+1–3 hours
+
+### Road Trip
+Multiple sessions
+
+### Expedition
+Multi-day project
+
+Because VibeTour dynamically assembles scenes, one Journey Pack can stretch or compress based on the coding session.
+
+The user should never be forced to match their coding time precisely to prerecorded footage.
+
+---
+
+# 39. Journey Pack Structure
+
+Possible internal structure:
+
+```text
+journey-pack/
+    manifest.json
+
+    cover/
+        cover.webp
+        ticket.webp
+
+    map/
+        route.json
+        map.webp
+
+    scenes/
+        departure/
+        cruising/
+        landmarks/
+        intersections/
+        scenic-stops/
+        weather/
+        arrival/
+
+    audio/
+        road/
+        wind/
+        weather/
+        ambience/
+
+    metadata/
+        destination.json
+        attribution.json
+        generation.json
+```
+
+The `manifest.json` defines how VibeTour may assemble the journey.
+
+---
+
+# 40. Scene Graph
+
+Journey Packs should not simply contain one linear movie.
+
+They should contain a **scene graph**.
+
+Example:
+
+```text
+DEPARTURE
+     |
+     v
+COASTAL ROAD A
+   /       \
+  v         v
+CLIFFS    FOREST
+  \         /
+   v       v
+COASTAL ROAD B
+     |
+     v
+LANDMARK
+     |
+     v
+MOUNTAIN ROAD
+     |
+     v
+ARRIVAL
+```
+
+This allows VibeTour to:
+
+- extend journeys
+- shorten journeys
+- vary repeated trips
+- respond to coding state
+- insert scenic stops
+- handle long idle periods
+- change weather
+- delay arrival until meaningful work is complete
+
+A Journey Pack can therefore feel different each time.
+
+---
+
+# 41. Coding-State Scenes
+
+Journey Packs should optionally include scenes intended for different development states.
+
+## Productive
+
+Normal forward travel.
+
+## Thinking
+
+Slow scenic cruising.
+
+## Agent Working
+
+Steady autonomous travel.
+
+## Tests Running
+
+Tunnel, checkpoint, long straight road, bridge or similar transitional sequence.
+
+## Waiting for User
+
+Vehicle reaches an overlook or stop.
+
+## Extended Idle
+
+Park at:
+
+- café
+- beach
+- overlook
+- village
+- roadside stop
+- mountain viewpoint
+
+## Error / Blocked
+
+Vehicle safely pulls over.
+
+Never crash the vehicle.
+
+## Task Completed
+
+Begin final approach to destination.
+
+## Journey Completed
+
+Arrival scene.
+
+This makes the environment responsive to actual development activity.
+
+---
+
+# 42. Journey Generator
+
+Users should eventually be able to create their own Journey Packs.
+
+Flow:
+
+**Create a Journey**
+
+1. Choose country/region
+2. Choose route or highway
+3. Choose start
+4. Choose destination
+5. Choose vehicle class
+6. Choose time of day
+7. Choose weather
+8. Choose visual style
+9. Choose journey scope
+10. Choose generation provider
+
+Then:
+
+**Generate My Journey**
+
+VibeTour’s agent creates:
+
+- route research
+- Journey Bible
+- scene plan
+- visual references
+- prompts
+- generated scenes
+- continuity checks
+- route metadata
+- assembly logic
+- cover art
+- ticket
+
+The user may provide their own API key.
+
+---
+
+# 43. BYOK Generation
+
+BYOK should be a major VibeTour feature.
+
+Users can connect supported video-generation providers.
+
+VibeTour then serves as the orchestration layer.
+
+The user pays the generation provider directly.
+
+VibeTour supplies:
+
+- prompt design
+- scene decomposition
+- route planning
+- reference-image creation
+- continuity management
+- generation retries
+- asset organization
+- Journey Pack assembly
+
+This avoids VibeTour carrying all generation costs.
+
+VibeTour can still offer hosted generation later for users who prefer simplicity.
+
+---
+
+# 44. Generation Budget
+
+Before generation begins, VibeTour should estimate:
+
+**Estimated AI Generation Cost**
+
+Example:
+
+> Monterey → Big Sur  
+> 24 video clips  
+> 14 reference images  
+> Estimated provider cost: $7–$11
+
+Then offer:
+
+**Economy**
+
+Fewer unique clips, more procedural reuse.
+
+**Standard**
+
+Balanced variety and cost.
+
+**Cinematic**
+
+More landmarks, longer clips and greater variation.
+
+This makes BYOK much less intimidating.
+
+---
+
+# 45. Generate Once, Travel Forever
+
+An important value proposition:
+
+> **Generate once. Drive it whenever you want.**
+
+Once a Journey Pack has been generated and stored locally, normal playback should require no further video-generation cost.
+
+A user might spend $8 generating a beautiful custom route and use it for years.
+
+This should be prominently communicated.
+
+---
+
+# 46. Journey Library
+
+Purchased and generated journeys live in:
+
+# **MY JOURNEYS**
+
+Possible display:
+
+**California**
+- Big Sur Sunset
+- Yosemite Morning
+
+**Japan**
+- Tokyo Rain
+- Mount Fuji Morning
+
+**Europe**
+- Tuscany
+- Swiss Alps
+
+Each Journey Card can show:
+
+- route
+- distance metaphor
+- time of day
+- weather
+- vehicle recommendation
+- trips completed
+- coding hours spent there
+- last visited
+- favorite status
+
+This becomes a personal travel collection.
+
+---
+
+# 47. The VibeTour Passport
+
+Users receive a virtual:
+
+# **VibeTour Passport**
+
+Each completed journey earns a stamp.
+
+Example:
+
+---
+
+**JAPAN**
+
+Tokyo Night Drive
+
+Visited: October 2026
+
+Coding time: 2h 41m
+
+Project:
+Optional / private
+
+---
+
+Passport statistics might include:
+
+- countries visited
+- routes completed
+- coding hours traveled
+- favorite destination
+- night journeys
+- mountain journeys
+- longest expedition
+
+Keep this elegant rather than game-like.
+
+---
+
+# 48. Boarding Pass / Ticket Artifact
+
+Every Journey Pack should automatically generate a beautiful digital ticket.
+
+Example:
+
+```text
+VIBETOUR
+
+CALIFORNIA COAST
+
+MONTEREY
+      ↓
+BIG SUR
+
+HIGHWAY 1
+
+DEPARTURE
+WHEN YOU START CODING
+
+SEAT
+DRIVER
+
+STATUS
+READY
+```
+
+This could be saved or shared.
+
+It gives Journey Packs something tangible.
+
+---
+
+# 49. Gift a Journey
+
+Journey Packs are unusually suitable for gifting.
+
+Possible feature:
+
+# **SEND A TICKET**
+
+Send someone:
+
+> Tuscany — Florence to Siena
+
+with a message:
+
+> Thought your next build could use a better office.
+
+This gives VibeTour a natural gifting loop that ordinary developer themes do not have.
+
+---
+
+# 50. Journey Marketplace
+
+VibeTour should eventually support a creator marketplace.
+
+Creators can publish:
+
+- scenic drives
+- city journeys
+- fantasy journeys
+- aviation routes
+- specialty environments
+
+Possible pricing:
+
+**Free**
+
+Community contribution.
+
+**$1.99–$4.99**
+
+Simple scenic journey.
+
+**$5–$10**
+
+Premium curated journey.
+
+**$10–$25**
+
+Highly detailed route, custom assets, multiple weather/time variants or extensive landmark content.
+
+VibeTour takes a marketplace percentage.
+
+---
+
+# 51. Creator Economics
+
+A Journey creator could use their own BYOK generation credits.
+
+Example:
+
+Creator spends:
+
+**$15**
+
+generating and refining a Journey Pack.
+
+Then publishes:
+
+**Tokyo After Midnight — $4.99**
+
+If 1,000 users purchase it, the creator has created a meaningful digital product from an AI-generation investment.
+
+This could create an entirely new micro-market around:
+
+> **virtual places to work.**
+
+---
+
+# 52. Creator Studio
+
+Eventually provide:
+
+# **VibeTour Journey Studio**
+
+Creator workflow:
+
+1. Define route
+2. Generate Journey Bible
+3. Generate reference frames
+4. Generate clips
+5. Review continuity
+6. Regenerate bad clips
+7. Arrange scene graph
+8. Add ambience
+9. Test journey
+10. Create cover
+11. Set price
+12. Publish
+
+VibeTour should hide prompt engineering wherever possible.
+
+The product should behave more like a travel-production studio than a video-generation UI.
+
+---
+
+# 53. Creator Verification
+
+Marketplace quality will matter.
+
+Possible badges:
+
+**VibeTour Verified**
+
+Pack has passed technical compatibility checks.
+
+**Route Researched**
+
+Creator supplied researched route metadata.
+
+**Geographic Journey**
+
+Designed to approximately represent a real route.
+
+**Fantasy Journey**
+
+Clearly labeled as fictional/inspired.
+
+Users should know whether they are purchasing realism or atmosphere.
+
+---
+
+# 54. Authenticity Slider
+
+Custom Journey generation could include:
+
+**How realistic should this journey be?**
+
+### DREAM
+
+Destination-inspired.
+
+Maximum creative freedom.
+
+### SCENIC
+
+Recognizable regional feel.
+
+### ROUTE
+
+Approximate real journey.
+
+### DOCUMENTARY
+
+Attempts to preserve road/environment/landmark sequence.
+
+Higher authenticity requires more research, references and generation effort.
+
+---
+
+# 55. Surprise Me
+
+A particularly strong recurring feature:
+
+# **TAKE ME SOMEWHERE**
+
+The user selects:
+
+- 30 minutes
+- 1 hour
+- afternoon
+- entire workday
+
+VibeTour selects an unvisited destination from their library.
+
+Optional:
+
+**Anywhere**
+
+**Somewhere Warm**
+
+**Mountains**
+
+**City at Night**
+
+**Ocean**
+
+**Rain**
+
+**Quiet**
+
+**Surprise Me Completely**
+
+This turns opening the IDE into a tiny travel decision.
+
+---
+
+# 56. Journey Calendar
+
+Users could schedule destinations.
+
+Example:
+
+**Monday**
+Tokyo Night
+
+**Tuesday**
+Swiss Alps
+
+**Wednesday**
+California Coast
+
+**Thursday**
+Tuscany
+
+**Friday**
+Surprise Me
+
+It sounds frivolous, but this reinforces VibeTour’s larger purpose:
+
+changing the psychological environment of repetitive desk work.
+
+---
+
+# 57. Seasonal Journey Drops
+
+VibeTour can make destinations feel timely.
+
+Examples:
+
+**October**
+New England Fall Drive
+
+**December**
+Swiss Christmas Villages
+
+**Spring**
+Japan Cherry Blossom Journey
+
+**Summer**
+Amalfi Coast
+
+These can appear temporarily on the destination board while purchased packs remain permanently available.
+
+This creates natural merchandising without manufacturing fake scarcity.
+
+---
+
+# 58. Live Conditions Mode
+
+Future Journey Packs could optionally respond to real-world conditions.
+
+Example:
+
+User launches:
+
+**Seattle → Mount Rainier**
+
+VibeTour asks:
+
+**Match current local weather?**
+
+If it is raining there:
+
+Journey begins in rain.
+
+If it is nighttime:
+
+Journey runs at night.
+
+This should remain optional.
+
+Some users will want permanent golden hour.
+
+---
+
+# 59. Destination Variants
+
+One underlying route can support multiple tickets.
+
+Example:
+
+**TOKYO**
+
+- Tokyo Sunrise
+- Tokyo Day
+- Tokyo Golden Hour
+- Tokyo Rain
+- Tokyo Night
+- Tokyo Midnight
+- Tokyo Snow
+
+Some variants may be included.
+
+Others can be generated as inexpensive upgrades using existing Journey references.
+
+---
+
+# 60. Vehicle Independence
+
+Journey Packs should ideally not bake the vehicle interior into the generated footage.
+
+Journey:
+
+**California Coast**
+
+should work with:
+
+- sports car
+- classic roadster
+- SUV
+- motorcycle-inspired POV
+- autonomous luxury car
+
+The exterior journey and cockpit should remain separate whenever technically practical.
+
+This dramatically increases reuse.
+
+A single Journey Pack can therefore be sold to users who prefer entirely different vehicle experiences.
+
+---
+
+# 61. Cockpit Packs
+
+This creates a second marketplace category:
+
+# **Cockpit Packs**
+
+Examples:
+
+- Modern Supercar
+- Classic Roadster
+- Grand Touring
+- Luxury EV
+- Rally Car
+- Retro 1980s
+- Futuristic EV
+- Airliner
+- Private Jet
+
+Journey Packs answer:
+
+> Where am I going?
+
+Cockpit Packs answer:
+
+> How am I traveling?
+
+This creates a natural two-dimensional customization marketplace.
+
+---
+
+# 62. Travel Modes
+
+Longer term, VibeTour should not be limited to cars.
+
+Possible modes:
+
+**Drive**
+
+Road journeys.
+
+**Fly**
+
+Aircraft journeys.
+
+**Rail**
+
+Train journeys.
+
+**Sail**
+
+Boat/yacht journeys.
+
+**Walk**
+
+Urban or trail exploration.
+
+**Orbit**
+
+Space journeys.
+
+The central abstraction remains:
+
+> **Work while going somewhere.**
+
+---
+
+# 63. Flight Journey Packs
+
+Flight makes an especially good premium category.
+
+Example:
+
+**San Francisco → Honolulu**
+
+Coding begins:
+
+- cockpit preparation
+- taxi
+- takeoff
+- climb
+
+Normal coding:
+
+- cruise
+
+Agent requires input:
+
+- cockpit alert
+
+Long idle:
+
+- autopilot cruise
+
+Task nearing completion:
+
+- descent
+
+Task finished:
+
+- approach and landing
+
+For long projects, flights could span multiple sessions.
+
+---
+
+# 64. Project Expeditions
+
+A major feature beyond ordinary Journey Packs:
+
+# **Expeditions**
+
+An Expedition represents a substantial project.
+
+Example:
+
+**EUROPEAN GRAND TOUR**
+
+London  
+↓  
+Paris  
+↓  
+Swiss Alps  
+↓  
+Milan  
+↓  
+Florence  
+↓  
+Rome
+
+Each completed project milestone moves the user to another Journey.
+
+A month-long software project could therefore become a virtual trip across Europe.
+
+This may be much more compelling than traditional project progress bars.
+
+---
+
+# 65. Milestone Tickets
+
+Projects could assign journeys to milestones.
+
+Example:
+
+**Project: Launch New SaaS**
+
+Research  
+→ Seattle
+
+Prototype  
+→ Portland
+
+MVP  
+→ San Francisco
+
+Beta  
+→ Big Sur
+
+Launch  
+→ Los Angeles
+
+The route becomes a visual representation of project advancement.
+
+---
+
+# 66. Team Expeditions
+
+Future team mode:
+
+A small development team participates in the same expedition.
+
+Everyone contributes toward progress.
+
+For example:
+
+**New York → San Francisco**
+
+As issues are completed, the team moves west.
+
+Each team member can still code normally.
+
+The shared journey appears on an office display or dashboard.
+
+This could become a lightweight team-motivation product without becoming employee surveillance.
+
+Never rank employees by coding activity.
+
+---
+
+# 67. Travel Memories
+
+VibeTour should quietly accumulate a travel history.
+
+Example:
+
+> You last visited Big Sur while building Project Atlas.
+
+Months later, reopening the project could offer:
+
+**RETURN TO BIG SUR**
+
+This ties software projects to places and creates surprisingly strong memories.
+
+Users may begin remembering:
+
+> “I built that feature while driving through Iceland.”
+
+That emotional association is difficult for conventional IDE themes to reproduce.
+
+---
+
+# 68. Journey Completion Card
+
+At arrival:
+
+**ARRIVED**
+
+Monterey → Big Sur
+
+2h 18m traveling  
+3 coding sessions  
+Feature completed  
+17 files changed  
+Tests passing
+
+Optional:
+
+**SAVE MEMORY**
+
+**STAMP PASSPORT**
+
+**SHARE**
+
+**STAY HERE**
+
+**CHOOSE NEXT DESTINATION**
+
+The coding metrics should remain secondary to the travel experience.
+
+---
+
+# 69. Stay at Destination
+
+Arrival should not force the user out of the experience.
+
+Offer:
+
+# **STAY HERE**
+
+The vehicle parks.
+
+The user sees:
+
+- beach
+- mountain overlook
+- nighttime city
+- hotel
+- café
+- airport gate
+
+They can continue coding in a stationary destination environment.
+
+Then:
+
+**CONTINUE JOURNEY**
+
+or
+
+**BOOK NEXT TRIP**
+
+---
+
+# 70. Layovers
+
+Long Expeditions could contain intentional pauses.
+
+Example:
+
+Tokyo → Kyoto
+
+Journey stops at:
+
+**Mount Fuji Scenic Stop**
+
+User might spend an entire coding session there before continuing.
+
+These become destination-within-destination experiences.
+
+---
+
+# 71. Free Community Journeys
+
+VibeTour should always include strong free Journey Packs.
+
+Free journeys create:
+
+- GitHub sharing
+- creator experimentation
+- community goodwill
+- easy onboarding
+- social content
+
+Users should be able to build an enjoyable Journey Library without paying.
+
+Paid content should feel additive rather than necessary.
+
+---
+
+# 72. Premium Originals
+
+VibeTour itself should produce highly polished:
+
+# **VibeTour Originals**
+
+These establish the quality bar.
+
+Examples:
+
+**Pacific Coast**
+
+**Tokyo After Dark**
+
+**Swiss Alpine Morning**
+
+**Iceland South Coast**
+
+**Tuscany Golden Hour**
+
+Originals can include:
+
+- multiple times of day
+- custom soundscape
+- researched route
+- more scene variation
+- bespoke arrival scenes
+- unique cover/ticket artwork
+
+---
+
+# 73. Journey Subscription
+
+Do not make subscription the only way to obtain destinations.
+
+Potential model:
+
+## Free
+
+Starter journeys.
+
+## Individual Tickets
+
+Permanent Journey Pack purchase.
+
+## VibeTour Passport+
+
+Monthly subscription providing:
+
+- rotating destination collection
+- monthly free ticket
+- weather variants
+- premium cockpit access
+- discounts on marketplace Journeys
+- expanded Journey generation tools
+
+Purchased tickets remain owned even if the subscription ends.
+
+---
+
+# 74. Ticket Bundles
+
+Bundles reinforce the travel metaphor.
+
+Examples:
+
+# JAPAN PASS
+
+Tokyo Night  
+Mount Fuji  
+Kyoto Countryside  
+Hokkaido Snow
+
+# CALIFORNIA PASS
+
+San Francisco  
+Pacific Coast Highway  
+Big Sur  
+Malibu  
+Los Angeles
+
+# ALPINE PASS
+
+Switzerland  
+Austria  
+Northern Italy  
+French Alps
+
+Bundles could be more appealing than generic “theme packs.”
+
+---
+
+# 75. Ticket Stubs
+
+After completing a Journey, the ticket becomes a:
+
+# **Ticket Stub**
+
+The user's library gradually fills with them.
+
+That creates a subtle collection mechanic without turning VibeTour into a game.
+
+A completed ticket visually differs from one that has never been traveled.
+
+---
+
+# 76. Community Journey Lists
+
+Users can create lists:
+
+**Best Places to Code in the Rain**
+
+**Five Great Night Drives**
+
+**Quiet Sunday Journeys**
+
+**Best 30-Minute Trips**
+
+**My Favorite Mountain Routes**
+
+These lists become discovery mechanisms for the marketplace.
+
+---
+
+# 77. Curated Itineraries
+
+VibeTour can package multiple Journey Packs as itineraries.
+
+Example:
+
+# SEVEN DAYS IN JAPAN
+
+Day 1 — Tokyo  
+Day 2 — Tokyo Rain  
+Day 3 — Mount Fuji  
+Day 4 — Kyoto  
+Day 5 — Japanese Countryside  
+Day 6 — Coast  
+Day 7 — Tokyo Night
+
+Users don't literally need to complete one per day.
+
+It simply provides a curated sequence.
+
+---
+
+# 78. Creator Travel Channels
+
+High-quality Journey creators could eventually have their own channels.
+
+Example:
+
+**Nomad Roads**
+
+12 Journey Packs
+
+**NightDrive Studio**
+
+Specializes in rain/night cities.
+
+**Alpine Works**
+
+Mountain journeys.
+
+This could give creators recognizable brands inside VibeTour.
+
+---
+
+# 79. Licensing & Source Transparency
+
+Every Journey Pack should contain provenance metadata.
+
+Where appropriate:
+
+- creator
+- generation models
+- source/reference licenses
+- audio licenses
+- geographic data sources
+- commercial-use permissions
+
+AI-generated Journey creators must confirm they have sufficient rights to publish included assets.
+
+Marketplace moderation should reject clearly infringing copyrighted worlds, characters, music or branded vehicle reproductions without authorization.
+
+---
+
+# 80. Local Storage First
+
+Purchased and generated Journey Packs should preferably be downloadable.
+
+Advantages:
+
+- lower bandwidth
+- no repeated AI cost
+- offline coding
+- privacy
+- smooth playback
+- user ownership feeling
+
+Cloud synchronization can remain optional.
+
+A Journey Pack should feel more like something the user possesses than something temporarily streamed.
+
+---
+
+# 81. Journey Pack Portability
+
+Long-term, consider an open `.vibetour` package format.
+
+A `.vibetour` file could be:
+
+- downloaded
+- backed up
+- shared privately
+- sold
+- imported
+- exported
+
+This could help VibeTour become a platform rather than simply a content service.
+
+---
+
+# 82. Journey Recommendation Engine
+
+Recommendations should be based mostly on experience preference rather than productivity surveillance.
+
+Examples:
+
+> You seem to like coastal drives.
+
+> Try Norway next.
+
+> You've been working mostly at night.
+
+> Want somewhere rainy tonight?
+
+> You haven't visited the mountains recently.
+
+Avoid manipulative engagement mechanics.
+
+---
+
+# 83. Opening Experience
+
+When VibeTour launches, avoid showing the user a conventional project dashboard first.
+
+Show:
+
+# WHERE DO YOU WANT TO GO TODAY?
+
+Then visual Journey cards.
+
+The user picks the destination.
+
+Only afterward:
+
+**Choose project**
+
+or
+
+**Continue current project**
+
+This makes the travel experience the product's mental entry point.
+
+---
+
+# 84. Central Brand Idea
+
+VibeTour should gradually establish a simple vocabulary:
+
+**Journey**  
+The experience.
+
+**Journey Pack**  
+The destination content.
+
+**Ticket**  
+Access to a Journey Pack.
+
+**Passport**  
+The user's history.
+
+**Stamp**  
+Completed Journey.
+
+**Expedition**  
+Multi-Journey project.
+
+**Cockpit**  
+How the user travels.
+
+**Journey Studio**  
+How creators build destinations.
+
+**VibeTour Originals**  
+First-party premium Journeys.
+
+This vocabulary makes VibeTour feel less like a developer extension and more like its own category.
+
+---
+
+# 85. Revised Product Thesis
+
+VibeTour is not fundamentally selling AI-generated driving videos.
+
+It is selling a new kind of workspace.
+
+The product promise becomes:
+
+> **Your work keeps you at a desk. VibeTour doesn't have to.**
+
+And the commercial unit becomes remarkably intuitive:
+
+> **Where do you want to code today?**
+
+Pick somewhere.
+
+Get a ticket.
+
+Start coding.
+
+Go.
