@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Install Chromium for end-to-end tests
+        run: npx playwright install --with-deps chromium
+      - run: npx playwright test
+        env:
+          CI: '1'
+      - name: Package the VS Code extension
+        run: npx --yes @vscode/vsce@3.6.0 package --no-dependencies --skip-license
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vibetour-vsix
+          path: '*.vsix'

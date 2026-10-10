@@ -1,0 +1,12 @@
+**
+!dist/extension.js
+!dist/cli.js
+!dist/webview/app.js
+!dist/webview/app.css
+!dist/webview/favicon.svg
+!dist/webview/index.html
+!bin/vibetour-hook.js
+!docs/*.md
+!media/**
+!package.json
+!README.md

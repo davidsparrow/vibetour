@@ -1,0 +1,156 @@
+{
+  "id": "swiss-alps",
+  "version": "1.0.0",
+  "title": "Swiss Alpine Morning",
+  "subtitle": "Interlaken → Grindelwald",
+  "region": "Bernese Oberland",
+  "country": "Switzerland",
+  "countryCode": "CH",
+  "continent": "Europe",
+  "type": "route",
+  "authenticity": "scenic",
+  "travelMode": "drive",
+  "drivingSide": "right",
+  "description": "Lakeside Interlaken, the Lütschine valley, chalets and waterfalls, and the Eiger's north face waiting at the end of the road.",
+  "tags": ["mountains", "snow", "lakes", "chalets"],
+  "moods": ["mountains", "quiet"],
+  "cruiseSpeed": 17,
+  "route": {
+    "name": "Grindelwaldstrasse",
+    "from": "Interlaken",
+    "to": "Grindelwald",
+    "distanceLabel": "Up the valley beneath the Eiger",
+    "waypoints": [
+      { "name": "Interlaken", "at": 0, "x": 0.2, "y": 0.22 },
+      { "name": "Wilderswil", "at": 0.18, "x": 0.3, "y": 0.32 },
+      { "name": "Zweilütschinen", "at": 0.42, "x": 0.45, "y": 0.5 },
+      { "name": "Burglauenen", "at": 0.7, "x": 0.63, "y": 0.6 },
+      { "name": "Grindelwald", "at": 1, "x": 0.8, "y": 0.55 }
+    ]
+  },
+  "ticket": { "priceLabel": "Included", "original": true, "badges": ["VibeTour Original", "Route Journey"], "approxMinutes": 75 },
+  "variants": [
+    { "id": "morning", "label": "Alpine Morning", "timeOfDay": "morning", "weather": "clear", "default": true },
+    { "id": "bluebird", "label": "Bluebird Day", "timeOfDay": "day", "weather": "clear" },
+    { "id": "first-snow", "label": "First Snow", "timeOfDay": "day", "weather": "snow" },
+    { "id": "alpenglow", "label": "Alpenglow", "timeOfDay": "golden", "arrivalTimeOfDay": "dusk", "weather": "clear" }
+  ],
+  "palette": {
+    "ground": "#6f9a4a",
+    "groundFar": "#8fae6a",
+    "rock": "#7d7a78",
+    "snow": "#f4f7fb",
+    "sand": "#c9bfa8",
+    "road": "#4c4e55",
+    "roadLine": "#f2f2f2",
+    "foliage": "#4f7f3f",
+    "foliageDark": "#2c5233",
+    "water": "#3c8fb0",
+    "building": "#e9e2d4",
+    "accents": ["#c43c2f", "#f2c14e", "#6b4a32"]
+  },
+  "environment": {
+    "left": { "terrain": "mountains", "height": 220 },
+    "right": { "terrain": "mountains", "height": 160 },
+    "props": { "pine": 4, "chalet": 0.6, "snowpole": 1, "rock": 1, "broadleaf": 0.5 },
+    "curvature": 1.1,
+    "hilliness": 0.8,
+    "checkpoint": "tunnel",
+    "sunAzimuth": -40
+  },
+  "sceneGraph": {
+    "start": "interlaken",
+    "nodes": {
+      "interlaken": {
+        "kind": "departure",
+        "label": "Interlaken lakeside",
+        "weight": 1,
+        "env": {
+          "left": { "terrain": "mountains", "height": 140 },
+          "right": { "terrain": "lake", "height": 180 },
+          "props": { "chalet": 1.5, "streetlight": 1.2, "broadleaf": 2, "pine": 1 },
+          "curvature": 0.5
+        },
+        "next": ["valley"]
+      },
+      "valley": {
+        "kind": "cruise",
+        "label": "Lütschine valley",
+        "weight": 2.5,
+        "env": { "props": { "pine": 5, "rock": 1, "chalet": 0.4, "snowpole": 1 } },
+        "next": ["falls", "tunnel"]
+      },
+      "falls": {
+        "kind": "landmark",
+        "label": "Lauterbrunnen falls",
+        "weight": 1.2,
+        "env": { "landmark": "waterfall", "landmarkSide": "left", "props": { "pine": 3, "chalet": 0.8 } },
+        "next": ["meadows"]
+      },
+      "tunnel": {
+        "kind": "transition",
+        "label": "Alpine tunnel",
+        "weight": 0.8,
+        "env": { "tunnel": true, "props": { "pine": 4 } },
+        "next": ["meadows"]
+      },
+      "meadows": {
+        "kind": "cruise",
+        "label": "Meadows of Zweilütschinen",
+        "weight": 2,
+        "env": {
+          "left": { "terrain": "hills", "height": 70 },
+          "right": { "terrain": "mountains", "height": 200 },
+          "props": { "chalet": 2, "sheep": 1.2, "pine": 1.5, "broadleaf": 1 },
+          "curvature": 0.8
+        },
+        "next": ["chapel"]
+      },
+      "chapel": {
+        "kind": "landmark",
+        "label": "Chapel above the valley",
+        "weight": 1,
+        "env": { "landmark": "chapel", "landmarkSide": "right", "props": { "pine": 3, "chalet": 1 } },
+        "next": ["switchbacks"]
+      },
+      "switchbacks": {
+        "kind": "cruise",
+        "label": "Climb to Grindelwald",
+        "weight": 2,
+        "env": { "left": { "terrain": "mountains", "height": 260 }, "props": { "pine": 5, "snowpole": 1.5, "rock": 1.5 }, "curvature": 1.4 },
+        "next": ["grindelwald"]
+      },
+      "grindelwald": {
+        "kind": "arrival",
+        "label": "Grindelwald",
+        "weight": 1,
+        "env": {
+          "left": { "terrain": "mountains", "height": 300 },
+          "right": { "terrain": "hills", "height": 90 },
+          "props": { "chalet": 4, "pine": 2, "streetlight": 1, "lantern": 1 },
+          "curvature": 0.6
+        }
+      }
+    }
+  },
+  "scenicStops": [
+    { "name": "a viewpoint below the Eiger", "kind": "viewpoint" },
+    { "name": "a lakeside café in Interlaken", "kind": "cafe" },
+    { "name": "a hairpin pull-out", "kind": "overlook" },
+    { "name": "a mountain inn", "kind": "hotel" },
+    { "name": "the Lauterbrunnen valley floor", "kind": "village" }
+  ],
+  "arrival": { "name": "Grindelwald", "scene": "the north face of the Eiger" },
+  "facts": [
+    "The Eiger's north face rises roughly 1,800 metres above Grindelwald.",
+    "Staubbach Falls in Lauterbrunnen drops nearly 300 metres.",
+    "Interlaken sits on the narrow strip of land between Lake Thun and Lake Brienz."
+  ],
+  "audio": { "ambience": ["birds", "stream", "wind"] },
+  "provenance": {
+    "creator": "VibeTour Originals",
+    "generation": "procedural",
+    "license": "Included with VibeTour",
+    "sources": ["Procedural environment inspired by the Bernese Oberland"]
+  }
+}

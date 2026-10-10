@@ -1,0 +1,202 @@
+{
+  "name": "vibetour",
+  "displayName": "VibeTour",
+  "description": "See the world while you code. Turn coding sessions into journeys.",
+  "version": "0.1.0",
+  "private": true,
+  "publisher": "vibetour",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/davidsparrow/vibetour"
+  },
+  "engines": {
+    "vscode": "^1.93.0",
+    "node": ">=20.19"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "ambient",
+    "focus",
+    "travel",
+    "agents",
+    "companion",
+    "dashboard"
+  ],
+  "main": "./dist/extension.js",
+  "bin": {
+    "vibetour": "dist/cli.js",
+    "vibetour-hook": "bin/vibetour-hook.js"
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "vibetour.open",
+        "title": "Open Tour",
+        "category": "VibeTour"
+      },
+      {
+        "command": "vibetour.toggleWork",
+        "title": "Toggle Tour / Work Mode",
+        "category": "VibeTour"
+      },
+      {
+        "command": "vibetour.chooseDestination",
+        "title": "Where Do You Want to Go Today?",
+        "category": "VibeTour"
+      },
+      {
+        "command": "vibetour.takeMeSomewhere",
+        "title": "Take Me Somewhere",
+        "category": "VibeTour"
+      },
+      {
+        "command": "vibetour.completeObjective",
+        "title": "Arrive — Objective Complete",
+        "category": "VibeTour"
+      },
+      {
+        "command": "vibetour.setObjective",
+        "title": "Set Journey Objective",
+        "category": "VibeTour"
+      },
+      {
+        "command": "vibetour.park",
+        "title": "Park (End Session)",
+        "category": "VibeTour"
+      },
+      {
+        "command": "vibetour.resume",
+        "title": "Resume Journey",
+        "category": "VibeTour"
+      },
+      {
+        "command": "vibetour.endJourney",
+        "title": "End Journey",
+        "category": "VibeTour"
+      },
+      {
+        "command": "vibetour.cycleDisplayMode",
+        "title": "Cycle Display Mode (Tour / Dashboard / Work)",
+        "category": "VibeTour"
+      },
+      {
+        "command": "vibetour.openCompanion",
+        "title": "Open Companion Display",
+        "category": "VibeTour"
+      },
+      {
+        "command": "vibetour.copyCompanionUrl",
+        "title": "Copy Companion Display URL",
+        "category": "VibeTour"
+      },
+      {
+        "command": "vibetour.openGlovebox",
+        "title": "Open Glovebox (Project Docs)",
+        "category": "VibeTour"
+      },
+      {
+        "command": "vibetour.showPassport",
+        "title": "Show Passport",
+        "category": "VibeTour"
+      },
+      {
+        "command": "vibetour.capture",
+        "title": "Capture My Workplace",
+        "category": "VibeTour"
+      },
+      {
+        "command": "vibetour.toggleStreamingMode",
+        "title": "Toggle Streaming Mode (Hide Private Info)",
+        "category": "VibeTour"
+      },
+      {
+        "command": "vibetour.copyClaudeHooks",
+        "title": "Copy Claude Code Hook Configuration",
+        "category": "VibeTour"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "vibetour.toggleWork",
+        "key": "ctrl+alt+v",
+        "mac": "cmd+alt+v"
+      },
+      {
+        "command": "vibetour.cycleDisplayMode",
+        "key": "ctrl+alt+shift+v",
+        "mac": "cmd+alt+shift+v",
+        "when": "activeWebviewPanelId == vibetour.tour"
+      }
+    ],
+    "configuration": {
+      "title": "VibeTour",
+      "properties": {
+        "vibetour.companion.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run the local Companion Display server (bound to 127.0.0.1, token-protected) so VibeTour can be shown on a second screen and receive agent hook events."
+        },
+        "vibetour.companion.port": {
+          "type": "number",
+          "default": 47477,
+          "minimum": 0,
+          "maximum": 65535,
+          "description": "Preferred port for the Companion Display. Falls back to a free port if busy."
+        },
+        "vibetour.privacy.streamingMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Hide file names, paths, branches, repositories, terminal commands and messages from every VibeTour display (for streaming and screenshots)."
+        },
+        "vibetour.journey.autoResume": {
+          "type": "boolean",
+          "default": true,
+          "description": "When VS Code reopens, resume a journey that was parked by closing the window as soon as you start working."
+        },
+        "vibetour.tour.openBeside": {
+          "type": "boolean",
+          "default": false,
+          "description": "Open the tour beside the current editor instead of in the active editor group."
+        },
+        "vibetour.statusBar.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the journey in the status bar."
+        },
+        "vibetour.agents.detectExternalEdits": {
+          "type": "boolean",
+          "default": true,
+          "description": "Treat file changes made outside the editor (for example by a terminal coding agent) as agent activity."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:dev": "node scripts/build.mjs --dev",
+    "watch": "node scripts/build.mjs --watch",
+    "typecheck": "tsc -p .",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "check": "npm run typecheck && npm test && npm run build",
+    "demo": "node scripts/build.mjs && node scripts/serve-demo.mjs",
+    "companion": "node scripts/build.mjs && node dist/cli.js",
+    "package": "npm run build && npx --yes @vscode/vsce@3.6.0 package --no-dependencies --skip-license"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "@types/node": "22.18.6",
+    "@types/three": "0.185.0",
+    "@types/vscode": "1.93.0",
+    "esbuild": "0.28.1",
+    "three": "0.185.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}
