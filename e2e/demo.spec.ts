@@ -63,6 +63,52 @@ test('the demo story drives the cockpit: agent work, tests and a scenic stop', a
   await expect(page.locator('.stop-card')).not.toHaveClass(/show/, { timeout: 20_000 });
 });
 
+test('a slow click on the stop card still lands while snapshots stream in', async ({ page }) => {
+  await page.goto('/?fresh&autopilot=0');
+  await bookFirstJourney(page);
+  await page.evaluate(() => (window as any).vibetour.send({ type: 'park' }));
+  const resume = page.locator('.stop-card.show').getByRole('button', { name: 'Resume journey' });
+  await expect(resume).toBeVisible();
+  // Several 250 ms snapshots arrive between press and release.
+  await resume.hover();
+  await page.mouse.down();
+  await page.waitForTimeout(800);
+  await page.mouse.up();
+  await expect(page.locator('.stop-card')).not.toHaveClass(/show/);
+});
+
+test('ending or replacing a journey that has not arrived takes a second click', async ({ page }) => {
+  await page.goto('/?fresh&autopilot=0');
+  await bookFirstJourney(page);
+  await page.keyboard.press('g');
+  const banner = page.locator('.picker.show .banner', { hasText: 'On the road' });
+  await banner.getByRole('button', { name: 'End it here' }).click();
+  await expect(banner).toBeVisible();
+  await banner.getByRole('button', { name: 'Lose progress? Click again' }).click();
+  await expect(banner).toHaveCount(0);
+
+  await bookFirstJourney(page);
+  await page.keyboard.press('g');
+  await page.locator('.picker.show .card').nth(1).getByRole('button', { name: /Get ticket/ }).click();
+  await expect(page.getByText(/Departing ends your journey to California Coast/)).toBeVisible();
+  await page.getByRole('button', { name: 'Depart now' }).click();
+  await expect(page.locator('.picker')).toHaveClass(/show/);
+  await page.getByRole('button', { name: 'Leave current journey? Click again' }).click();
+  await expect(page.locator('.picker')).not.toHaveClass(/show/);
+  await expect(page.locator('.nav-route')).toContainText('Tokyo After Dark');
+});
+
+test('a test run started before "Go idle" still finishes', async ({ page }) => {
+  await page.goto('/?fresh&autopilot=0&speed=10');
+  await bookFirstJourney(page);
+  await page.locator('.demo-panel summary').click();
+  await page.getByRole('button', { name: 'Tests pass' }).click();
+  await expect(page.locator('.hud-chips')).toContainText('npm test · running');
+  await page.getByRole('button', { name: 'Go idle' }).click();
+  await expect(page.locator('.mirror-list')).toContainText('Tests passed', { timeout: 10_000 });
+  await expect(page.locator('.hud-chips')).not.toContainText('running');
+});
+
 test('arriving stamps the passport', async ({ page }) => {
   // 20× time: the 90 s final approach takes ~5 s, well before the driver counts as idle.
   await page.goto('/?fresh&autopilot=0&speed=20');

@@ -147,9 +147,11 @@ function post(target, body) {
         },
       },
       (res) => {
+        // Anything but 2xx (a stale token, another server on that port) means: try the next target.
+        const delivered = res.statusCode >= 200 && res.statusCode < 300;
         res.resume();
-        res.on('end', () => resolve(true));
-        res.on('error', () => resolve(true));
+        res.on('end', () => resolve(delivered));
+        res.on('error', () => resolve(delivered));
       },
     );
     req.on('timeout', () => {

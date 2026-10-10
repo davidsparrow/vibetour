@@ -105,6 +105,7 @@ async function chooseDestination(host: CommandHost): Promise<void> {
     placeHolder: 'e.g. Build the onboarding flow',
   });
   if (objective === undefined) return;
+  if (!(await confirmLeaving(host, 'Start New Journey'))) return;
   host.session.startJourney(pack.id, scope.id, undefined, objective.trim() || undefined);
   vscode.window.setStatusBarMessage(`$(compass) Departing ${pack.route.from} for ${pack.route.to}`, 4_000);
 }
@@ -133,6 +134,7 @@ async function takeMeSomewhere(host: CommandHost): Promise<void> {
     void vscode.window.showInformationMessage(`No destinations match "${mood.label}" yet. Try another mood.`);
     return;
   }
+  if (!(await confirmLeaving(host, 'Start New Journey'))) return;
   const scope = scopeForDuration(duration.id);
   host.session.startJourney(pack.id, scope, variantForMood(pack, mood.id));
   const open = await vscode.window.showInformationMessage(
@@ -173,19 +175,22 @@ async function setObjective(host: CommandHost): Promise<void> {
   if (objective !== undefined) host.session.setObjective(objective);
 }
 
-async function endJourney(host: CommandHost): Promise<void> {
+/** Ending or replacing a journey that has not arrived loses its progress: ask first. */
+async function confirmLeaving(host: CommandHost, action: 'End Journey' | 'Start New Journey'): Promise<boolean> {
   const journey = host.session.activeJourney;
-  if (!journey) return withJourney(host, () => undefined);
-  if (journey.phase !== 'arrived' && journey.phase !== 'staying') {
-    const to = host.session.packs.get(journey.packId)?.route.to ?? 'your destination';
-    const ok = await vscode.window.showWarningMessage(
-      `End your journey to ${to}?`,
-      { modal: true, detail: 'You have not arrived yet. Progress toward this destination will be lost.' },
-      'End Journey',
-    );
-    if (!ok) return;
-  }
-  host.session.endJourney();
+  if (!journey || journey.phase === 'arrived' || journey.phase === 'staying') return true;
+  const to = host.session.packs.get(journey.packId)?.route.to ?? 'your destination';
+  const ok = await vscode.window.showWarningMessage(
+    action === 'End Journey' ? `End your journey to ${to}?` : `Leave your journey to ${to} for a new one?`,
+    { modal: true, detail: 'You have not arrived yet. Progress toward this destination will be lost.' },
+    action,
+  );
+  return ok === action;
+}
+
+async function endJourney(host: CommandHost): Promise<void> {
+  if (!host.session.activeJourney) return withJourney(host, () => undefined);
+  if (await confirmLeaving(host, 'End Journey')) host.session.endJourney();
 }
 
 // -------------------------------------------------------------- companion
@@ -242,15 +247,20 @@ async function openGlovebox(): Promise<void> {
   else await vscode.window.showTextDocument(picked.uri, { preview: true });
 }
 
+// -------------------------------------------------------------- settings
+
+/** Updates a setting where it is set: a workspace value would shadow a global change. */
+export function updateSetting(cfg: vscode.WorkspaceConfiguration, key: string, value: unknown): Thenable<void> {
+  const target = cfg.inspect(key)?.workspaceValue !== undefined ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global;
+  return cfg.update(key, value, target);
+}
+
 // -------------------------------------------------------------- privacy
 
 async function toggleStreamingMode(): Promise<void> {
   const cfg = vscode.workspace.getConfiguration('vibetour');
   const on = !cfg.get<boolean>('privacy.streamingMode', false);
-  // A workspace value would shadow a global change, so update where it is set.
-  const target =
-    cfg.inspect<boolean>('privacy.streamingMode')?.workspaceValue !== undefined ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global;
-  await cfg.update('privacy.streamingMode', on, target);
+  await updateSetting(cfg, 'privacy.streamingMode', on);
   vscode.window.setStatusBarMessage(
     on ? '$(eye-closed) VibeTour Streaming Mode on — private details hidden' : '$(eye) VibeTour Streaming Mode off',
     4_000,

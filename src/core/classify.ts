@@ -29,6 +29,14 @@ const LINT_RE =
   /(^|[\s:/_-])(lint|eslint|prettier|ruff|flake8|pylint|mypy|pyright|clippy|golangci-lint|rubocop|stylelint|typecheck|type-check|biome|fmt|format|check)([\s:_-]|$)/i;
 const INSTALL_RE = /^(npm|pnpm|yarn|bun)\s+(i|install|ci|add)\b|^pip3?\s+install\b|^(bundle|poetry|uv)\s+(install|sync|add)\b|^cargo\s+fetch\b|^go\s+mod\s+(download|tidy)\b/i;
 const RUN_RE = /^(npm|pnpm|yarn|bun)\s+(start|run\s+(dev|start|serve|watch))\b|^(node|deno|python3?|ruby|php|java|dotnet\s+run|go\s+run|cargo\s+run|flask|uvicorn|rails\s+s)/i;
+/** Watch modes, dev servers and containers run until stopped, so they never count as verification. */
+const LONG_RUNNING_RE = /(^|[\s:_-])(watch|watchall|serve|bootrun)([\s:_=-]|$)|(^|\s)-w(\s|$)|(^|[\s-])compose\s+up\b/i;
+
+/** Bare `vitest` is watch mode; only `vitest run` (or `--run`) exits on its own. */
+function vitestWatches(t: string[]): boolean {
+  const i = t.findIndex((x) => x.toLowerCase() === 'vitest');
+  return i >= 0 && !t.slice(i + 1).some((x) => /^(--)?run$/i.test(x));
+}
 
 export interface Classification {
   kind: ProcessKind;
@@ -85,21 +93,18 @@ export function classifyCommand(commandLine: string): Classification {
   if (bin === 'git' || bin === 'gh') return { kind: 'git', label };
   const rest = t.join(' ');
   if (INSTALL_RE.test(rest)) return { kind: 'install', label };
-  if (TEST_RE.test(rest)) return { kind: 'test', label };
-  if (LINT_RE.test(rest)) return { kind: 'lint', label };
-  if (BUILD_RE.test(rest)) return { kind: 'build', label };
+  const verify: ProcessKind | undefined = TEST_RE.test(rest) ? 'test' : LINT_RE.test(rest) ? 'lint' : BUILD_RE.test(rest) ? 'build' : undefined;
+  if (verify) return { kind: LONG_RUNNING_RE.test(rest) || vitestWatches(t) ? 'run' : verify, label };
   if (RUN_RE.test(rest)) return { kind: 'run', label };
   return { kind: 'other', label };
 }
 
-/** Classifies a VS Code task by its group and name. */
-export function classifyTask(name: string, group?: string): Classification {
+/** Classifies a VS Code task by its group and name. Background tasks (watchers) never end, so they just run. */
+export function classifyTask(name: string, group?: string, background = false): Classification {
   const g = (group || '').toLowerCase();
   const label = name.length > 32 ? name.slice(0, 31) + '…' : name;
-  if (g === 'test') return { kind: 'test', label };
-  if (g === 'build') return { kind: 'build', label };
-  const c = classifyCommand(name);
-  return { kind: c.kind === 'other' ? 'other' : c.kind, label };
+  const kind: ProcessKind = g === 'test' ? 'test' : g === 'build' ? 'build' : classifyCommand(name).kind;
+  return { kind: background && isVerification(kind) ? 'run' : kind, label };
 }
 
 /** True for kinds whose run means "verification is underway" (PRD §9 VERIFYING). */
