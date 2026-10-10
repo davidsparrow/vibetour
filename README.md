@@ -70,7 +70,7 @@ All three share one procedural Three.js renderer and one activity/journey engine
 
 ## Try it
 
-You need Node.js 18 or later.
+You need Node.js 20.19+ or 22.12+ (22 LTS recommended).
 
 ```bash
 npm install
