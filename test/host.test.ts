@@ -161,6 +161,30 @@ describe('JsonFileStore', () => {
     }
   });
 
+  it('lets several processes share one file without losing each other\'s keys', () => {
+    const dir = temp('store');
+    try {
+      const file = join(dir, 'state.json');
+      const a = new JsonFileStore(file, 1_000);
+      const b = new JsonFileStore(file, 1_000);
+      a.set('stamps', ['from-a']);
+      a.flush();
+      expect(b.get('stamps')).toEqual(['from-a']);
+      b.set('library', ['from-b']);
+      b.flush();
+      a.set('memories', ['from-a']);
+      expect(a.get('library')).toEqual(['from-b']);
+      a.flush();
+      expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual({ stamps: ['from-a'], library: ['from-b'], memories: ['from-a'] });
+      b.set('stamps', undefined);
+      b.flush();
+      expect(a.get('stamps')).toBeUndefined();
+      expect(a.get('memories')).toEqual(['from-a']);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('sets a corrupt file aside instead of overwriting it', () => {
     const dir = temp('store');
     try {

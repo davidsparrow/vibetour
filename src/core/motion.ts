@@ -66,6 +66,8 @@ export function desiredBehavior(
 ): { behavior: Behavior; stopReason?: MotionReading['stopReason'] } {
   if (phase === 'parked') return { behavior: 'parked' };
   if (phase === 'arrived' || phase === 'staying') return { behavior: 'arrived' };
+  // The objective is done: nothing short of parking stops the last stretch.
+  if (phase === 'final-approach') return { behavior: 'approach' };
   switch (a.basis) {
     case 'BLOCKED':
       return { behavior: 'pull-over', stopReason: 'blocked' };
@@ -76,7 +78,6 @@ export function desiredBehavior(
     default:
       break;
   }
-  if (phase === 'final-approach') return { behavior: 'approach' };
   switch (a.basis) {
     case 'VERIFYING':
       return { behavior: 'checkpoint' };

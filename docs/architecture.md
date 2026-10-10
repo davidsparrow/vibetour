@@ -52,6 +52,7 @@ The windows are deliberately generous:
 - **Thinking:** up to 5 minutes focused counts as thinking. Thinking is part of programming.
 - **Agent at work:** external file changes in the last 15 s imply an agent is working.
 - **Waiting:** an agent's *waiting* state expires after 30 minutes, in case hook events get lost.
+- **Verifying:** a test, build or lint run counts for up to 10 minutes. Watch modes, dev servers and background tasks (`vitest`, `jest --watch`, `tsc -w`, `docker compose up --build`) never count, because they run until stopped.
 
 **Blocked** happens in two cases:
 
@@ -72,7 +73,7 @@ The engine also produces the instrument readings: decaying activity scores for t
 | `IDLE` ≥ 3 min | scenic stop |
 | `WAITING_FOR_USER` | scenic stop |
 | `BLOCKED` | pull over with hazards on |
-| Objective complete | approach |
+| Objective complete | approach (nothing but parking stops it) |
 | Arrived | arrived |
 | Session ended | parked |
 

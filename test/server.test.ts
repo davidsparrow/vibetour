@@ -293,4 +293,29 @@ describe('CompanionServer lifecycle', () => {
       rmSync(home, { recursive: true, force: true });
     }
   });
+
+  it('takes the session file over when the server that owned it closes or dies', async () => {
+    const home = mkdtempSync(join(tmpdir(), 'vibetour-home-'));
+    process.env.VIBETOUR_HOME = home;
+    try {
+      const server = new CompanionServer({ ...base, port: 0, sessionFile: true });
+      const { port } = await server.start();
+      // A newer window that is still running owns it: leave it alone.
+      writeSessionFile({ port: 1, token: 't', pid: process.ppid, url: '', startedAt: 0 }, home);
+      server.claimSessionFile();
+      expect(readSessionFile(home)?.port).toBe(1);
+      // That window closed and removed it.
+      rmSync(sessionFilePath(home));
+      server.claimSessionFile();
+      expect(readSessionFile(home)).toMatchObject({ port, pid: process.pid });
+      // Or it crashed and left it behind.
+      writeSessionFile({ port: 1, token: 't', pid: 2_147_483_646, url: '', startedAt: 0 }, home);
+      server.claimSessionFile();
+      expect(readSessionFile(home)?.port).toBe(port);
+      await server.stop();
+      expect(existsSync(sessionFilePath(home))).toBe(false);
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
 });

@@ -1096,6 +1096,12 @@ body {
   width: 36px;
   padding: 7px 0;
 }
+.btn.btn-confirm,
+.btn-primary.btn-confirm {
+  background: rgba(255, 107, 91, 0.16);
+  border-color: var(--red);
+  color: var(--red) !important;
+}
 .btn-arrive {
   margin-top: 6px;
   border-color: rgba(123, 224, 160, 0.4);

@@ -142,9 +142,10 @@ export class IdeAdapter implements vscode.Disposable {
     const w = vscode.window;
     const undoRedo = e.reason !== undefined;
     const active = w.activeTextEditor?.document === doc && this.focused;
-    // A document that is clean right after a change nobody typed is VS Code
-    // reloading a file something else rewrote on disk: an external edit.
-    if (!doc.isDirty && !undoRedo && !active && doc.uri.scheme !== 'untitled') {
+    // A document that is clean right after a change that was not an undo is
+    // VS Code reloading a file something else rewrote on disk: an external
+    // edit, even in the active editor (a terminal agent rewriting the open file).
+    if (!doc.isDirty && !undoRedo && doc.uri.scheme !== 'untitled') {
       if (this.opts.detectExternalEdits()) this.external.push(doc.uri.toString(), file);
       return;
     }
@@ -251,7 +252,7 @@ export class IdeAdapter implements vscode.Disposable {
   private onTask(execution: vscode.TaskExecution, phase: 'start' | 'end', exitCode?: number): void {
     const task = execution.task;
     const source = typeof task.source === 'string' ? task.source : '';
-    const proc: RunningProcess = { id: `task:${source}:${task.name}`, ...classifyTask(task.name, task.group?.id) };
+    const proc: RunningProcess = { id: `task:${source}:${task.name}`, ...classifyTask(task.name, task.group?.id, task.isBackground) };
     if (phase === 'start') this.processStarted(proc);
     else this.processEnded(proc, exitCode);
   }

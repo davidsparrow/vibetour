@@ -9,7 +9,7 @@ import { VERSION } from '../host/version';
 import { BUILTIN_PACKS } from '../packs';
 import { CompanionServer } from '../server/companionServer';
 import { installHookScript, vibetourHome } from '../server/sessionFile';
-import { registerCommands, type CommandHost } from './commands';
+import { registerCommands, updateSetting, type CommandHost } from './commands';
 import { openWorkspaceFile, saveCapture } from './displayCommands';
 import { GitAdapter } from './gitAdapter';
 import { nextDisplayMode } from './helpers';
@@ -399,7 +399,7 @@ class VibeTourHost implements CommandHost {
   }
 
   async enableCompanion(): Promise<void> {
-    await this.cfg().update('companion.enabled', true, vscode.ConfigurationTarget.Global);
+    await updateSetting(this.cfg(), 'companion.enabled', true);
     // The configuration listener restarts the server; wait for it.
     await this.companionChange.catch(() => undefined);
     if (!this.server) await this.startCompanion();

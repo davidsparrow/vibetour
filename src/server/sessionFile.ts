@@ -46,6 +46,16 @@ export function readSessionFile(home = vibetourHome()): CompanionSessionInfo | u
   }
 }
 
+/** True when a process with this pid exists (EPERM: it exists but belongs to another user). */
+export function processAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (err) {
+    return (err as NodeJS.ErrnoException).code === 'EPERM';
+  }
+}
+
 /** Removes the session file, but only if this process wrote it (another window may own it now). */
 export function removeSessionFile(pid = process.pid, home = vibetourHome()): boolean {
   const info = readSessionFile(home);
