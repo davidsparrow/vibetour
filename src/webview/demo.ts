@@ -69,6 +69,7 @@ export class DemoHost {
   readonly session: VibeTourSession;
   private listener?: (m: HostMessage) => void;
   private readonly t0 = Date.now();
+  /** The autopilot's own intervals; consequences scheduled with later() are not in here. */
   private timers: number[] = [];
   private phaseTimer?: number;
   private phaseIndex = 0;
@@ -223,17 +224,19 @@ export class DemoHost {
     return (seconds * 1000) / this.speed;
   }
 
+  /**
+   * Schedules the consequence of an action (tests finishing, errors clearing).
+   * It always happens: stopping the autopilot must not leave a test run going forever.
+   */
   private later(ms: number, fn: () => void): void {
-    this.timers.push(window.setTimeout(fn, ms));
+    window.setTimeout(fn, ms);
   }
 
   private clearTimers(): void {
-    for (const t of this.timers) {
-      window.clearTimeout(t);
-      window.clearInterval(t);
-    }
+    for (const t of this.timers) window.clearInterval(t);
     this.timers = [];
     if (this.phaseTimer) window.clearTimeout(this.phaseTimer);
+    this.phaseTimer = undefined;
   }
 
   /** The PRD §6 story on a loop: code, agent, tests, a question, review, think. */

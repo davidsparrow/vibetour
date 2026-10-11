@@ -8,7 +8,7 @@ import type { DevEventBody } from '../core/events';
 import { AgentHookMapper, parseNeutralAgentEvent, sanitizeHookPayload } from '../core/hooks';
 import { isClientCommand, type Catalog, type ClientCommand, type ClientPrefs, type HostInfo, type HostMessage, type TourSnapshot } from '../core/protocol';
 import { companionCsp, makeNonce, renderAppHtml } from '../host/html';
-import { removeSessionFile, vibetourHome, writeSessionFile } from './sessionFile';
+import { processAlive, readSessionFile, removeSessionFile, vibetourHome, writeSessionFile } from './sessionFile';
 
 /**
  * Companion Mode server (PRD §7 Mode D, §33): serves the browser app to a
@@ -32,7 +32,11 @@ export interface CompanionServerOptions {
   prefs?(): Partial<ClientPrefs> | undefined;
   onCommand(cmd: ClientCommand): void | Promise<void>;
   onAgentEvents(events: DevEventBody[]): void;
-  /** Write `~/.vibetour/companion.json` on start and remove it on stop. */
+  /**
+   * Write `~/.vibetour/companion.json` on start and remove it on stop. With
+   * several servers (VS Code windows, CLIs), the newest owns the file; when its
+   * owner stops or dies, another one takes it over.
+   */
   sessionFile?: boolean;
   log?(msg: string): void;
 }
@@ -40,6 +44,8 @@ export interface CompanionServerOptions {
 export const COMMAND_LIMIT = 64 * 1024;
 export const AGENT_EVENT_LIMIT = 16 * 1024;
 const KEEPALIVE_MS = 20_000;
+/** How often a server checks that the session file still names a live server. */
+const SESSION_CHECK_MS = 10_000;
 const MAX_STREAMS = 32;
 /** A display this far behind on the stream is dropped (it will reconnect). */
 const MAX_BUFFERED = 4 * 1024 * 1024;
@@ -127,6 +133,7 @@ export class CompanionServer {
   private readonly tokenDigest: Buffer;
   private readonly staticRoot: string;
   private keepAlive?: ReturnType<typeof setInterval>;
+  private sessionCheck?: ReturnType<typeof setInterval>;
   private boundPort = 0;
   /** Where this server wrote its session file, if it did. */
   private sessionHome?: string;
@@ -173,15 +180,28 @@ export class CompanionServer {
     this.keepAlive = setInterval(() => this.writeAll(': keep-alive\n\n'), KEEPALIVE_MS);
     this.keepAlive.unref();
     if (this.opts.sessionFile) {
-      const home = vibetourHome();
-      try {
-        writeSessionFile({ port: this.boundPort, token: this.opts.token, pid: process.pid, url: this.url, startedAt: Date.now() }, home);
-        this.sessionHome = home;
-      } catch (err) {
-        this.log(`Could not write the companion session file: ${(err as Error).message}`);
-      }
+      this.sessionHome = vibetourHome();
+      this.writeSession();
+      this.sessionCheck = setInterval(() => this.claimSessionFile(), SESSION_CHECK_MS);
+      this.sessionCheck.unref();
     }
     return { port: this.boundPort, url: this.url };
+  }
+
+  /** Takes the session file over when it is gone or names a server that died. */
+  claimSessionFile(): void {
+    if (!this.sessionHome || !this.boundPort) return;
+    const info = readSessionFile(this.sessionHome);
+    if (info && processAlive(info.pid)) return;
+    this.writeSession();
+  }
+
+  private writeSession(): void {
+    try {
+      writeSessionFile({ port: this.boundPort, token: this.opts.token, pid: process.pid, url: this.url, startedAt: Date.now() }, this.sessionHome);
+    } catch (err) {
+      this.log(`Could not write the companion session file: ${(err as Error).message}`);
+    }
   }
 
   broadcast(msg: HostMessage): void {
@@ -197,6 +217,8 @@ export class CompanionServer {
   async stop(): Promise<void> {
     if (this.keepAlive) clearInterval(this.keepAlive);
     this.keepAlive = undefined;
+    if (this.sessionCheck) clearInterval(this.sessionCheck);
+    this.sessionCheck = undefined;
     for (const s of this.streams) s.res.end();
     this.streams.clear();
     if (this.sessionHome) {

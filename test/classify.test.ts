@@ -29,6 +29,16 @@ describe('classifyCommand', () => {
     expect(classifyCommand('').kind).toBe('other');
   });
 
+  it('treats watch modes and dev servers as running apps, not verification', () => {
+    for (const line of ['npx vitest', 'vitest src/auth', 'jest --watch', 'jest --watchAll', 'tsc -w', 'tsc --watch -p .', 'npm run test:watch', 'webpack serve', './gradlew bootRun', 'docker compose up --build', 'docker-compose up --build']) {
+      expect(classifyCommand(line).kind, line).toBe('run');
+    }
+    expect(classifyCommand('npx vitest run').kind).toBe('test');
+    expect(classifyCommand('vitest --run').kind).toBe('test');
+    expect(classifyCommand('tsc -p .').kind).toBe('build');
+    expect(classifyCommand('grep -w foo src').kind).toBe('other');
+  });
+
   it('never leaks secrets into labels', () => {
     const cases = [
       'API_KEY=sk-123 npm test',
@@ -57,6 +67,9 @@ describe('classifyTask', () => {
     expect(classifyTask('unit', 'test').kind).toBe('test');
     expect(classifyTask('npm: lint')).toEqual({ kind: 'lint', label: 'npm: lint' });
     expect(classifyTask('a very long task name that keeps going and going').label).toHaveLength(32);
+    // Background tasks are watchers: they never end, so they never verify anything.
+    expect(classifyTask('tsc: watch - tsconfig.json', 'build', true).kind).toBe('run');
+    expect(classifyTask('npm: lint', undefined, true).kind).toBe('run');
   });
 
   it('never keeps short bare values that could be secrets', () => {

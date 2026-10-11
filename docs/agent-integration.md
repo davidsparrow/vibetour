@@ -40,11 +40,12 @@ How hook events map onto the journey:
 | `PreToolUse` | co-pilot *using a tool* (e.g. "Using Edit") | Cruise |
 | `PreToolUse` with `Task`/`Agent` | a crew agent appears in a side mirror | — |
 | `PostToolUse` with `Task`/`Agent` | that crew agent leaves | — |
-| `Notification` | co-pilot *waiting for you* | Scenic stop until you reply |
-| `Stop` | co-pilot *finished — your turn* | Normal travel while you review |
+| `Notification` (permission prompt, question) | co-pilot *waiting for you* | Scenic stop until you reply |
+| `Notification` (`idle_prompt`, `auth_success`) | ignored: the co-pilot is still *finished* | — |
+| `Stop` | co-pilot *finished — your turn*; crew whose task never reported back leave | Normal travel while you review |
 | `SessionEnd` | co-pilot leaves the cockpit | — |
 
-The forwarder finds the server through `VIBETOUR_URL` and `VIBETOUR_TOKEN` when they are set. The extension sets them in its integrated terminals, so several VS Code windows each get their own agents. Otherwise it reads the session file `~/.vibetour/companion.json` (override the directory with `VIBETOUR_HOME`). It always exits 0, prints nothing, and gives up after about a second, so it can never slow down or confuse the agent.
+The forwarder finds the server through `VIBETOUR_URL` and `VIBETOUR_TOKEN` when they are set. The extension sets them in its integrated terminals, so several VS Code windows each get their own agents. Otherwise, or when that server turns the event away (say, a stale token), it reads the session file `~/.vibetour/companion.json` (override the directory with `VIBETOUR_HOME`). The newest running window or CLI owns that file, and when it closes another running one takes it over within about 10 seconds. It always exits 0, prints nothing, and gives up after about a second, so it can never slow down or confuse the agent.
 
 Agents started inside the VS Code terminal (`claude`, `codex`, `aider`, `gemini`, …) are also detected through shell integration. Files the agent changes on disk count as agent activity even without hooks.
 

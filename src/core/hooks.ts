@@ -75,7 +75,7 @@ export class AgentHookMapper {
       case 'SessionStart':
         return [{ ...base, status: 'idle', detail: 'Session started' }];
       case 'UserPromptSubmit':
-        return [{ ...base, status: 'working', detail: 'Working on your request' }];
+        return [...this.retireCrew(agentId), { ...base, status: 'working', detail: 'Working on your request' }];
       case 'PreToolUse': {
         if (SUBAGENT_TOOLS.has(tool)) {
           const sub: SubAgent = { id: `${agentId}:sub:${payload.tool_use_id?.slice(-12) ?? ++this.counter}`, toolUseId: payload.tool_use_id };
@@ -116,23 +116,29 @@ export class AgentHookMapper {
         // SubagentStop fires first and does not say which one finished.
         return [];
       case 'Notification':
-        return [
-          {
-            ...base,
-            status: 'waiting',
-            detail: payload.notification_type === 'idle_prompt' ? 'Waiting for your reply' : 'Needs your approval',
-          },
-        ];
+        // idle_prompt only repeats Stop a minute later ("still your turn"), and
+        // auth_success asks nothing: neither should pull the car over.
+        if (payload.notification_type === 'idle_prompt' || payload.notification_type === 'auth_success') return [];
+        return [{ ...base, status: 'waiting', detail: 'Needs your approval' }];
       case 'Stop':
-        return [{ ...base, status: 'done', detail: 'Finished — your turn' }];
+        return [...this.retireCrew(agentId), { ...base, status: 'done', detail: 'Finished — your turn' }];
       case 'PreCompact':
         return [{ ...base, status: 'tool', detail: 'Compacting context' }];
       case 'SessionEnd':
-        this.subagents.delete(agentId);
-        return [{ type: 'agent.remove', agentId }, ...subs.map((x) => ({ type: 'agent.remove' as const, agentId: x.id }))];
+        return [{ type: 'agent.remove', agentId }, ...this.retireCrew(agentId)];
       default:
         return [];
     }
+  }
+
+  /**
+   * Removes crew agents whose delegating call never reported back (denied,
+   * interrupted or failed): none can outlive the turn that started them.
+   */
+  private retireCrew(agentId: string): DevEventBody[] {
+    const subs = this.subagents.get(agentId) ?? [];
+    this.subagents.delete(agentId);
+    return subs.map((x) => ({ type: 'agent.remove' as const, agentId: x.id }));
   }
 }
 

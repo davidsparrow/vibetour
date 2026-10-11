@@ -2,7 +2,7 @@ import { APPROACH_CAP } from '../../core/journey';
 import type { JourneyPack } from '../../core/packs';
 import type { AgentSnapshot, TourSnapshot } from '../../core/protocol';
 import type { AppContext } from './context';
-import { clear, formatDuration, h, text, timeAgo, toggle } from './dom';
+import { clear, formatDuration, formatElapsed, h, renderKeyed, text, timeAgo, toggle } from './dom';
 import { Gauge } from './gauges';
 import { RouteMap } from './map';
 
@@ -264,14 +264,12 @@ export class Cockpit {
     const show = !!j && (m.stopped || j.phase === 'parked') && m.behavior !== 'arrived';
     toggle(this.stopCard, 'show', show);
     if (!show) return;
-    clear(this.stopCard);
+    const parked = j!.phase === 'parked';
     let title = '';
     let line = '';
-    let action: HTMLElement | undefined;
-    if (j!.phase === 'parked') {
+    if (parked) {
       title = 'Parked';
       line = `Your journey to ${pack?.route.to ?? 'your destination'} is saved. Pick it up whenever you like.`;
-      action = h('button', { class: 'btn btn-primary', onclick: () => this.ctx.send({ type: 'resume' }) }, 'Resume journey');
     } else if (m.behavior === 'pull-over') {
       title = 'Pulled over safely';
       line = snap.activity.blockedReason ?? 'Something needs your attention.';
@@ -282,8 +280,10 @@ export class Cockpit {
       title = `Scenic stop · ${m.stopName ?? ''}`;
       line = 'Taking a breather. Start working again to continue the drive.';
     }
-    this.stopCard.append(h('div', { class: 'stop-title' }, title), h('div', { class: 'stop-line' }, line));
-    if (action) this.stopCard.append(action);
+    renderKeyed(this.stopCard, `${title}\n${line}`, () => {
+      this.stopCard.append(h('div', { class: 'stop-title' }, title), h('div', { class: 'stop-line' }, line));
+      if (parked) this.stopCard.append(h('button', { class: 'btn btn-primary', onclick: () => this.ctx.send({ type: 'resume' }) }, 'Resume journey'));
+    });
   }
 
   private updateSideMirrors(agents: AgentSnapshot[]): void {
@@ -309,13 +309,21 @@ export class Cockpit {
 
   private updateNav(snap: TourSnapshot, pack?: JourneyPack): void {
     const j = snap.journey;
-    clear(this.navInfo);
     if (!j || !pack) {
-      this.navInfo.append(h('p', { class: 'muted' }, 'No journey yet.'), h('button', { class: 'btn btn-primary', onclick: () => this.ctx.open('picker') }, 'Choose a destination'));
+      renderKeyed(this.navInfo, 'none', () =>
+        this.navInfo.append(h('p', { class: 'muted' }, 'No journey yet.'), h('button', { class: 'btn btn-primary', onclick: () => this.ctx.open('picker') }, 'Choose a destination')),
+      );
       return;
     }
     this.map.update(pack, j.scope === 'free-drive' ? (j.travelMs / 3_600_000) % 1 : j.progress, `${pack.route.from} → ${pack.route.to}`);
     const capped = j.progress >= APPROACH_CAP - 0.001 && j.phase === 'extended';
+    const canArrive = j.phase !== 'arrived' && j.phase !== 'staying' && j.phase !== 'final-approach' && j.phase !== 'parked';
+    const percent = j.scope === 'free-drive' ? -1 : Math.round(j.progress * 100);
+    const key = [pack.id, j.location.label, j.scene.label, j.scopeLabel, percent, j.objective ?? '', capped, canArrive].join('\n');
+    renderKeyed(this.navInfo, key, () => this.renderNav(j, pack, capped, canArrive));
+  }
+
+  private renderNav(j: NonNullable<TourSnapshot['journey']>, pack: JourneyPack, capped: boolean, canArrive: boolean): void {
     this.navInfo.append(
       h('div', { class: 'nav-route' }, h('strong', {}, pack.title), h('span', {}, ` · ${pack.route.name}`)),
       h('div', { class: 'nav-loc' }, `${j.location.label} · ${j.scene.label}`),
@@ -327,7 +335,7 @@ export class Cockpit {
       ),
       h('div', { class: `nav-objective${j.objective ? '' : ' muted'}` }, h('span', {}, 'Objective'), j.objective ?? 'None set — arrive whenever the work is done'),
     );
-    if (j.phase !== 'arrived' && j.phase !== 'staying' && j.phase !== 'final-approach' && j.phase !== 'parked') {
+    if (canArrive) {
       if (capped) this.navInfo.append(h('p', { class: 'nav-hint' }, 'Final approach is waiting on you: arrive when the work is truly done.'));
       this.navInfo.append(this.arriveButton);
     }
@@ -377,7 +385,7 @@ export class Cockpit {
     const procs = snap.ide.processes;
     if (procs.length) {
       for (const p of procs) {
-        this.console.append(h('div', { class: 'proc running' }, h('i', { class: 'spinner' }), h('span', {}, p.label), h('time', {}, formatDuration(snap.at - p.startedAt).replace('0m', `${Math.round((snap.at - p.startedAt) / 1000)}s`))));
+        this.console.append(h('div', { class: 'proc running' }, h('i', { class: 'spinner' }), h('span', {}, p.label), h('time', {}, formatElapsed(snap.at - p.startedAt))));
       }
     }
     for (const key of ['test', 'build', 'lint'] as const) {
@@ -435,21 +443,23 @@ export class Cockpit {
     ex.append(h('div', { class: 'kv' }, h('span', {}, 'Files touched this session'), h('strong', {}, String(snap.ide.session.filesChanged))));
 
     const pr = this.workPanels.problems;
-    clear(pr);
     const d = snap.ide.diagnostics;
-    pr.append(h('div', { class: 'kv' }, h('span', {}, 'Errors / warnings'), h('strong', {}, `${d.errors} / ${d.warnings}`)));
-    for (const item of d.top) {
-      const row = h(
-        caps?.openFiles && item.path ? 'button' : 'div',
-        { class: `problem ${item.severity}`, title: item.path ? `${item.path}:${item.line}` : '' },
-        h('i', {}, item.severity === 'error' ? '✕' : '!'),
-        h('span', {}, item.message),
-        h('em', {}, `${item.file}:${item.line}`),
-      );
-      if (caps?.openFiles && item.path) row.addEventListener('click', () => this.ctx.send({ type: 'openFile', path: item.path!, line: item.line }));
-      pr.append(row);
-    }
-    if (!d.top.length) pr.append(h('p', { class: 'muted' }, d.errors + d.warnings ? 'Details hidden.' : 'No problems. Clear skies.'));
+    const openable = !!caps?.openFiles;
+    renderKeyed(pr, JSON.stringify([d.errors, d.warnings, d.top, openable]), () => {
+      pr.append(h('div', { class: 'kv' }, h('span', {}, 'Errors / warnings'), h('strong', {}, `${d.errors} / ${d.warnings}`)));
+      for (const item of d.top) {
+        const row = h(
+          openable && item.path ? 'button' : 'div',
+          { class: `problem ${item.severity}`, title: item.path ? `${item.path}:${item.line}` : '' },
+          h('i', {}, item.severity === 'error' ? '✕' : '!'),
+          h('span', {}, item.message),
+          h('em', {}, `${item.file}:${item.line}`),
+        );
+        if (openable && item.path) row.addEventListener('click', () => this.ctx.send({ type: 'openFile', path: item.path!, line: item.line }));
+        pr.append(row);
+      }
+      if (!d.top.length) pr.append(h('p', { class: 'muted' }, d.errors + d.warnings ? 'Details hidden.' : 'No problems. Clear skies.'));
+    });
 
     const ag = this.workPanels.agents;
     clear(ag);

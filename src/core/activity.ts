@@ -36,6 +36,8 @@ export interface ActivityConfig {
   blockedAfterMs: number;
   /** Diff/review views within this window put the gear in R. */
   reviewWindowMs: number;
+  /** A test/build/lint process running longer than this is a watcher, not verification. */
+  verificationMaxMs: number;
 }
 
 export const DEFAULT_ACTIVITY_CONFIG: ActivityConfig = {
@@ -47,6 +49,7 @@ export const DEFAULT_ACTIVITY_CONFIG: ActivityConfig = {
   waitingExpiryMs: 30 * 60_000,
   blockedAfterMs: 30_000,
   reviewWindowMs: 60_000,
+  verificationMaxMs: 10 * 60_000,
 };
 
 export interface ActivityReading {
@@ -153,7 +156,7 @@ export class ActivityEngine {
     const agentActive = working.length > 0 || externalActive;
     const waiting = agents.find((a) => a.status === 'waiting' && now - a.since < cfg.waitingExpiryMs);
     const errored = agents.find((a) => a.status === 'error' && now - a.since < cfg.agentStaleMs);
-    const verifying = ws.runningVerification().length > 0;
+    const verifying = ws.runningVerification().some((p) => now - p.startedAt < cfg.verificationMaxMs);
     const agentProcess = [...ws.processes.values()].some((p) => p.kind === 'agent');
 
     const build = ws.results.build;

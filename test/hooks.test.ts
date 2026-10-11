@@ -59,6 +59,33 @@ describe('AgentHookMapper', () => {
     expect(mapper.map({ hook_event_name: 'SomethingNew', session_id: SESSION })).toEqual([]);
   });
 
+  it('keeps "your turn" after Stop: idle reminders and auth notices are not questions', () => {
+    const mapper = new AgentHookMapper();
+    const map = (payload: Record<string, unknown>) => mapper.map(sanitizeHookPayload({ session_id: SESSION, ...payload }));
+    expect(map({ hook_event_name: 'Stop' })).toMatchObject([{ status: 'done' }]);
+    expect(map({ hook_event_name: 'Notification', notification_type: 'idle_prompt', message: 'Claude is waiting for your input' })).toEqual([]);
+    expect(map({ hook_event_name: 'Notification', notification_type: 'auth_success' })).toEqual([]);
+    expect(map({ hook_event_name: 'Notification', notification_type: 'permission_prompt' })).toMatchObject([{ status: 'waiting' }]);
+    expect(map({ hook_event_name: 'Notification' })).toMatchObject([{ status: 'waiting' }]);
+  });
+
+  it('retires crew agents whose delegating call never reported back when the turn ends', () => {
+    const mapper = new AgentHookMapper();
+    const map = (payload: Record<string, unknown>) => mapper.map({ session_id: SESSION, ...payload });
+    const denied = map({ hook_event_name: 'PreToolUse', tool_name: 'Task', tool_use_id: 'toolu_denied', subagent_type: 'Explore' })[1] as Extract<DevEventBody, { type: 'agent' }>;
+    expect(map({ hook_event_name: 'Stop' })).toEqual([
+      { type: 'agent.remove', agentId: denied.agentId },
+      expect.objectContaining({ type: 'agent', status: 'done' }),
+    ]);
+    expect(map({ hook_event_name: 'Stop' })).toHaveLength(1);
+
+    const interrupted = map({ hook_event_name: 'PreToolUse', tool_name: 'Agent', tool_use_id: 'toolu_esc' })[1] as Extract<DevEventBody, { type: 'agent' }>;
+    expect(map({ hook_event_name: 'UserPromptSubmit' })).toEqual([
+      { type: 'agent.remove', agentId: interrupted.agentId },
+      expect.objectContaining({ type: 'agent', status: 'working' }),
+    ]);
+  });
+
   it('maps Codex turn-complete notifications', () => {
     const events = new AgentHookMapper().map(sanitizeHookPayload({ type: 'agent-turn-complete', 'last-assistant-message': 'secret diff' }));
     expect(events).toEqual([{ type: 'agent', agentId: 'codex', name: 'Codex', role: 'copilot', status: 'done', detail: 'Turn complete — your move' }]);

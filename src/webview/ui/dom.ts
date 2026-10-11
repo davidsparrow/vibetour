@@ -45,10 +45,57 @@ export function clear(el: Element): void {
   while (el.firstChild) el.removeChild(el.firstChild);
 }
 
+const renderKeys = new WeakMap<Element, string>();
+
+/**
+ * Rebuilds `el` only when `key` changes. Snapshots arrive at 4 Hz: rebuilding
+ * on each one would swap buttons out from under a click and drop their focus.
+ */
+export function renderKeyed(el: Element, key: string, build: () => void): void {
+  if (renderKeys.get(el) === key) return;
+  renderKeys.set(el, key);
+  clear(el);
+  build();
+}
+
+/**
+ * A button for actions that lose progress: while `needsConfirm()` holds, the
+ * first click only arms it (showing `confirmLabel`) and a second click acts.
+ * Focus moving elsewhere disarms it. There is deliberately no countdown: a
+ * second click landing just as one ran out would arm the button again instead
+ * of acting. Webviews cannot show `window.confirm`.
+ */
+export function confirmButton(attrs: Attrs, label: string, confirmLabel: string, run: () => void, needsConfirm: () => boolean = () => true): HTMLButtonElement {
+  const btn = h('button', attrs, label);
+  let armed = false;
+  const disarm = () => {
+    armed = false;
+    btn.textContent = label;
+    btn.classList.remove('btn-confirm');
+  };
+  btn.addEventListener('click', () => {
+    if (armed || !needsConfirm()) {
+      disarm();
+      run();
+      return;
+    }
+    armed = true;
+    btn.textContent = confirmLabel;
+    btn.classList.add('btn-confirm');
+  });
+  btn.addEventListener('blur', () => armed && disarm());
+  return btn;
+}
+
 export function formatDuration(ms: number): string {
   const m = Math.floor(ms / 60_000);
   const h = Math.floor(m / 60);
   return h > 0 ? `${h}h ${String(m % 60).padStart(2, '0')}m` : `${m}m`;
+}
+
+/** How long something has been running: seconds for the first minute, then like formatDuration. */
+export function formatElapsed(ms: number): string {
+  return ms < 60_000 ? `${Math.max(0, Math.floor(ms / 1000))}s` : formatDuration(ms);
 }
 
 export function timeAgo(at: number, now: number): string {

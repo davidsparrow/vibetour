@@ -64,6 +64,14 @@ describe('ActivityEngine', () => {
     expect(engine.evaluate(4_000).state).toBe('ACTIVE');
   });
 
+  it('stops counting a test/build process as verification once it has run for ages (a watcher)', () => {
+    const { engine, feed } = setup();
+    feed({ type: 'editor.edit', file: fileRef('a.ts'), origin: 'user', magnitude: 5, at: 0 });
+    feed({ type: 'process.start', id: 'w', kind: 'test', label: 'npm test', at: 1_000 });
+    expect(engine.evaluate(5 * MIN).state).toBe('VERIFYING');
+    expect(engine.evaluate(11 * MIN).state).toBe('IDLE');
+  });
+
   it('becomes BLOCKED when a build failure is left alone', () => {
     const { engine, feed } = setup();
     feed({ type: 'editor.save', file: fileRef('a.ts'), at: 0 });
@@ -103,6 +111,16 @@ describe('MotionController', () => {
     expect(m.update(idle(0), 'cruising', 2_000).behavior).toBe('slow');
     m.update(idle(0), 'cruising', 3 * MIN);
     expect(m.update(idle(0), 'cruising', 3 * MIN + 2_100).behavior).toBe('scenic-stop');
+  });
+
+  it('keeps driving the final approach through idle, waiting and blocked states', () => {
+    for (const basis of ['IDLE', 'WAITING_FOR_USER', 'BLOCKED'] as const) {
+      const m = new MotionController(0);
+      m.force('scenic-stop', 0, 'idle');
+      const reading = { basis, reviewing: false, since: -10 * MIN } as never;
+      expect(m.update(reading, 'final-approach', 1_000).behavior).toBe('approach');
+      expect(m.update(reading, 'final-approach', 10_000).behavior).toBe('approach');
+    }
   });
 });
 
@@ -263,5 +281,48 @@ describe('VibeTourSession', () => {
     expect(stats.filesChanged).toBe(2);
     expect(stats.testPasses).toBe(1);
     expect(stats.commits).toBe(1);
+  });
+
+  it('counts files the session already touched into a new journey', () => {
+    const { session, clock, type } = makeSession();
+    type('early.ts');
+    session.startJourney('california-coast', 'coffee-run');
+    type('auth.ts');
+    session.completeObjective();
+    clock.advance(3 * MIN);
+    expect(session.latestSnapshot!.journey!.phase).toBe('arrived');
+
+    session.startJourney('california-coast', 'coffee-run');
+    type('auth.ts');
+    type('early.ts');
+    clock.advance(1_000);
+    expect(session.latestSnapshot!.journey!.stats.filesChanged).toBe(2);
+  });
+
+  it('arrives after "objective complete" even when the user has been idle for a while', () => {
+    const { session, clock, type } = makeSession();
+    session.startJourney('california-coast', 'coffee-run');
+    type();
+    clock.advance(10 * MIN, 1_000);
+    expect(session.latestSnapshot!.motion.behavior).toBe('scenic-stop');
+    session.completeObjective();
+    clock.advance(3 * MIN, 1_000);
+    expect(session.latestSnapshot!.journey?.phase).toBe('arrived');
+  });
+
+  it('replans a restored journey whose path no longer fits its pack, arrival included', () => {
+    const first = makeSession();
+    first.session.startJourney('california-coast', 'day-trip');
+    first.session.shutdown();
+    const saved = first.projectStore.get<{ path: string[] }>(KEYS.journey)!;
+    first.projectStore.set(KEYS.journey, { ...saved, path: ['departure', 'a-node-that-was-renamed'] });
+
+    const second = makeSession({ projectStore: first.projectStore, globalStore: first.globalStore });
+    const path = second.session.activeJourney!.path;
+    expect(path.every((id) => coast.sceneGraph.nodes[id])).toBe(true);
+    expect(coast.sceneGraph.nodes[path.at(-1)!].kind).toBe('arrival');
+    second.session.completeObjective();
+    second.clock.advance(1_000);
+    expect(second.session.latestSnapshot!.journey!.scene.kind).toBe('arrival');
   });
 });

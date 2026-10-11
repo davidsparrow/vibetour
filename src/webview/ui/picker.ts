@@ -4,7 +4,7 @@ import { pickSurprise, scopeForDuration, type DurationChoice } from '../../core/
 import { MOOD_LABELS } from '../../core/protocol';
 import type { AppContext } from './context';
 import { coverArt, flagFor } from './covers';
-import { clear, formatDuration, h, timeAgo } from './dom';
+import { clear, confirmButton, formatDuration, h, timeAgo } from './dom';
 
 /**
  * The opening experience (PRD §6, §83): "Where do you want to go today?",
@@ -78,7 +78,7 @@ export class Picker {
               },
               active.phase === 'parked' ? 'Continue journey' : 'Back to the road',
             ),
-            h('button', { class: 'btn', onclick: () => this.ctx.send({ type: 'endJourney' }) }, 'End it here'),
+            confirmButton({ class: 'btn' }, 'End it here', 'Lose progress? Click again', () => this.ctx.send({ type: 'endJourney' })),
           ),
         ),
       );
@@ -228,14 +228,26 @@ export class Picker {
       'aria-label': 'Journey objective',
       value: t.objective,
     }) as HTMLInputElement;
+    // Departing replaces a journey that has not arrived, and its progress with it.
+    const current = () => {
+      const a = this.ctx.catalog?.activeJourney;
+      return a && a.phase !== 'arrived' && a.phase !== 'staying' ? a : undefined;
+    };
+    const leaving = current();
+    const departButton = confirmButton(
+      { class: 'btn btn-primary btn-lg' },
+      'Depart now',
+      'Leave current journey? Click again',
+      () => {
+        this.ctx.send({ type: 'startJourney', packId: pack.id, variantId: t.variantId, scope: t.scope, objective: t.objective.trim() || undefined });
+        this.ctx.close();
+      },
+      () => !!current(),
+    );
     objective.addEventListener('input', () => (t.objective = objective.value));
     objective.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Enter') depart();
+      if (ev.key === 'Enter') departButton.click();
     });
-    const depart = () => {
-      this.ctx.send({ type: 'startJourney', packId: pack.id, variantId: t.variantId, scope: t.scope, objective: t.objective.trim() || undefined });
-      this.ctx.close();
-    };
 
     const pass = h(
       'div',
@@ -274,10 +286,11 @@ export class Picker {
         h('h4', {}, 'Objective'),
         objective,
         h('p', { class: 'small muted' }, 'Arrival is earned: the final approach waits until you mark the objective complete. Progress follows productive time, never keystrokes or lines of code.'),
+        leaving ? h('p', { class: 'small muted' }, `Departing ends your journey to ${leaving.title} (${Math.round(leaving.progress * 100)}%).`) : null,
         h(
           'div',
           { class: 'ticket-actions' },
-          h('button', { class: 'btn btn-primary btn-lg', onclick: depart }, 'Depart now'),
+          departButton,
           h(
             'button',
             {

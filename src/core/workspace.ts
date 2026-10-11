@@ -91,7 +91,10 @@ export class WorkspaceTracker {
   lastExternalEditAt = Number.NEGATIVE_INFINITY;
   lastAgentEditAt = Number.NEGATIVE_INFINITY;
   windowFocused = true;
-  /** Listeners notified when a file is touched, used for journey stats. */
+  /**
+   * Notified on every touch, not just a path's first: `touched` lasts the
+   * whole session, but each journey keeps its own file list.
+   */
   onTouch?: (path: string) => void;
   onCounter?: (key: keyof SessionCounters) => void;
 
@@ -241,10 +244,8 @@ export class WorkspaceTracker {
   }
 
   private touch(path: string): void {
-    if (!this.touched.has(path)) {
-      this.touched.add(path);
-      this.onTouch?.(path);
-    }
+    this.touched.add(path);
+    this.onTouch?.(path);
   }
 
   private push(item: HistoryItem): void {

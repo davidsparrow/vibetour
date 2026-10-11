@@ -107,6 +107,17 @@ describe('bin/vibetour-hook.js', () => {
     }
   });
 
+  it('falls back to the session file when the environment target rejects the event', async () => {
+    // A terminal that kept an old token after the companion restarted.
+    const run = await runHook(home, {
+      stdin: JSON.stringify({ hook_event_name: 'Stop', session_id: 'feedface' }),
+      env: { VIBETOUR_URL: `http://127.0.0.1:${server.port}`, VIBETOUR_TOKEN: 'stale-token' },
+    });
+    expect(run).toMatchObject({ code: 0, stdout: '', stderr: '' });
+    expect(received).toHaveLength(1);
+    expect(received[0][0]).toMatchObject({ agentId: 'claude:feedface', status: 'done' });
+  });
+
   it('exits 0 quickly and silently when VibeTour is not running', async () => {
     const empty = mkdtempSync(join(tmpdir(), 'vibetour-hook-empty-'));
     try {

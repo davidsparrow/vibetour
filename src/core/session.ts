@@ -2,7 +2,7 @@ import { ActivityEngine, DEFAULT_ACTIVITY_CONFIG, type ActivityConfig, type Acti
 import type { DevEvent, ProcessKind } from './events';
 import { JourneyEngine, SCOPES, scopeInfo, type JourneyRecord, type ScopeId } from './journey';
 import { DEFAULT_MOTION_CONFIG, MotionController, type MotionConfig, type MotionReading } from './motion';
-import { findVariant, rng, variantForHour, type JourneyPack } from './packs';
+import { findVariant, planPath, rng, variantForHour, type JourneyPack } from './packs';
 import { makeStamp, passportStats, updateLibrary, type LibraryEntry, type Stamp, type TravelMemory } from './passport';
 import type { Catalog, ClientCommand, Gear, JourneySnapshot, TourSnapshot } from './protocol';
 import { WorkspaceTracker, type HistoryItem } from './workspace';
@@ -373,8 +373,8 @@ export class VibeTourSession {
       return;
     }
     const { parkedBy, ...record } = saved;
-    // The pack may have changed since the path was planned.
-    if (!record.path.every((id) => pack.sceneGraph.nodes[id])) record.path = [pack.sceneGraph.start];
+    // The pack may have changed since the path was planned: plan again, arrival included.
+    if (!record.path.every((id) => pack.sceneGraph.nodes[id])) record.path = planPath(pack, record.seed);
     this.journey = new JourneyEngine(record, pack);
     if (record.phase !== 'parked') {
       this.journey.park(this.now());
