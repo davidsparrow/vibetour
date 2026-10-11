@@ -84,6 +84,9 @@ test('ending or replacing a journey that has not arrived takes a second click', 
   const banner = page.locator('.picker.show .banner', { hasText: 'On the road' });
   await banner.getByRole('button', { name: 'End it here' }).click();
   await expect(banner).toBeVisible();
+  // Clicking elsewhere disarms it; there is no countdown to race.
+  await page.getByRole('heading', { name: 'Where do you want to go today?' }).click();
+  await banner.getByRole('button', { name: 'End it here' }).click();
   await banner.getByRole('button', { name: 'Lose progress? Click again' }).click();
   await expect(banner).toHaveCount(0);
 
