@@ -54,6 +54,14 @@ export class SettingsPanel {
           segmented<number>('Interface scale', [[0.85, 'S'], [1, 'M'], [1.15, 'L'], [1.3, 'XL']], p.uiScale, (pr, v) => (pr.uiScale = v)),
           toggleRow('High-contrast instruments', 'Solid panels, bolder gauges', p.highContrast, (pr, v) => (pr.highContrast = v)),
           segmented<ClientPrefs['fuel']>('Fuel gauge shows', [['journey', 'Journey'], ['context', 'Agent context'], ['battery', 'Battery']], p.fuel, (pr, v) => (pr.fuel = v)),
+          segmented<ClientPrefs['yourTurnCue']>('Your-turn cue', [['none', 'None'], ['light', 'Blue light']], p.yourTurnCue, (pr, v) => (pr.yourTurnCue = v)),
+          h(
+            'p',
+            { class: 'small muted' },
+            `Lights on this screen when an agent finishes its turn. Whether the car also pulls over is set ${
+              host?.kind === 'cli' ? 'when starting the companion: --your-turn-stop <seconds>' : 'in VS Code: Settings › VibeTour › Your Turn'
+            }.`,
+          ),
         ),
         h(
           'section',

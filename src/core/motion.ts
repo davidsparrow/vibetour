@@ -27,8 +27,10 @@ export interface MotionReading {
   targetSpeed: number;
   since: number;
   stopped: boolean;
-  stopReason?: 'idle' | 'waiting' | 'blocked';
+  stopReason?: StopReason;
 }
+
+export type StopReason = 'idle' | 'waiting' | 'blocked' | 'your-turn';
 
 export const SPEEDS: Record<Behavior, number> = {
   cruise: 1,
@@ -50,12 +52,15 @@ export interface MotionConfig {
   scenicStopAfterMs: number;
   holdMs: Partial<Record<Behavior, number>>;
   defaultHoldMs: number;
+  /** Quiet time after an agent finishes its turn before a scenic stop; null keeps driving. */
+  yourTurnStopAfterMs: number | null;
 }
 
 export const DEFAULT_MOTION_CONFIG: MotionConfig = {
   scenicStopAfterMs: 3 * 60_000,
   holdMs: { checkpoint: 4_000, 'scenic-stop': 2_000, 'pull-over': 2_000 },
   defaultHoldMs: 1_500,
+  yourTurnStopAfterMs: null,
 };
 
 export function desiredBehavior(
@@ -73,12 +78,13 @@ export function desiredBehavior(
       return { behavior: 'pull-over', stopReason: 'blocked' };
     case 'WAITING_FOR_USER':
       return { behavior: 'scenic-stop', stopReason: 'waiting' };
-    case 'IDLE':
-      return now - a.since >= cfg.scenicStopAfterMs ? { behavior: 'scenic-stop', stopReason: 'idle' } : { behavior: 'slow' };
     default:
       break;
   }
+  if (yourTurnDue(a, now, cfg)) return { behavior: 'scenic-stop', stopReason: 'your-turn' };
   switch (a.basis) {
+    case 'IDLE':
+      return now - a.since >= cfg.scenicStopAfterMs ? { behavior: 'scenic-stop', stopReason: 'idle' } : { behavior: 'slow' };
     case 'VERIFYING':
       return { behavior: 'checkpoint' };
     case 'AGENT_ACTIVE':
@@ -94,19 +100,33 @@ export function desiredBehavior(
   }
 }
 
+/**
+ * Opt-in: an agent finished its turn, nothing outranks your move (no tests
+ * running, no agent at work), and nobody has done anything for long enough.
+ */
+function yourTurnDue(a: ActivityReading, now: number, cfg: MotionConfig): boolean {
+  const yourMove = a.basis === 'ACTIVE' || a.basis === 'THINKING' || a.basis === 'IDLE';
+  return yourMove && !!a.yourTurn && cfg.yourTurnStopAfterMs !== null && now - a.yourTurn.quietSince >= cfg.yourTurnStopAfterMs;
+}
+
 export class MotionController {
   private current: MotionReading;
   private candidate?: { behavior: Behavior; stopReason?: MotionReading['stopReason']; since: number };
 
   constructor(
     now: number,
-    private readonly cfg: MotionConfig = DEFAULT_MOTION_CONFIG,
+    private cfg: MotionConfig = DEFAULT_MOTION_CONFIG,
   ) {
     this.current = { behavior: 'parked', targetSpeed: 0, since: now, stopped: true };
   }
 
   get reading(): MotionReading {
     return this.current;
+  }
+
+  /** Pull over this long after an agent finishes its turn, or keep driving (null). */
+  setYourTurnStop(ms: number | null): void {
+    this.cfg = { ...this.cfg, yourTurnStopAfterMs: ms };
   }
 
   /** Forces a behaviour immediately (journey start, park, arrival). */

@@ -2,6 +2,7 @@ import { APPROACH_CAP } from '../../core/journey';
 import type { JourneyPack } from '../../core/packs';
 import type { AgentSnapshot, TourSnapshot } from '../../core/protocol';
 import type { AppContext } from './context';
+import { CUES, cueTable, litCues, type Cue } from './cues';
 import { clear, formatDuration, formatElapsed, h, renderKeyed, text, timeAgo, toggle } from './dom';
 import { Gauge } from './gauges';
 import { RouteMap } from './map';
@@ -68,6 +69,7 @@ export class Cockpit {
     light('warn', 'Warnings'),
     light('hazard', 'Hazard'),
     light('agent', 'Agent waiting'),
+    light('turn', 'Your turn'),
     light('head', 'Headlights'),
   );
   private readonly gear = h('div', { class: 'gear', 'aria-label': 'Gear selector' }, ...['P', 'R', 'N', 'D'].map((g) => h('span', { 'data-gear': g }, g)));
@@ -221,10 +223,20 @@ export class Cockpit {
       toggle(el, 'on', on);
       if (title) el.setAttribute('title', title);
     };
-    setLight('check', a.checkEngine.on, a.checkEngine.reason ?? 'Check engine: build/test failures');
-    setLight('warn', snap.ide.diagnostics.errors + snap.ide.diagnostics.warnings > 0, `${snap.ide.diagnostics.errors} errors, ${snap.ide.diagnostics.warnings} warnings`);
-    setLight('hazard', snap.motion.hazard);
-    setLight('agent', a.state === 'WAITING_FOR_USER', a.waitingAgent ? `${a.waitingAgent} is waiting for you` : 'Agent waiting');
+    // Warning lights follow the moments through this display's cue table.
+    const table = cueTable(this.ctx.prefs);
+    const lit = litCues(table, snap.moments);
+    const titles: Partial<Record<Cue, string>> = {
+      check: a.checkEngine.reason ?? 'Check engine: build/test failures',
+      warn: `${snap.ide.diagnostics.errors} errors, ${snap.ide.diagnostics.warnings} warnings`,
+      agent: a.waitingAgent ? `${a.waitingAgent} is waiting for you` : 'Agent waiting',
+      turn: a.yourTurnAgent ? `${a.yourTurnAgent} finished: your turn` : 'Your turn',
+    };
+    for (const cue of CUES) {
+      setLight(cue, lit.has(cue), titles[cue]);
+      // A cue no moment can switch on stays off the panel.
+      toggle(this.lights.querySelector(`.light-${cue}`)!, 'unused', table[cue].length === 0);
+    }
     setLight('head', !!j && (j.timeOfDay === 'night' || j.timeOfDay === 'dusk' || j.weather === 'rain' || j.weather === 'fog'));
     for (const el of this.gear.children) toggle(el, 'on', (el as HTMLElement).dataset.gear === a.gear);
     text(this.gearHint, { P: 'Paused', R: 'Review', N: 'Thinking', D: 'Build / edit' }[a.gear]);
@@ -276,6 +288,9 @@ export class Cockpit {
     } else if (m.stopReason === 'waiting') {
       title = `Scenic stop · ${m.stopName ?? ''}`;
       line = `${snap.activity.waitingAgent ?? 'Your agent'} is waiting for you. The journey resumes when you reply.`;
+    } else if (m.stopReason === 'your-turn') {
+      title = `Scenic stop · ${m.stopName ?? ''}`;
+      line = `${snap.activity.yourTurnAgent ?? 'Your agent'} finished its turn. The drive resumes when you reply or get back to work.`;
     } else {
       title = `Scenic stop · ${m.stopName ?? ''}`;
       line = 'Taking a breather. Start working again to continue the drive.';

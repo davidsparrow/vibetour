@@ -29,6 +29,13 @@ const TOUR_MODE_KEY = 'vibetour.lastTourMode';
 
 type Display = 'panel' | 'companion';
 
+/** `vibetour.yourTurn.*` as the session wants it: milliseconds, or null to keep driving. */
+function yourTurnStopMs(cfg: vscode.WorkspaceConfiguration): number | null {
+  if (!cfg.get<boolean>('yourTurn.pullOver', false)) return null;
+  const seconds = cfg.get<number>('yourTurn.pullOverAfterSeconds', 30);
+  return (Number.isFinite(seconds) ? Math.min(3600, Math.max(5, seconds)) : 30) * 1000;
+}
+
 /** KeyValueStore over a Memento: synchronous reads, fire-and-forget writes. */
 class MementoStore implements KeyValueStore {
   private readonly pending = new Set<Thenable<void>>();
@@ -99,6 +106,7 @@ class VibeTourHost implements CommandHost {
       project: this.project,
       streaming: this.streaming,
       autoResume: cfg.get<boolean>('journey.autoResume', true),
+      yourTurnStopMs: yourTurnStopMs(cfg),
     };
     this.session = new VibeTourSession(this.sessionOptions);
     this.panel = new TourPanel({
@@ -214,6 +222,7 @@ class VibeTourHost implements CommandHost {
     if (e.affectsConfiguration('vibetour.journey.autoResume')) this.session.setAutoResume(cfg.get<boolean>('journey.autoResume', true));
     if (e.affectsConfiguration('vibetour.statusBar.enabled')) this.statusBar.setEnabled(cfg.get<boolean>('statusBar.enabled', true));
     if (e.affectsConfiguration('vibetour.agents.detectExternalEdits')) this.detectExternalEdits = cfg.get<boolean>('agents.detectExternalEdits', true);
+    if (e.affectsConfiguration('vibetour.yourTurn')) this.session.setYourTurnStop(yourTurnStopMs(cfg));
     if (e.affectsConfiguration('vibetour.companion')) {
       this.companionChange = this.companionChange.then(async () => {
         await this.stopCompanion();

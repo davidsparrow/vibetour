@@ -10,13 +10,14 @@ VibeTour as a standalone companion for any editor or terminal coding agent.
 Shows the tour in your browser while you work in <dir> (default: current directory).
 
 Options:
-  --port <n>      Companion Display port (default 47477; 0 picks a free port)
-  --no-open       Don't open the browser
-  --pack <id>     Start a journey to this destination (${BUILTIN_PACKS.map((p) => p.id).join(', ')})
-  --scope <id>    Journey length with --pack (${SCOPES.map((s) => s.id).join(', ')}; default day-trip)
-  --streaming     Streaming Mode: hide file names, branches, commands and messages
-  -h, --help      Show this help
-  -v, --version   Show the version
+  --port <n>              Companion Display port (default 47477; 0 picks a free port)
+  --no-open               Don't open the browser
+  --pack <id>             Start a journey to this destination (${BUILTIN_PACKS.map((p) => p.id).join(', ')})
+  --scope <id>            Journey length with --pack (${SCOPES.map((s) => s.id).join(', ')}; default day-trip)
+  --streaming             Streaming Mode: hide file names, branches, commands and messages
+  --your-turn-stop <s>    When an agent finishes its turn, pull over after <s> quiet seconds (5-3600)
+  -h, --help              Show this help
+  -v, --version           Show the version
 `;
 
 export interface CliOptions {
@@ -26,6 +27,8 @@ export interface CliOptions {
   pack?: string;
   scope: ScopeId;
   streaming: boolean;
+  /** Pull over this long after an agent finishes its turn; unset keeps driving. */
+  yourTurnStopMs?: number;
 }
 
 export type Parsed = { kind: 'run'; opts: CliOptions } | { kind: 'help' } | { kind: 'version' } | { kind: 'error'; message: string };
@@ -62,6 +65,12 @@ export function parseArgs(argv: string[], cwd = process.cwd()): Parsed {
           return { kind: 'error', message: `Unknown destination "${id ?? ''}". Choose one of: ${BUILTIN_PACKS.map((p) => p.id).join(', ')}` };
         }
         opts.pack = id;
+        break;
+      }
+      case '--your-turn-stop': {
+        const seconds = Number(value());
+        if (!Number.isFinite(seconds) || seconds < 5 || seconds > 3600) return { kind: 'error', message: '--your-turn-stop needs a number of seconds between 5 and 3600' };
+        opts.yourTurnStopMs = seconds * 1000;
         break;
       }
       case '--scope': {

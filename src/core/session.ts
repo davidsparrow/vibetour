@@ -1,6 +1,7 @@
 import { ActivityEngine, DEFAULT_ACTIVITY_CONFIG, type ActivityConfig, type ActivityReading } from './activity';
 import type { DevEvent, ProcessKind } from './events';
 import { JourneyEngine, SCOPES, scopeInfo, type JourneyRecord, type ScopeId } from './journey';
+import { momentsOf } from './moments';
 import { DEFAULT_MOTION_CONFIG, MotionController, type MotionConfig, type MotionReading } from './motion';
 import { findVariant, planPath, rng, variantForHour, type JourneyPack } from './packs';
 import { makeStamp, passportStats, updateLibrary, type LibraryEntry, type Stamp, type TravelMemory } from './passport';
@@ -49,6 +50,8 @@ export interface SessionOptions {
   streaming?: boolean;
   /** Resume a journey parked by closing the app as soon as work starts. */
   autoResume?: boolean;
+  /** Pull over this long after an agent finishes its turn; null (the default) keeps driving. */
+  yourTurnStopMs?: number | null;
   activityConfig?: ActivityConfig;
   motionConfig?: MotionConfig;
 }
@@ -108,6 +111,7 @@ export class VibeTourSession {
     this.tracker = new WorkspaceTracker();
     this.activity = new ActivityEngine(this.tracker, now, opts.activityConfig ?? DEFAULT_ACTIVITY_CONFIG);
     this.motion = new MotionController(now, opts.motionConfig ?? DEFAULT_MOTION_CONFIG);
+    if (opts.yourTurnStopMs !== undefined) this.motion.setYourTurnStop(opts.yourTurnStopMs);
     this.wireTracker();
     this.restoreJourney();
   }
@@ -141,6 +145,11 @@ export class VibeTourSession {
 
   setAutoResume(on: boolean): void {
     this.autoResume = on;
+  }
+
+  /** Pull over this long after an agent finishes its turn, or keep driving (null). */
+  setYourTurnStop(ms: number | null): void {
+    this.motion.setYourTurnStop(ms);
   }
 
   get latestSnapshot(): TourSnapshot | undefined {
@@ -480,6 +489,7 @@ export class VibeTourSession {
         return j.scene().env.tunnel ? 'Through the tunnel — verification running' : 'Checkpoint — verification running';
       case 'scenic-stop':
         if (motion.stopReason === 'waiting') return `Scenic stop at ${stopName} — ${a.waitingAgent ?? 'your agent'} is waiting for you`;
+        if (motion.stopReason === 'your-turn') return `Scenic stop at ${stopName} — ${a.yourTurn?.agent ?? 'your agent'} finished, your turn`;
         return `Parked at ${stopName} — resume whenever you're ready`;
       case 'pull-over':
         return `Pulled over safely — ${a.blockedReason ?? 'something needs attention'}`;
@@ -591,7 +601,9 @@ export class VibeTourSession {
         context: a.context,
         waitingAgent: a.waitingAgent,
         blockedReason: a.blockedReason,
+        yourTurnAgent: a.yourTurn?.agent,
       },
+      moments: momentsOf(this.journey?.phase, a, motion, ws.diagnostics),
       ide: {
         project: s ? undefined : this.opts.project,
         activeFile: ws.activeFile

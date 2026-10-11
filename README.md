@@ -113,6 +113,9 @@ Inside the view: `T` `D` `W` switch modes, `G` destinations, `P` passport, `C` c
 | `vibetour.tour.openBeside` | Open the tour beside the editor |
 | `vibetour.statusBar.enabled` | Status bar item |
 | `vibetour.agents.detectExternalEdits` | Treat files changed outside the editor as agent activity |
+| `vibetour.yourTurn.pullOver`, `vibetour.yourTurn.pullOverAfterSeconds` | Pull over when an agent finishes its turn and nothing happens for a while (off by default; 30 s) |
+
+Each display also has its own **Your-turn cue** in Settings (None or a blue light).
 
 ### Companion Display (second screen)
 
@@ -132,7 +135,7 @@ The standalone companion:
 - accepts agent hook events
 - opens the display in your browser
 
-Run `node dist/cli.js --help` for options (`--port`, `--no-open`, `--scope`, `--streaming`).
+Run `node dist/cli.js --help` for options (`--port`, `--no-open`, `--scope`, `--streaming`, `--your-turn-stop`).
 
 ### Claude Code (and other agents)
 

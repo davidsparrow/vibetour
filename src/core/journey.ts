@@ -151,12 +151,13 @@ export class JourneyEngine {
 
   /**
    * Advance the journey. `basis` is the activity state (WARNING resolved to its
-   * basis); `moving` says whether the vehicle is currently travelling.
+   * basis); `moving` says whether the vehicle is currently travelling. A
+   * stopped car makes no progress, whatever the state.
    */
   tick(dtMs: number, basis: ActivityState, moving: boolean, now: number): void {
     const r = this.record;
     if (dtMs <= 0 || !this.moving) return;
-    const momentum = MOMENTUM[basis] ?? 0;
+    const momentum = moving ? (MOMENTUM[basis] ?? 0) : 0;
     if (momentum > 0) {
       r.productiveMs += dtMs * momentum;
       r.lastActiveAt = now;

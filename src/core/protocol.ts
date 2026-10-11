@@ -1,7 +1,8 @@
 import type { ActivityState } from './activity';
 import type { AgentStatus, AgentRole, ProcessKind } from './events';
 import type { LocationInfo, ScopeId, ScopeInfo } from './journey';
-import type { Behavior, JourneyPhase } from './motion';
+import type { Moment } from './moments';
+import type { Behavior, JourneyPhase, StopReason } from './motion';
 import type { EnvParams, JourneyPack, Mood, SceneKind, TimeOfDay, Weather } from './packs';
 import type { LibraryEntry, PassportStats, Stamp, TravelMemory } from './passport';
 import type { HistoryKind, ResultInfo, SessionCounters } from './workspace';
@@ -57,7 +58,7 @@ export interface TourSnapshot {
     behavior: Behavior;
     targetSpeed: number;
     stopped: boolean;
-    stopReason?: 'idle' | 'waiting' | 'blocked';
+    stopReason?: StopReason;
     stopName?: string;
     caption: string;
     since: number;
@@ -77,7 +78,11 @@ export interface TourSnapshot {
     context: number | null;
     waitingAgent?: string;
     blockedReason?: string;
+    /** The agent whose finished turn makes it your move. */
+    yourTurnAgent?: string;
   };
+  /** Every moment that holds right now, in signal-map order. Displays map them to cues. */
+  moments: Moment[];
   ide: {
     project?: string;
     activeFile?: { name: string; path?: string; language?: string };
@@ -161,6 +166,8 @@ export interface ClientPrefs {
   lowGpu: boolean;
   autoThrottle: boolean;
   fuel: 'journey' | 'context' | 'battery';
+  /** Dashboard cue for the your-turn moment on this display. */
+  yourTurnCue: 'none' | 'light';
   captureIncludeProject: boolean;
   audio: AudioPrefs;
 }
@@ -177,6 +184,7 @@ export const DEFAULT_PREFS: ClientPrefs = {
   lowGpu: false,
   autoThrottle: true,
   fuel: 'journey',
+  yourTurnCue: 'none',
   captureIncludeProject: false,
   audio: { enabled: false, master: 0.6, engine: 0.5, road: 0.5, wind: 0.4, weather: 0.6, ambience: 0.6, music: 0.35 },
 };

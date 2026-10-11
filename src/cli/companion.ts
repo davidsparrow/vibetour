@@ -55,7 +55,15 @@ async function run(opts: CliOptions): Promise<void> {
   const projectKey = createHash('sha1').update(dir).digest('hex').slice(0, 16);
   const globalStore = new JsonFileStore(join(home, 'state.json'), 1_000, log);
   const projectStore = new JsonFileStore(join(home, 'projects', `${projectKey}.json`), 1_000, log);
-  const session = new VibeTourSession({ packs: BUILTIN_PACKS, globalStore, projectStore, project, streaming: opts.streaming, autoResume: true });
+  const session = new VibeTourSession({
+    packs: BUILTIN_PACKS,
+    globalStore,
+    projectStore,
+    project,
+    streaming: opts.streaming,
+    autoResume: true,
+    yourTurnStopMs: opts.yourTurnStopMs ?? null,
+  });
   const ingest = (body: DevEventBody) => session.ingest({ ...body, at: Date.now() });
 
   let token = globalStore.get<string>(TOKEN_KEY);

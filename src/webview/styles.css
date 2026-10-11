@@ -13,6 +13,7 @@
   --green: #7be0a0;
   --red: #ff6b5b;
   --violet: #b79cff;
+  --blue: #6f97ff;
   --paper: #f6f0e4;
   --paper-ink: #1d1b18;
   --radius: 14px;
@@ -573,6 +574,14 @@ body {
   background: var(--cyan);
   box-shadow: 0 0 10px var(--cyan);
   border-radius: 50%;
+}
+.light-turn.on i {
+  background: var(--blue);
+  box-shadow: 0 0 10px var(--blue);
+  border-radius: 50%;
+}
+.light.unused {
+  display: none;
 }
 .light-head.on i {
   background: #9ed0ff;

@@ -52,6 +52,7 @@ The windows are deliberately generous:
 - **Thinking:** up to 5 minutes focused counts as thinking. Thinking is part of programming.
 - **Agent at work:** external file changes in the last 15 s imply an agent is working.
 - **Waiting:** an agent's *waiting* state expires after 30 minutes, in case hook events get lost.
+- **Your turn:** an agent finished its turn (Claude Code `Stop`, Codex turn complete) and no agent is working or waiting. It ends when the agent works again or leaves, or 15 minutes after it finished.
 - **Verifying:** a test, build or lint run counts for up to 10 minutes. Watch modes, dev servers and background tasks (`vitest`, `jest --watch`, `tsc -w`, `docker compose up --build`) never count, because they run until stopped.
 
 **Blocked** happens in two cases:
@@ -71,13 +72,32 @@ The engine also produces the instrument readings: decaying activity scores for t
 | `VERIFYING` | checkpoint: a tunnel, rock shed or long straight |
 | `IDLE` < 3 min | slow |
 | `IDLE` ≥ 3 min | scenic stop |
+| Your turn, quiet for N s (opt-in) | scenic stop; typing restarts the count |
 | `WAITING_FOR_USER` | scenic stop |
 | `BLOCKED` | pull over with hazards on |
 | Objective complete | approach (nothing but parking stops it) |
 | Arrived | arrived |
 | Session ended | parked |
 
-A new behaviour has to hold for a short time before it is applied (4 s for checkpoints), so the car never twitches. Resuming from a stop is immediate.
+A new behaviour has to hold for a short time before it is applied (4 s for checkpoints), so the car never twitches. Resuming from a stop is immediate. A stopped car makes no journey progress.
+
+The your-turn stop is off by default. It is a host setting (`vibetour.yourTurn.*` in VS Code, `--your-turn-stop <s>` for the CLI) because every display shows the same car.
+
+## Moments and cues (`src/core/moments.ts`, `src/webview/ui/cues.ts`)
+
+Each snapshot lists the **moments** that hold right now, such as `thinking`, `problems` and `your-turn` together. They are the rows of the signal map: `no-journey`, `parked`, `arrived`, `final-approach`, `agent-problem`, `build-failing`, `agent-waiting`, `verifying`, `agent-working`, `coding`, `thinking`, `idle`, `heads-up`, `problems`, `checks-failing`, `your-turn`.
+
+Each display turns moments into **cues** through one table, so the cockpit code never decides what a light means:
+
+| Cue | Lit by |
+| --- | --- |
+| Check engine | `checks-failing` |
+| Warnings | `problems` |
+| Hazard | `agent-problem`, `build-failing` |
+| Agent waiting | `agent-waiting` |
+| Your turn (blue, off unless the display's Your-turn cue is on) | `your-turn` |
+
+A future dashboard designer only needs to edit that table per display.
 
 ## Journey Engine (`src/core/journey.ts`)
 

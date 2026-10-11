@@ -72,6 +72,19 @@ describe('ActivityEngine', () => {
     expect(engine.evaluate(11 * MIN).state).toBe('IDLE');
   });
 
+  it('reports your turn once an agent finishes and no agent is still working', () => {
+    const { engine, feed } = setup();
+    feed({ type: 'agent', agentId: 'c', name: 'Claude', status: 'working', at: 1_000 });
+    expect(engine.evaluate(2_000).yourTurn).toBeUndefined();
+    feed({ type: 'agent', agentId: 'c', name: 'Claude', status: 'done', at: 3_000 });
+    expect(engine.evaluate(4_000).yourTurn).toEqual({ agent: 'Claude', since: 3_000, quietSince: 3_000 });
+    // Your input restarts the quiet time; the turn is still yours.
+    feed({ type: 'editor.edit', file: fileRef('a.ts'), origin: 'user', magnitude: 5, at: 5_000 });
+    expect(engine.evaluate(6_000).yourTurn?.quietSince).toBe(5_000);
+    feed({ type: 'agent', agentId: 'x', name: 'Codex', status: 'working', at: 7_000 });
+    expect(engine.evaluate(8_000).yourTurn).toBeUndefined();
+  });
+
   it('becomes BLOCKED when a build failure is left alone', () => {
     const { engine, feed } = setup();
     feed({ type: 'editor.save', file: fileRef('a.ts'), at: 0 });
@@ -111,6 +124,23 @@ describe('MotionController', () => {
     expect(m.update(idle(0), 'cruising', 2_000).behavior).toBe('slow');
     m.update(idle(0), 'cruising', 3 * MIN);
     expect(m.update(idle(0), 'cruising', 3 * MIN + 2_100).behavior).toBe('scenic-stop');
+  });
+
+  it('pulls over for your turn only when that is switched on, and only when nothing outranks it', () => {
+    const reading = (basis: string) => ({ basis, reviewing: false, since: 0, yourTurn: { agent: 'Claude', since: 0, quietSince: 0 } }) as never;
+    const driving = new MotionController(0);
+    driving.force('gentle', 0);
+    driving.update(reading('THINKING'), 'cruising', 60_000);
+    expect(driving.update(reading('THINKING'), 'cruising', 63_000).behavior).toBe('gentle');
+
+    const m = new MotionController(0);
+    m.setYourTurnStop(30_000);
+    m.force('gentle', 0);
+    expect(m.update(reading('THINKING'), 'cruising', 20_000).behavior).toBe('gentle');
+    m.update(reading('THINKING'), 'cruising', 30_000);
+    expect(m.update(reading('THINKING'), 'cruising', 32_100)).toMatchObject({ behavior: 'scenic-stop', stopReason: 'your-turn' });
+    // Tests started: verification outranks your move and the car drives on.
+    expect(m.update(reading('VERIFYING'), 'cruising', 33_000).behavior).toBe('checkpoint');
   });
 
   it('keeps driving the final approach through idle, waiting and blocked states', () => {
@@ -153,6 +183,9 @@ describe('JourneyEngine', () => {
   it('does not progress while idle (no productivity theatre, no punishment for thinking)', () => {
     const j = JourneyEngine.create(coast, { id: 'j', scope: 'day-trip', now: 0, seed: 1 });
     j.tick(60_000, 'IDLE', false, 60_000);
+    expect(j.record.progress).toBe(0);
+    // A stopped car makes no progress, even while you think.
+    j.tick(60_000, 'THINKING', false, 60_000);
     expect(j.record.progress).toBe(0);
     j.tick(60_000, 'THINKING', true, 120_000);
     expect(j.record.progress).toBeGreaterThan(0);
@@ -324,5 +357,77 @@ describe('VibeTourSession', () => {
     second.session.completeObjective();
     second.clock.advance(1_000);
     expect(second.session.latestSnapshot!.journey!.scene.kind).toBe('arrival');
+  });
+
+  it('keeps driving when an agent finishes its turn, unless asked to pull over', () => {
+    const { session, clock, emit } = makeSession();
+    session.startJourney('california-coast', 'day-trip');
+    emit({ type: 'agent', agentId: 'claude:1', name: 'Claude', status: 'done' });
+    clock.advance(2 * MIN);
+    expect(session.latestSnapshot!.motion.stopped).toBe(false);
+    expect(session.latestSnapshot!.moments).toContain('your-turn');
+  });
+
+  it('pulls over once an agent has finished and nothing happened for the chosen time', () => {
+    const { session, clock, emit, type } = makeSession({ yourTurnStopMs: 30_000 });
+    const snap = () => session.latestSnapshot!;
+    session.startJourney('california-coast', 'day-trip');
+    emit({ type: 'agent', agentId: 'claude:1', name: 'Claude', status: 'working' });
+    clock.advance(5_000);
+    emit({ type: 'agent', agentId: 'claude:1', name: 'Claude', status: 'done' });
+    clock.advance(20_000);
+    expect(snap().motion.stopped).toBe(false);
+
+    clock.advance(15_000);
+    expect(snap().motion).toMatchObject({ behavior: 'scenic-stop', stopReason: 'your-turn' });
+    expect(snap().motion.caption).toMatch(/Claude finished, your turn$/);
+    expect(snap().activity).toMatchObject({ gear: 'P', yourTurnAgent: 'Claude' });
+    const progress = snap().journey!.progress;
+    clock.advance(MIN);
+    expect(snap().journey!.progress).toBe(progress);
+
+    // Getting back to work drives on and restarts the count.
+    type();
+    clock.advance(1_000);
+    expect(snap().motion.stopped).toBe(false);
+    clock.advance(35_000);
+    expect(snap().motion.stopReason).toBe('your-turn');
+
+    // Replying to the agent ends your turn.
+    emit({ type: 'agent', agentId: 'claude:1', name: 'Claude', status: 'working' });
+    clock.advance(1_000);
+    expect(snap().motion.stopped).toBe(false);
+    expect(snap().moments).not.toContain('your-turn');
+
+    session.setYourTurnStop(null);
+    emit({ type: 'agent', agentId: 'claude:1', name: 'Claude', status: 'done' });
+    clock.advance(MIN);
+    expect(snap().motion.stopped).toBe(false);
+  });
+});
+
+describe('moments', () => {
+  it('names every situation that holds at once, in signal-map order', () => {
+    const { session, clock, emit, type } = makeSession();
+    const moments = () => session.latestSnapshot!.moments;
+    clock.advance(250);
+    expect(moments()).toEqual(['no-journey', 'idle']);
+
+    session.startJourney('california-coast', 'day-trip');
+    type();
+    emit({ type: 'diagnostics', errors: 1, warnings: 0 });
+    emit({ type: 'agent', agentId: 'claude:1', name: 'Claude', status: 'done' });
+    clock.advance(1_000);
+    expect(moments()).toEqual(['coding', 'heads-up', 'problems', 'your-turn']);
+
+    emit({ type: 'process.start', id: 'b', kind: 'build', label: 'npm run build' });
+    emit({ type: 'process.end', id: 'b', kind: 'build', label: 'npm run build', exitCode: 1 });
+    clock.advance(MIN);
+    expect(session.latestSnapshot!.motion.behavior).toBe('pull-over');
+    expect(moments()).toEqual(['build-failing', 'problems', 'checks-failing', 'your-turn']);
+
+    // Parked, the car is no longer pulled over for the build.
+    session.park();
+    expect(moments()).toEqual(['parked', 'problems', 'checks-failing', 'your-turn']);
   });
 });

@@ -109,6 +109,28 @@ test('a test run started before "Go idle" still finishes', async ({ page }) => {
   await expect(page.locator('.hud-chips')).not.toContainText('running');
 });
 
+test('an agent finishing its turn can pull over and light this display\'s your-turn cue', async ({ page }) => {
+  // 10× time with a 30 s pull-over: the stop comes about 3 s after the turn ends.
+  await page.goto('/?fresh&autopilot=0&speed=10&turnStop=30');
+  await bookFirstJourney(page);
+  await expect(page.locator('.light-turn')).toHaveClass(/unused/);
+  await page.keyboard.press('s');
+  await page.getByRole('group', { name: 'Your-turn cue' }).getByRole('button', { name: 'Blue light' }).click();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.light-turn')).not.toHaveClass(/unused/);
+  await expect(page.locator('.light-turn')).not.toHaveClass(/\bon\b/);
+
+  await page.locator('.demo-panel summary').click();
+  await page.getByRole('button', { name: 'Go idle' }).click();
+  await expect(page.locator('.light-turn')).toHaveClass(/\bon\b/);
+  await expect(page.locator('.stop-card.show')).toContainText('Claude finished its turn', { timeout: 15_000 });
+  await expect(page.locator('.hud-caption')).toContainText('Claude finished, your turn');
+
+  await page.getByRole('button', { name: 'Answer' }).click();
+  await expect(page.locator('.stop-card')).not.toHaveClass(/show/);
+  await expect(page.locator('.light-turn')).not.toHaveClass(/\bon\b/);
+});
+
 test('arriving stamps the passport', async ({ page }) => {
   // 20× time: the 90 s final approach takes ~5 s, well before the driver counts as idle.
   await page.goto('/?fresh&autopilot=0&speed=20');
