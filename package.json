@@ -173,6 +173,18 @@
           "type": "boolean",
           "default": true,
           "description": "Treat file changes made outside the editor (for example by a terminal coding agent) as agent activity."
+        },
+        "vibetour.yourTurn.pullOver": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "When an agent finishes its turn (Claude Code `Stop`, Codex turn complete), pull into a scenic stop once nothing has happened for `#vibetour.yourTurn.pullOverAfterSeconds#` seconds. Off: keep driving."
+        },
+        "vibetour.yourTurn.pullOverAfterSeconds": {
+          "type": "number",
+          "default": 30,
+          "minimum": 5,
+          "maximum": 3600,
+          "markdownDescription": "Quiet seconds after an agent finishes its turn before the car pulls over, with `#vibetour.yourTurn.pullOver#` on. Typing restarts the count; replying to the agent drives on."
         }
       }
     }

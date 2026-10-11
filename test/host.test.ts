@@ -238,6 +238,9 @@ describe('CLI arguments', () => {
     expect(parseArgs(['--pack', 'atlantis']).kind).toBe('error');
     expect(parseArgs(['--scope', 'forever']).kind).toBe('error');
     expect(parseArgs(['a', 'b']).kind).toBe('error');
+    expect(parseArgs(['--your-turn-stop', '30'], '/work')).toMatchObject({ kind: 'run', opts: { yourTurnStopMs: 30_000 } });
+    expect(parseArgs(['--your-turn-stop=2']).kind).toBe('error');
+    expect(parseArgs(['--your-turn-stop', 'soon']).kind).toBe('error');
   });
 });
 

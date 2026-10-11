@@ -18,9 +18,11 @@ if (boot.host === 'vscode') {
 } else if (boot.host === 'companion') {
   transport = new CompanionTransport(boot.token);
 } else {
-  // ?speed=N accelerates the simulated session; ?fresh starts with empty state.
+  // ?speed=N accelerates the simulated session; ?fresh starts with empty state;
+  // ?turnStop=N pulls over N seconds after the agent finishes its turn.
   const speed = Math.min(200, Math.max(1, Number(params.get('speed')) || 1));
-  const demo = new DemoHost(speed, params.get('autopilot') !== '0', !params.has('fresh'));
+  const turnStop = Number(params.get('turnStop'));
+  const demo = new DemoHost(speed, params.get('autopilot') !== '0', !params.has('fresh'), turnStop > 0 ? turnStop * 1000 : null);
   transport = new DemoTransport(demo);
 }
 

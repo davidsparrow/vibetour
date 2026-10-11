@@ -83,6 +83,7 @@ export class DemoHost {
     private readonly speed = 1,
     autopilot = true,
     persist = true,
+    yourTurnStopMs: number | null = null,
   ) {
     this.autopilot = autopilot;
     const store = (scope: string) => (persist ? new LocalStore(`vibetour.demo.${scope}.`) : new MemoryStore());
@@ -93,6 +94,7 @@ export class DemoHost {
       project: 'atlas',
       now: () => this.t0 + (Date.now() - this.t0) * this.speed,
       autoResume: true,
+      yourTurnStopMs,
     });
     this.session.onSnapshot((snapshot) => this.listener?.({ type: 'snapshot', snapshot }));
     this.session.onCatalog((catalog) => this.listener?.({ type: 'catalog', catalog }));

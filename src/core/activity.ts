@@ -1,5 +1,5 @@
 import type { DevEvent } from './events';
-import type { WorkspaceTracker } from './workspace';
+import type { AgentInfo, WorkspaceTracker } from './workspace';
 
 /**
  * Activity Engine (PRD §9): normalises development events into one abstract
@@ -71,6 +71,13 @@ export interface ActivityReading {
   context: number | null;
   waitingAgent?: string;
   blockedReason?: string;
+  /** What BLOCKED is about. */
+  blockedBy?: 'agent' | 'build';
+  /**
+   * An agent finished its turn and no agent is working or waiting: your move.
+   * `quietSince` is the later of the agent finishing and your last input.
+   */
+  yourTurn?: { agent: string; since: number; quietSince: number };
 }
 
 class Decay {
@@ -156,6 +163,13 @@ export class ActivityEngine {
     const agentActive = working.length > 0 || externalActive;
     const waiting = agents.find((a) => a.status === 'waiting' && now - a.since < cfg.waitingExpiryMs);
     const errored = agents.find((a) => a.status === 'error' && now - a.since < cfg.agentStaleMs);
+    const finished = agents
+      .filter((a) => a.status === 'done' && !a.parentId)
+      .reduce<AgentInfo | undefined>((latest, a) => (!latest || a.since > latest.since ? a : latest), undefined);
+    const yourTurn =
+      finished && !working.length && !waiting && !errored
+        ? { agent: finished.name, since: finished.since, quietSince: Math.max(finished.since, ws.lastUserInputAt) }
+        : undefined;
     const verifying = ws.runningVerification().some((p) => now - p.startedAt < cfg.verificationMaxMs);
     const agentProcess = [...ws.processes.values()].some((p) => p.kind === 'agent');
 
@@ -215,6 +229,8 @@ export class ActivityEngine {
       context: contexts.length ? Math.max(...contexts) : null,
       waitingAgent: basis === 'WAITING_FOR_USER' ? waiting?.name : undefined,
       blockedReason,
+      blockedBy: basis === 'BLOCKED' ? (errored ? 'agent' : 'build') : undefined,
+      yourTurn,
     };
   }
 }
