@@ -58,19 +58,18 @@ export function renderKeyed(el: Element, key: string, build: () => void): void {
   build();
 }
 
-const CONFIRM_MS = 4_000;
-
 /**
  * A button for actions that lose progress: while `needsConfirm()` holds, the
- * first click only arms it (showing `confirmLabel`) and a second click within
- * a few seconds acts. Webviews cannot show `window.confirm`.
+ * first click only arms it (showing `confirmLabel`) and a second click acts.
+ * Focus moving elsewhere disarms it. There is deliberately no countdown: a
+ * second click landing just as one ran out would arm the button again instead
+ * of acting. Webviews cannot show `window.confirm`.
  */
 export function confirmButton(attrs: Attrs, label: string, confirmLabel: string, run: () => void, needsConfirm: () => boolean = () => true): HTMLButtonElement {
   const btn = h('button', attrs, label);
-  let armed = 0;
+  let armed = false;
   const disarm = () => {
-    window.clearTimeout(armed);
-    armed = 0;
+    armed = false;
     btn.textContent = label;
     btn.classList.remove('btn-confirm');
   };
@@ -80,9 +79,9 @@ export function confirmButton(attrs: Attrs, label: string, confirmLabel: string,
       run();
       return;
     }
+    armed = true;
     btn.textContent = confirmLabel;
     btn.classList.add('btn-confirm');
-    armed = window.setTimeout(disarm, CONFIRM_MS);
   });
   btn.addEventListener('blur', () => armed && disarm());
   return btn;
