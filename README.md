@@ -18,6 +18,17 @@ All three share one procedural Three.js renderer and one activity/journey engine
 | **Tour Mode (Swiss Alps)** | **Work Mode** |
 | ![Tour Mode in the Swiss Alps](docs/images/alps-tour.jpg) | ![Work Mode: explorer, problems, agents, terminal and journey panels](docs/images/work.jpg) |
 
+## Journeys: how they work and how to make one
+
+- **[Signal Map](docs/signal-map.md):** every signal VibeTour listens to, the moment it becomes, and what the car, the journey and each instrument do about it.
+- **[Journey Packs](docs/journey-packs.md):** what a pack contains (route, scene graph, scenic stops, variants, provenance) and how to write one. Today's packs are procedural.
+- **[Journey Video Standard](docs/journey-video-standard.md)** (proposed): how to make a video pack, so creators can build their own journeys and one day sell them. It covers:
+  - the clips every pack needs, and the optional extra stops
+  - Economy, Standard and Cinematic tiers
+  - the tools: OpenRouter, image and video models, FFmpeg
+  - what each tier costs
+  - what a pack must pass to be sold
+
 ## What it does
 
 - **Travel first.** Seven procedurally rendered *Journey Packs*:
@@ -40,6 +51,8 @@ All three share one procedural Three.js renderer and one activity/journey engine
   | Your agent asks for approval | A scenic stop |
   | A failing build left alone | You pull over safely |
   | Long idle | You park somewhere nice |
+
+  The [Signal Map](docs/signal-map.md) has every signal, moment and reaction.
 
 - **Arrival has meaning.** Progress follows productive time and holds at the final approach until you mark the objective complete. Then you arrive, the sun sets, and your **Passport** gets a stamp.
 - **Information becomes instruments** (PRD §8):
@@ -161,7 +174,7 @@ npm run watch         # rebuild on change
 | `bin/vibetour-hook.js` | Dependency-free agent hook forwarder |
 | `packs/<id>/manifest.json` | Built-in Journey Packs |
 
-See [docs/architecture.md](docs/architecture.md) for how the pieces fit together, and [docs/journey-packs.md](docs/journey-packs.md) for authoring packs.
+See [docs/architecture.md](docs/architecture.md) for how the pieces fit together, and [docs/journey-packs.md](docs/journey-packs.md) for authoring packs. [docs/journey-video-standard.md](docs/journey-video-standard.md) is the proposed standard for video packs: what to make, how to generate it, and what it costs.
 
 ## Status against the PRD
 

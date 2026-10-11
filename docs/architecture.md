@@ -85,7 +85,7 @@ The your-turn stop is off by default. It is a host setting (`vibetour.yourTurn.*
 
 ## Moments and cues (`src/core/moments.ts`, `src/webview/ui/cues.ts`)
 
-Each snapshot lists the **moments** that hold right now, such as `thinking`, `problems` and `your-turn` together. They are the rows of the signal map: `no-journey`, `parked`, `arrived`, `final-approach`, `agent-problem`, `build-failing`, `agent-waiting`, `verifying`, `agent-working`, `coding`, `thinking`, `idle`, `heads-up`, `problems`, `checks-failing`, `your-turn`.
+Each snapshot lists the **moments** that hold right now, such as `thinking`, `problems` and `your-turn` together. They are the rows of the [signal map](signal-map.md): `no-journey`, `parked`, `arrived`, `final-approach`, `agent-problem`, `build-failing`, `agent-waiting`, `verifying`, `agent-working`, `coding`, `thinking`, `idle`, `heads-up`, `problems`, `checks-failing`, `your-turn`.
 
 Each display turns moments into **cues** through one table, so the cockpit code never decides what a light means:
 
