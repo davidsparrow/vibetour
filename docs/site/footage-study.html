@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VibeTour Footage Study</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a night instrument panel. One reading column, instrument-style labels, mono for every number. */
+:root{
+  --bg:#0c0f14; --panel:#131821; --line:#243042; --fg:#e8ecf2; --mute:#98a4b8;
+  --amber:#f2b134; --amber-ink:#0c0f14; --green:#5fd39a; --red:#ef7b6a; --blue:#6fb4ff;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif; --body:"Barlow","Helvetica Neue",Arial,sans-serif; --mono:"IBM Plex Mono",Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){
+  --bg:#f3f1ec; --panel:#ffffff; --line:#d8d3c8; --fg:#1b1f26; --mute:#5c6573;
+  --amber:#b8780a; --amber-ink:#ffffff; --green:#1f8a55; --red:#b9432f; --blue:#1f66b8; color-scheme:light; } }
+:root[data-theme="light"]{
+  --bg:#f3f1ec; --panel:#ffffff; --line:#d8d3c8; --fg:#1b1f26; --mute:#5c6573;
+  --amber:#b8780a; --amber-ink:#ffffff; --green:#1f8a55; --red:#b9432f; --blue:#1f66b8; color-scheme:light; }
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.5}
+.wrap{max-width:880px;margin:0 auto;padding-inline:20px;padding-block:32px 72px}
+header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:28px}
+.brand{font-family:var(--display);font-weight:700;font-size:1.1rem;letter-spacing:.12em;text-transform:uppercase;color:var(--amber)}
+h1{font-family:var(--display);font-weight:600;font-size:clamp(2rem,6vw,3rem);line-height:1;margin:0;text-wrap:balance}
+.meta{font-family:var(--mono);font-size:.8rem;color:var(--mute);display:flex;flex-wrap:wrap;gap:6px 18px;width:100%}
+.meta b{color:var(--fg);font-weight:500}
+h2{font-family:var(--display);font-weight:600;font-size:1.7rem;line-height:1.1;margin:44px 0 10px;text-wrap:balance}
+h3{font-family:var(--display);font-weight:600;font-size:1.25rem;margin:24px 0 6px}
+p{max-width:66ch;margin:0 0 12px}
+ul,ol{max-width:66ch;padding-left:1.2em;margin:0 0 12px}
+li{margin-bottom:4px}
+.eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin:0 0 4px}
+.verdict{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--amber);padding:16px 18px;margin:0 0 8px}
+.verdict p{margin:0 0 8px}
+.verdict p:last-child{margin:0}
+table{border-collapse:collapse;width:100%;font-size:.92rem;margin:8px 0 16px}
+th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}
+th{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);font-weight:500}
+td.n,th.n{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.scroll{overflow-x:auto;max-width:100%}
+.scroll table{min-width:620px}
+.pill{display:inline-block;font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;padding:2px 8px;border-radius:3px;border:1px solid var(--line);color:var(--mute);white-space:nowrap}
+.pill.ok{color:var(--green);border-color:var(--green)}
+.pill.no{color:var(--red);border-color:var(--red)}
+.pill.wait{color:var(--amber);border-color:var(--amber)}
+code{font-family:var(--mono);font-size:.85em;background:var(--panel);border:1px solid var(--line);padding:1px 5px;border-radius:3px}
+pre{font-family:var(--mono);font-size:.82rem;line-height:1.5;background:var(--panel);border:1px solid var(--line);padding:14px 16px;overflow-x:auto;max-width:100%;margin:8px 0 16px}
+.layers{display:grid;grid-template-columns:1fr;gap:10px;margin:12px 0 16px}
+.layer{background:var(--panel);border:1px solid var(--line);padding:12px 14px;display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:baseline}
+.layer .k{font-family:var(--display);font-weight:600;font-size:1.15rem;color:var(--amber)}
+.layer .who{grid-column:2;font-family:var(--mono);font-size:.74rem;color:var(--mute)}
+.layer p{margin:0}
+figure{margin:12px 0 18px;max-width:100%}
+figure svg{width:100%;height:auto;display:block;max-width:100%}
+figcaption{font-family:var(--mono);font-size:.74rem;color:var(--mute);margin-top:6px}
+.q{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
+.q .eyebrow{color:var(--blue)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:8px 0 16px}
+.cols>div{min-width:0;background:var(--panel);border:1px solid var(--line);padding:12px 14px}
+.cols h3{margin:0 0 6px}
+.cols p,.cols ul{font-size:.94rem;margin-bottom:6px}
+small{color:var(--mute)}
+a{color:var(--blue)}
+@media (prefers-reduced-motion:no-preference){ .pill.wait{animation:blink 2.4s ease-in-out infinite} }
+@keyframes blink{50%{opacity:.55}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+<header>
+  <span class="brand">VibeTour</span>
+  <h1>Footage Study</h1>
+  <div class="meta">
+    <span>Date <b>12 Oct 2026</b></span>
+    <span>Status <b class="pill ok">bake-off rounds 1 and 2 done</b></span>
+    <span>Standard <b>draft 0.1, changes queued for 0.2</b></span>
+    <span>Spend so far <b>$13</b></span>
+  </div>
+</header>
+
+<p class="eyebrow">Verdict</p>
+<div class="verdict">
+  <p><strong>Keep the plates clean, put the realism in a cockpit layer.</strong> The reference video's feeling of driving comes from the cockpit framing and the light, not from steering. Baking hands and a dashboard into 45 to 150 generated clips can't stay consistent, and it leaves nowhere for the live gauges, mirrors and lights that make VibeTour react to the IDE.</p>
+  <p><strong>HeyGen Video is real, cheap and useful, but not for anchored clips.</strong> It takes a first frame only. Its jobs here: trailers and previews, and possibly cruise plates if a looser join style passes the bake-off.</p>
+  <p><strong>Round 1 of the bake-off is in.</strong> Seedance 2.0 Fast made a true anchored loop (seam 0.96) at full speed. Veo 3.1 Lite drove well and landed on a lookalike of its anchor for a third of the price. Kling crawled. HeyGen's two takes are clean drives at $0.135 each, usable with dissolve joins only. The cockpit layer composited over the Veo loop on the first try. Round 2 decides the default join style and the model.</p>
+</div>
+
+<h2>What the reference actually does</h2>
+<p>Frames pulled at 2 fps across the 5 min 53 s sample show three things the eye misses at speed:</p>
+<ol>
+  <li><strong>The hands don't steer.</strong> The wheel and hands are static in every clip while the world scrolls. On the canyon and desert stretches there is no wheel rotation across 6 s.</li>
+  <li><strong>It's a montage.</strong> Clips of 5 to 8 s, hard cuts, and a different car in almost every one: a Ferrari, a Mercedes, a Porsche, a bare wheel with gloves and no hands.</li>
+  <li><strong>What sells it</strong> is the framing (wheel, A-pillars, rear-view mirror, dash under the glass) and the light (sun flare across the dash, reflections in the glass, the night-city glow on the gauges).</li>
+</ol>
+<p>That's fine for a music channel. It's exactly what a Journey Pack can't have: one interior, one pair of hands and one light across every clip, playing for 90 minutes.</p>
+
+<h2>HeyGen, from their own docs</h2>
+<div class="scroll"><table>
+  <tr><th>Fact</th><th>Detail</th></tr>
+  <tr><td>Product</td><td><code>heygen-video-1</code> on <code>POST /v3/models/videos</code>, launched 30 Sep 2026. MiniMax H3, post-trained by HeyGen. Non-avatar scene generation.</td></tr>
+  <tr><td>Promo</td><td>$0.01/s at 480p through October (50% off $0.02). 768p about $0.015 promo, $0.03 list. 1080p and 2K bill at 3× 768p. The end date isn't published.</td></tr>
+  <tr><td>Clips</td><td>5 to 15 s, 24 fps H.264, generated audio on every clip (we strip it). Reproducible <code>seed</code>. 21:9 available.</td></tr>
+  <tr><td>Conditioning</td><td>First frame: yes. <span class="pill no">last frame: no</span>. Reference mode: up to 9 images, 3 videos (first 5 s read), 3 audio. Reference and first-frame modes are mutually exclusive.</td></tr>
+  <tr><td>Their caveats</td><td>Best on "a locked or barely moving camera"; least reliable on "close hand work". Hands on a wheel hit both.</td></tr>
+  <tr><td>Also on</td><td>OpenRouter as <code>heygen/heygen-video-1</code> at list price: $0.03/s 768p, $0.09/s 2K, reference mode 2×.</td></tr>
+  <tr><td>Billing</td><td>Standalone prepaid API wallet, separate from the web plan. Ours: $15, auto-reload on.</td></tr>
+  <tr><td>Skill</td><td>The official <code>heygen-video</code> skill is a presenter/avatar producer, "not for cinematic b-roll without a presenter". Nothing to install. Their <a href="https://developers.heygen.com/llms.txt">llms.txt</a> plus the <a href="https://developers.heygen.com/docs/models/heygen-video">model page</a> is the full spec.</td></tr>
+</table></div>
+
+<h2>Why anchors? And do we need them?</h2>
+<p>The standard asks every clip to start and end on a shared frame so the player can chain them with no visible join. The question from the review: why not play 10 s of one stretch, dissolve, and jump to another stretch of the same road?</p>
+<div class="cols">
+  <div>
+    <h3>Anchored joins</h3>
+    <ul>
+      <li>Invisible joins, true loops for holds.</li>
+      <li>Needs first-and-last-frame models: Veo 3.1, Kling 3.0, Hailuo 3, Seedance 2, Wan 2.7, FLUX.3.</li>
+      <li>Retakes: a clip that misses its anchor is rejected.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Dissolve joins</h3>
+    <ul>
+      <li>A 1 s dissolve between any two clips of the same scene. Works with any model, including HeyGen at a third of the price.</li>
+      <li>About 400 dissolves in a 90-minute session. In peripheral vision that may read as a flicker, or as a pleasant drift.</li>
+      <li>Holds still loop: crossfade the tail into the head offline, which works on gentle motion.</li>
+    </ul>
+  </div>
+</div>
+<p>The camera rules stay either way: same lane, same light, same sun direction, or a dissolve between sun-left and sun-right looks wrong. The cockpit layer makes dissolves easier to accept, because the cockpit never changes; only the view beyond the glass does.</p>
+<p><strong>Proposal:</strong> make anchors a <em>join style</em> in the manifest (<code>"joins": "anchored" | "dissolve"</code>) rather than a requirement, and let the bake-off decide the default. "Anchored" could earn a marketplace badge.</p>
+
+<h2>The cockpit layer</h2>
+<figure>
+<svg viewBox="0 0 640 230" role="img" aria-label="Three layers: plate, cockpit, instruments">
+  <defs><clipPath id="win"><path d="M70 36 L570 36 L600 118 L40 118 Z"/></clipPath></defs>
+  <rect width="640" height="230" fill="none"/>
+  <!-- plate -->
+  <g clip-path="url(#win)">
+    <rect x="0" y="0" width="640" height="230" fill="#f0c78a"/>
+    <rect x="0" y="80" width="640" height="150" fill="#3a4151"/>
+    <path d="M0 230 L290 90 L350 90 L640 230 Z" fill="#4c5260"/>
+    <path d="M315 92 L300 230 L340 230 Z" fill="#dcd4bb" opacity=".7"/>
+    <ellipse cx="520" cy="60" rx="60" ry="22" fill="#ffe3a8" opacity=".8"/>
+  </g>
+  <!-- cockpit -->
+  <path d="M0 230 L0 118 L40 118 L70 36 L570 36 L600 118 L640 118 L640 230 Z" fill="#141a24" stroke="#2a3447" stroke-width="2"/>
+  <path d="M0 230 L0 150 Q320 118 640 150 L640 230 Z" fill="#1c2431"/>
+  <rect x="270" y="30" width="100" height="22" rx="6" fill="#0c0f14" stroke="#2a3447"/>
+  <circle cx="320" cy="230" r="95" fill="none" stroke="#2a3447" stroke-width="18"/>
+  <circle cx="232" cy="200" r="9" fill="#c99a6a"/><circle cx="408" cy="200" r="9" fill="#c99a6a"/>
+  <!-- instruments -->
+  <circle cx="150" cy="190" r="26" fill="#0c0f14" stroke="#f2b134" stroke-width="2"/>
+  <line x1="150" y1="190" x2="166" y2="172" stroke="#f2b134" stroke-width="2"/>
+  <circle cx="490" cy="190" r="26" fill="#0c0f14" stroke="#f2b134" stroke-width="2"/>
+  <line x1="490" y1="190" x2="478" y2="170" stroke="#f2b134" stroke-width="2"/>
+  <rect x="55" y="60" width="38" height="24" rx="4" fill="#0c0f14" stroke="#6fb4ff"/>
+  <rect x="547" y="60" width="38" height="24" rx="4" fill="#0c0f14" stroke="#6fb4ff"/>
+  <!-- labels -->
+  <g font-family="IBM Plex Mono,monospace" font-size="11" fill="#f2b134">
+    <text x="12" y="20">1 PLATE  the pack's footage, no car</text>
+    <text x="12" y="136">2 COCKPIT  still + wheel/hands sublayer</text>
+    <text x="12" y="222">3 INSTRUMENTS  live gauges, mirrors, lights</text>
+  </g>
+</svg>
+<figcaption>Three layers. Only the plate comes from the pack. The cockpit is one still per car, cut to alpha at the glass. The instruments are what VibeTour draws today.</figcaption>
+</figure>
+
+<div class="layers">
+  <div class="layer"><span class="k">Plate</span><p>The windshield footage, as the standard already specifies: no car, anchors, loops.</p><span class="who">made by: the pack, any model</span></div>
+  <div class="layer"><span class="k">Cockpit</span><p>A still of dash, A-pillars, mirror housing and roofline with the windshield cut to alpha, plus wheel and hands as a separate sublayer that rotates about the hub.</p><span class="who">made by: an image model, once per car</span></div>
+  <div class="layer"><span class="k">Instruments</span><p>Gauges, mirrors with crew agents, rain on the glass, the your-turn light, the refuel stop. Everything VibeTour draws today.</p><span class="who">made by: existing code</span></div>
+</div>
+
+<h3>What makes it feel alive</h3>
+<ol>
+  <li><strong>Steering that matches the road.</strong> Each clip carries a small steering track, a few degrees over time, derived from the plate's optical flow at build time. Gentle curves need ±10 to 15°, which a 2.5D wheel-and-hands cutout sells. Big turns don't exist; the standard forbids them. At stops the wheel centres and a "hands resting" still crossfades in.</li>
+  <li><strong>Light from the plate onto the dash.</strong> A blurred, screen-blended copy of the plate over the cockpit for reflections, a tint from the variant's time of day, a sun flare positioned from the plate. This is most of what the reference's best frames are doing.</li>
+  <li><strong>Micro-motion.</strong> ±1 to 2° of sway and a small bob keyed to speed. Nothing else.</li>
+</ol>
+
+<h3>Why it beats baked-in footage</h3>
+<ul>
+  <li><strong>Cars become a product axis.</strong> "Pick your car" alongside "pick your journey": a neutral modern interior, a classic convertible, an EV with a glass dash, a fantasy sports car with no badge. One still each, works with every pack, swappable in Settings.</li>
+  <li><strong>Consistency is structural</strong>, not hoped for across 150 generations.</li>
+  <li><strong>Cost.</strong> Plates stay cheap; the cockpit is one image, not 20 minutes of retakes.</li>
+  <li>The standard's camera rules need one change: the plate's vanishing point moves up a little, because the cockpit covers more of the bottom than the current 30% band.</li>
+</ul>
+<p>Baked cockpit footage still has a place: the <strong>pack trailer and marketplace preview</strong>, made with HeyGen reference-to-video from the same cockpit still. Cuts are a feature there, and it's cents per shot.</p>
+
+<h2>Model catalogue, 12 Oct 2026</h2>
+<p>Live from OpenRouter's <code>GET /api/v1/videos/models</code>, audio off. HeyGen direct prices from its docs.</p>
+<div class="scroll"><table>
+  <tr><th>Model</th><th>Last frame</th><th class="n">Clip</th><th class="n">Res</th><th class="n">$/s</th><th>Note</th></tr>
+  <tr><td>HeyGen Video (direct, promo)</td><td><span class="pill no">no</span></td><td class="n">5–15 s</td><td class="n">768p</td><td class="n">~0.015</td><td>$0.01 at 480p. 1080p/2K at 3×.</td></tr>
+  <tr><td>HeyGen Video (OpenRouter)</td><td><span class="pill no">no</span></td><td class="n">5–15 s</td><td class="n">768p</td><td class="n">0.03</td><td>2K $0.09. Reference mode 2×.</td></tr>
+  <tr><td>Veo 3.1 Lite</td><td><span class="pill ok">yes</span></td><td class="n">4/6/8 s</td><td class="n">720p</td><td class="n">0.03</td><td>1080p $0.05. Seed.</td></tr>
+  <tr><td>Hailuo 3 Max</td><td><span class="pill no">one only</span></td><td class="n">5–15 s</td><td class="n">768p</td><td class="n">0.08</td><td>Listed as both, but the API rejects first and last together. Same family as HeyGen Video.</td></tr>
+  <tr><td>Seedance 2.0 Fast</td><td><span class="pill ok">yes</span></td><td class="n">4–15 s</td><td class="n">720p</td><td class="n">~0.09</td><td>Priced per video token; $0.73 measured for 8 s.</td></tr>
+  <tr><td>Kling 3.0 Standard</td><td><span class="pill ok">yes</span></td><td class="n">3–15 s</td><td class="n">720p</td><td class="n">0.084</td><td>Pro $0.112. Crawled at half speed in the test.</td></tr>
+  <tr><td>Wan 2.7</td><td><span class="pill ok">yes</span></td><td class="n">2–10 s</td><td class="n">1080p</td><td class="n">0.10</td><td>Wan 3.0 is first frame only.</td></tr>
+  <tr><td>FLUX.3 Video</td><td><span class="pill ok">yes</span></td><td class="n">5–20 s</td><td class="n">720p</td><td class="n">0.17</td><td>Has video continuation ($0.41).</td></tr>
+  <tr><td>Veo 3.1</td><td><span class="pill ok">yes</span></td><td class="n">4/6/8 s</td><td class="n">1080p</td><td class="n">0.20</td><td>4K $0.40.</td></tr>
+</table></div>
+<p><small>Not on OpenRouter: Kling O3 (the only model that pins reference "elements" and start/end frames in one request), Luma Ray 3.2 (native loop flag), Runway Gen-4.5 beyond first frame.</small></p>
+
+<h2>Bake-off round 1: results</h2>
+<p>Same anchor, same prompt, 8 s, one take each. Three anchored loops (first frame = last frame = the anchor) and two first-frame-only takes from HeyGen for the dissolve test. Motion is the mean frame-to-frame luma difference at 360p; the loop seam is the SSIM between a clip's own first and last frames.</p>
+<div class="scroll"><table>
+  <tr><th>Clip</th><th class="n">Cost</th><th class="n">Motion</th><th class="n">Loop seam</th><th>Read</th></tr>
+  <tr><td>Seedance 2.0 Fast, 720p</td><td class="n">$0.73</td><td class="n">5.66</td><td class="n">0.96</td><td><span class="pill ok">true loop</span> Full-speed drive that lands on the frame. Asphalt cracks boil slightly between frames.</td></tr>
+  <tr><td>Veo 3.1 Lite, 720p</td><td class="n">$0.24</td><td class="n">6.03</td><td class="n">0.74</td><td><span class="pill ok">near loop</span> Full-speed drive, no reversal; ends on a matching stretch of road rather than the exact frame. Adds thin letterbox bars.</td></tr>
+  <tr><td>Kling 3.0 Standard, 720p</td><td class="n">$0.67</td><td class="n">3.13</td><td class="n">0.88</td><td><span class="pill no">crawl</span> Half the apparent speed of the others. Output 1284×716.</td></tr>
+  <tr><td>HeyGen Video, 768p, take A</td><td class="n">$0.135</td><td class="n">5.46</td><td class="n">—</td><td><span class="pill ok">clean drive</span> Light and lane held. No loop possible.</td></tr>
+  <tr><td>HeyGen Video, 768p, take B</td><td class="n">$0.135</td><td class="n">5.51</td><td class="n">—</td><td><span class="pill no">markings drift</span> A yellow centre line appears near the end.</td></tr>
+</table></div>
+<p>Hailuo 3 Max was in the plan but OpenRouter rejects a first and last frame together for it ("a single keyframe image"), despite the catalogue listing both. Kling took its slot.</p>
+
+<h3>The cockpit composite</h3>
+<figure>
+  <img src="images/composite-frame.jpg" alt="The generated cockpit keyed over the Veo loop: hands on the wheel, Big Sur road and ocean through the glass" width="960" height="540" style="width:100%;height:auto;border:1px solid var(--line)">
+  <figcaption>One cockpit still (Gemini 3.1 Flash Image, $0.07, windshield rendered as chroma green) keyed over the Veo loop with FFmpeg, plus a blurred copy of the plate screen-blended onto the dash for light bleed. The mirror shows the road ahead here; VibeTour draws its own mirrors.</figcaption>
+</figure>
+<p>What the composite taught us, for draft 0.2:</p>
+<ul>
+  <li>The cockpit covers the lower 45% of the frame, not 30%. Plates for a cockpit layer need the vanishing point around a quarter from the top and a wider lens, or the dash hides the road. The proof of concept zooms the plate 1.6× to compensate, which production footage shouldn't need.</li>
+  <li>Despill after keying, with no expansion, or the dash takes a magenta cast.</li>
+  <li>The validator must crop letterbox bars and match scale before scoring frames against anchors; raw SSIM against the anchor read 0.80 even for a first frame that was the anchor.</li>
+</ul>
+
+<h2>Bake-off round 2: the stop set, a second scene, a transition</h2>
+<p>Two more anchors were made from the Big Sur master as a style reference ($0.07 each): the Carmel Highlands gas station for the stop, and a Carmel coast road for a second scene. Then four shots per model: <code>stop-in</code> (Big Sur → gas station), <code>stop-hold</code> (gas station loop), a Carmel cruise loop, and a <code>transition</code> (Big Sur → Carmel). Seedance and Veo used first and last frames; HeyGen used the first frame only. Veo also made a 1080p Big Sur loop.</p>
+<div class="scroll"><table>
+  <tr><th>Shot</th><th>Seedance 2.0 Fast</th><th>Veo 3.1 Lite</th><th>HeyGen Video</th></tr>
+  <tr><td>stop-in, 8 s</td><td><span class="pill ok">drives it</span> Slows, turns in past a blank sign post, lands on the anchor (0.75). Heavy sun flare.</td><td><span class="pill no">morphs</span> Trees materialise over the road and a ghost car appears as it cross-dissolves to the station.</td><td><span class="pill no">wrong station</span> A convincing pull-in, to a different, busier station with power lines and a sign.</td></tr>
+  <tr><td>stop-hold</td><td><span class="pill ok">best</span> Gentle sway in the trees, motion 0.32.</td><td><span class="pill ok">ok</span> Almost a still, motion 0.15.</td><td><span class="pill no">camera drifts</span> Motion 1.8; not a loop.</td></tr>
+  <tr><td>Carmel cruise loop</td><td><span class="pill no">slow</span> Half speed (2.8) though the loop closes (0.82).</td><td><span class="pill ok">good</span> Full speed, cove in view, loop closes on a lookalike (0.68).</td><td><span class="pill ok">clean drive</span> No loop.</td></tr>
+  <tr><td>transition, 8 s</td><td><span class="pill no">rushed</span> Scenery flies past at 10.2 to reach the Carmel frame.</td><td><span class="pill ok">ok</span> Steady drive, ends near the Carmel frame (0.61).</td><td><span class="pill no">markings drift</span> Yellow centre lines again.</td></tr>
+  <tr><td>1080p loop</td><td>720p max on Fast</td><td>1920×1080, seam 0.69, $0.40</td><td>not run</td></tr>
+  <tr><td>Round 2 cost</td><td class="n">$3.10</td><td class="n">$1.36</td><td class="n">$0.58</td></tr>
+</table></div>
+<p>Numbers in brackets are SSIM of the last frame against the target anchor at 640×360, unaligned, so they're relative, not absolute.</p>
+
+<h3>What round 2 settles</h3>
+<ul>
+  <li><strong>No single model wins every slot.</strong> Seedance owns the stop set; Veo owns cruise and transitions at a third of the price. The "one model per pack" rule in the draft should relax to "one model per <em>slot family</em>", with the look matched through the anchors, which all models honour closely (first frames score 0.83–0.91 against their anchors).</li>
+  <li><strong>Stop-in needs a nearer anchor.</strong> Asking a model to arrive at a different place in 8 s produces morphs. The stop anchor should be an edit of the road anchor with the stop already in view, and the pull-in should be 10 to 12 s.</li>
+  <li><strong>Transitions want 12 s or more</strong>, or a feature that hides the join, as the draft already suggests.</li>
+  <li><strong>The dissolve path has a rule of its own:</strong> each HeyGen shot must chain from the last frame of the shot before it, or stops and holds end up in different places. That makes it a chain, not a graph, and it can't loop. It still fits trailers and previews.</li>
+  <li><strong>Steering works as a 2.5D layer.</strong> A wheel-and-hands cutout, taken from the difference between the cockpit still and an edit of it with the wheel removed, rotates ±12.5° about the hub convincingly. The cockpit needs a taller canvas so the arms run out of frame, or the rotated cut shows. Finger re-grips and a tap on the wheel are later experiments.</li>
+</ul>
+<p>Two 60-second composited sessions, one per join style, sit in the review folder beside the clips: <code>session-anchored-seedance.mp4</code> and <code>session-dissolve-heygen.mp4</code>. Judged on those, <strong>dissolve won.</strong> That removes the last-frame requirement from the standard entirely: anchors become look references, holds loop by crossfade, and HeyGen at $0.017/s joins the cruise-plate options. Clips should run 12 to 15 s so a session has half as many dissolves.</p>
+
+<h2>Cockpit v2: mirrors, steering from the road, glare</h2>
+<figure>
+  <img src="images/cockpit-v2.jpg" alt="Cockpit v2 over the Veo loop at the apex of the curve: wheel turned, both mirrors showing road, bloom on the glass" width="960" height="540" style="width:100%;height:auto;border:1px solid var(--line)">
+  <figcaption>Four seconds into the Big Sur right-hander. The wheel is at 11°, driven by the plate's own camera yaw. Both mirrors carry road. Everything on screen is one plate, two generated stills and FFmpeg.</figcaption>
+</figure>
+<div class="scroll"><table>
+  <tr><th>Change</th><th>How</th></tr>
+  <tr><td>Framing</td><td>The cockpit is generated 4:3, square to the car, wheel hub at the centre, and the 16:9 frame is cropped from the top, so the forearms run out of the bottom and the rotated cut never shows. (A first attempt with the wheel at 40% turned the whole cabin to the right; see "Aim" below.)</td></tr>
+  <tr><td>Wheel and hands</td><td>An image-model edit removes the wheel and hands; the difference between the two stills, clipped to a disc round the hub and two arm bands, is the cutout. The cutout is keyed and despilled like the cockpit, which removed a green fleck on the rim.</td></tr>
+  <tr><td>Steering follows the road</td><td>Dense optical flow on the plate at 320×180; the median horizontal flow in the band round the horizon is the camera's yaw. Smoothed over half a second, scaled so the 97th percentile is 12.5°, and sent to the rotate filter frame by frame. On the Big Sur loop the wheel rises to 11.8° at the apex and settles to 3° where the road is still bending, instead of returning to centre.</td></tr>
+  <tr><td>Mirrors</td><td>The glass is found as the transparent regions of the keyed still that aren't the windshield (two components, 235×90 and 99×82). What a mirror shows is the road receding, so the feed is the same plate run backwards at 320×180, darkened 20%: the centre for the rear-view, the left edge for the door mirror.</td></tr>
+  <tr><td>Glare</td><td>The plate's highlights above 150 are blurred and screened back onto the glass region only, so bloom sits where the sun is and moves with it. For stronger flare the plates should be prompted for a low sun in frame; HeyGen and Seedance both oblige.</td></tr>
+</table></div>
+<p>Everything above runs from two generated stills per car ($0.14) and one FFmpeg graph. The session renders at about real time on a laptop.</p>
+
+<h3>Aim: the cockpit must be generated straight ahead</h3>
+<p>The v2 render pointed the car about 45° to the right, and it took a side-by-side with the v1 session to see why. Asking the image model to put the wheel at 40% of the frame didn't slide the camera sideways; it <em>turned</em> the camera toward the passenger side: the left A-pillar landed in the centre of the frame and the dash ran away to the right. No plate offset can fix a turned cabin. The rule for the standard, in two parts: <strong>generate the cockpit square to the car, wheel hub at the horizontal centre, an A-pillar at each edge</strong>; and <strong>keep the plate centred so its vanishing point sits over the hub.</strong> An off-centre framing, if ever wanted, comes from cropping a wider straight-ahead still, never from the prompt. Cockpit v3 is that straight-ahead still, on the tall canvas so the arms still run out of frame.</p>
+
+<h3>Sun and flare</h3>
+<figure>
+  <img src="images/cockpit-sun.jpg" alt="Driving into the sunset: the sun blooms through the windshield with ghost spots across the dash, the wheel turned into the curve" width="960" height="540" style="width:100%;height:auto;border:1px solid var(--line)">
+  <figcaption>Veo 3.1 Lite from an "into the sun" anchor, with the procedural flare layer on top. $0.07 for the anchor, $0.24 for the clip.</figcaption>
+</figure>
+<p>Two layers, and both were needed. The plate is prompted for a low sun in frame with bloom, a streak and ghost spots, and both Veo and HeyGen render that convincingly from an anchor that already has it. Then a flare layer (<code>flare.py</code>) finds the sun each frame as one round, clipping blob in the sky (cloud banks are irregular and are ignored), and draws a bloom, an anamorphic streak and five tinted ghost spots on the line through the frame centre, with the intensity eased so it never flickers. It's confined to the glass, with faint ghosts allowed across the dash and none on the headliner or the mirror housing. <strong>It's a per-variant feature:</strong> on for "into the sun" variants, off otherwise. Left on over a midday plate it fired on the clouds and tinted the whole cabin green, which is how v4's colour problem was found.</p>
+
+<h2>Cockpit v4: colour, light and materials</h2>
+<figure>
+  <img src="images/cockpit-v4.jpg" alt="Cockpit v4 over a vivid midday Big Sur plate: cerulean sky, turquoise water, tan leather and walnut dash, lit instrument cluster" width="960" height="540" style="width:100%;height:auto;border:1px solid var(--line)">
+  <figcaption>Midday Big Sur on Veo 3.1 Lite from a vivid anchor, cockpit v4. The palette is the reference footage's: saturated sky, cobalt to turquoise water, several greens, and a cabin with leather, wood and metal that catches the light.</figcaption>
+</figure>
+<p>The review said it plainly: beige, washed out, a dash like a block of clay, dials you could barely see. Three causes, all self-inflicted:</p>
+<ul>
+  <li><strong>The prompts asked for it.</strong> Every anchor and clip said "golden hour, natural muted colour, no HDR look", advice lifted from HeyGen's docs for talking-head work. The reference footage is the opposite: high sun, polarised air, saturated blues and greens. The vivid anchor prompt names the colours it wants ("deep cerulean sky, cobalt to turquoise water, trees in several distinct greens") and what it doesn't ("not beige, not muted, not golden-hour"), and both Veo and HeyGen follow it from the first frame.</li>
+  <li><strong>The cockpit prompt asked for charcoal.</strong> v4 names the materials: tan saddle leather with stitching, open-pore walnut, brushed aluminium, gloss black, a perforated leather wheel with a metal spoke insert, and a backlit cluster with white numerals and glowing needles, lit by daylight from the windshield. The model delivers all of it in one still.</li>
+  <li><strong>The composite added haze.</strong> A warm blurred copy of the plate was screened over the dash at 40%. It's now neutral (luminance only) at 15%, the bloom only takes near-white highlights and is desaturated, and the plate gets a light grade (+8% saturation, +4% contrast) rather than a heavy one.</li>
+</ul>
+<p>The standard's anchor and clip prompt templates will carry the vivid wording, and the cockpit template will list materials and the lit cluster. Per-variant palettes (midday, golden hour, night city with a glowing red cluster like the reference) become a creator choice, not an accident of the prompt.</p>
+
+<h2>The vivid session: waves, guardrail, the whole journey</h2>
+<figure>
+  <img src="images/session-v4.jpg" alt="Through the windshield: a wave crashing on the rocks below the guardrail on the Big Sur cliff, white spray in the air" width="960" height="540" style="width:100%;height:auto;border:1px solid var(--line)">
+  <figcaption>Session v4, 2.5 s in. A swell hits the rocks and the spray hangs in the air beyond the W-beam guardrail. Veo 3.1 Lite from the new Big Sur master anchor.</figcaption>
+</figure>
+<p>A new master anchor for Big Sur carries the two details from the reference footage: the corrugated galvanised guardrail on weathered wooden posts along the cliff edge, and swells crashing onto the rocks with spray exploding upward. The other three anchors (Carmel, the gas-station approach, the stop) were made from it as a style reference so the light and palette hold across the pack. The clip prompts describe the waves as an event ("every few seconds a wave hits and white spray explodes upward and hangs in the air") rather than as scenery, and both Veo and HeyGen animate it.</p>
+<div class="scroll"><table>
+  <tr><th>Shot</th><th>Model</th><th class="n">Cost</th><th>Read</th></tr>
+  <tr><td>Cruise A, Cruise B (8 s)</td><td>Veo 3.1 Lite</td><td class="n">$0.48</td><td><span class="pill ok">waves and rail</span> Two different sets break during each clip; the rail slides past cleanly.</td></tr>
+  <tr><td>Transition Big Sur → Carmel (8 s)</td><td>Veo 3.1 Lite</td><td class="n">$0.24</td><td><span class="pill ok">ok</span> Granite and cypress arrive as the surf fades.</td></tr>
+  <tr><td>Carmel cruise (8 s)</td><td>Veo 3.1 Lite</td><td class="n">$0.24</td><td><span class="pill no">ghost</span> A translucent cypress crosses the road mid-clip. Retake.</td></tr>
+  <tr><td>Stop-in (10 s)</td><td>Seedance 2.0 Fast</td><td class="n">$0.91</td><td><span class="pill ok">pulls in</span> From the approach anchor, slows and rolls under the canopy. The "stop already in view" anchor rule works.</td></tr>
+  <tr><td>Hold (12 s)</td><td>Seedance 2.0 Fast</td><td class="n">$1.09</td><td><span class="pill ok">still</span> Clouds and cypress move, nothing else.</td></tr>
+  <tr><td>Cruise A (12 s)</td><td>HeyGen Video</td><td class="n">$0.18</td><td><span class="pill ok">waves and rail</span> Holds the palette; slightly softer than Veo.</td></tr>
+  <tr><td>Hold (12 s)</td><td>HeyGen Video</td><td class="n">$0.18</td><td><span class="pill no">drifts</span> Reverses out onto the road. HeyGen can't hold a camera still; holds stay with Seedance.</td></tr>
+</table></div>
+<p>The six good shots, dissolved and composited with cockpit v4, make the 49-second <code>session-v4.mp4</code>: two Big Sur cruises with crashing waves, the transition, Carmel, the pull-in and the hold at the pumps. Round cost $3.30; the day's total is about $13.</p>
+
+<h3>The plan, as run</h3>
+<div class="scroll"><table>
+  <tr><th>Shot</th><th>Tests</th><th>Models</th><th class="n">Cost</th></tr>
+  <tr><td>Cruise loop, anchor → same anchor</td><td>Does the clip land on its frame? Does the loop seam show?</td><td>Veo Lite, Hailuo, Seedance</td><td class="n">~$1.10</td></tr>
+  <tr><td>Cruise, first frame only</td><td>HeyGen's dissolve join: two takes from the same anchor, dissolved</td><td>HeyGen 768p</td><td class="n">~$0.25</td></tr>
+  <tr><td>Stop-in</td><td>Slowing and stopping without a lurch or a morph</td><td>the two best from above</td><td class="n">~$0.60</td></tr>
+  <tr><td>Hold, 10 s</td><td>Gentle motion only; loops by anchor or by crossfade</td><td>the two best from above</td><td class="n">~$0.80</td></tr>
+</table></div>
+<p>Judged with the standard's review checklist: road drift, lane, shake, speed jumps, text, flicker, and whether the last frame lands. Results and the chosen model go into draft 0.2 of the standard.</p>
+
+<h3>Anchor</h3>
+<p>Generated with Gemini 3.1 Flash Image through OpenRouter for $0.07 from the standard's anchor prompt: Big Sur, right lane, golden light, gentle right curve, no car, no text, vanishing point at 42%. First take, no retake.</p>
+
+<h2>Decisions log</h2>
+<div class="scroll"><table>
+  <tr><th>Question</th><th>Decision</th></tr>
+  <tr><td>Cockpit layer over clean plates, or baked-in hands?</td><td>Cockpit layer. <span class="pill ok">agreed</span></td></tr>
+  <tr><td>Spend on a bake-off?</td><td>Yes, on both keys. <span class="pill ok">agreed</span></td></tr>
+  <tr><td>First car</td><td>Neutral and unbranded. Real badges later, once the system looks great. <span class="pill ok">agreed</span></td></tr>
+  <tr><td>Update the standard now?</td><td>Wait for the bake-off; the standard should set an example. <span class="pill ok">agreed</span></td></tr>
+  <tr><td>HeyGen CLI</td><td>Install it. <span class="pill ok">agreed</span></td></tr>
+  <tr><td>Join style default: anchored or dissolve?</td><td>Dissolve, judged on the composited sessions. <span class="pill ok">decided</span></td></tr>
+  <tr><td>Plate model for VibeTour Originals</td><td>Per slot family. With dissolve joins, HeyGen Video is back in the running for cruise plates. <span class="pill ok">decided</span></td></tr>
+  <tr><td>Cockpit framing</td><td>Straight ahead, wheel centred, forearms out of frame. The left-shift idea is dropped: it turns the cabin. <span class="pill ok">decided</span></td></tr>
+  <tr><td>Mirrors</td><td>Road behind, from the time-reversed plate, inside the glass only. The side window is a window: the plate shows through it. <span class="pill ok">done</span></td></tr>
+  <tr><td>Palette</td><td>Vivid midday as the default look, named in the prompts. Golden hour and night become variants. <span class="pill ok">decided</span></td></tr>
+  <tr><td>Cabin materials</td><td>Leather, wood, metal, lit cluster, named in the cockpit prompt. <span class="pill ok">done</span></td></tr>
+  <tr><td>Lens flare</td><td>Per variant, on only with the sun in frame. <span class="pill ok">decided</span></td></tr>
+  <tr><td>Scene details</td><td>Crashing waves with spray, and the W-beam guardrail on wooden posts, in the Big Sur master anchor and every clip prompt. <span class="pill ok">done</span></td></tr>
+  <tr><td>Draft 0.2 of the standard</td><td>Next, after this round's review. <span class="pill wait">queued</span></td></tr>
+  <tr><td>Stop for the first pack</td><td>Carmel Highlands gas station. <span class="pill ok">agreed</span></td></tr>
+  <tr><td>Steering</td><td>2.5D wheel-and-hands layer, ±12.5°. Re-grips and wheel taps as later experiments. <span class="pill ok">agreed</span></td></tr>
+  <tr><td>HeyGen's role</td><td>Trailers and previews; cruise plates only if dissolve joins win. <span class="pill ok">agreed in principle</span></td></tr>
+</table></div>
+
+<div class="q">
+<p class="eyebrow">A note on logos</p>
+<p>Using a real badge without permission isn't free advertising in the law's eyes; it's trademark use, and a marketplace that sells packs makes it commercial use. Ferrari in particular polices this. Unbranded interiors cost nothing now. If a real car matters later, treat it as a partnership to ask for, not a default.</p>
+</div>
+
+</div>
+</body>
+</html>

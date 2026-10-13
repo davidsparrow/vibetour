@@ -1,0 +1,17 @@
+{
+  "id": "touring-sedan",
+  "name": "Touring Sedan",
+  "description": "Tan saddle leather, open-pore walnut, brushed aluminium and a backlit three-dial cluster.",
+  "size": [1200, 896],
+  "hub": [600, 590],
+  "wheel": { "radius": 240, "forearmsBelow": 620, "forearms": [[290, 470], [730, 910]] },
+  "mirrors": { "rear": [941, 104, 259, 89], "side": [6, 345, 154, 123] },
+  "key": { "color": "0x00FF00", "similarity": 0.22, "blend": 0.1 },
+  "source": {
+    "made": "2026-10-12",
+    "model": "google/gemini-3.1-flash-image",
+    "aspectRatio": "4:3",
+    "cockpit": "Photorealistic view from the driver's seat of a modern premium unbranded car, camera at the driver's eye position looking STRAIGHT AHEAD, perfectly square to the car: the steering wheel hub exactly at the horizontal centre of the frame, the windshield head-on and symmetric, the left A-pillar at the far left edge and the right A-pillar at the far right edge, the rear-view mirror housing hanging from the top centre-right, a sliver of the driver's door mirror at the far left. Both hands hold the wheel at 9 and 3 o'clock, wheel centred, forearms running down and out of the bottom of the frame. The interior is rich in materials and contrast: a tan saddle-leather dash top with visible stitching, an open-pore walnut wood strip across the dash, brushed aluminium vent bezels and trim, a gloss piano-black centre stack, a perforated black leather steering wheel with a polished metal spoke insert, satin chrome switchgear. The instrument cluster behind the wheel is a bright backlit analogue cluster with crisp white numerals and tick marks, glowing white needles and an amber accent ring, clearly legible. Bright early-afternoon daylight pours through the windshield from ahead-right, lighting the dash top with soft specular highlights, casting a soft A-pillar shadow, and glinting on the metal trim, so every material reads clearly. No logos, no badges, no brand marks, no screens with content. The ENTIRE windshield, the side windows and the glass of every mirror are filled with a perfectly flat, uniform, pure chroma-key green (#00FF00) with no reflections, no gradient and no scenery. 26 mm lens, level horizon, no camera rotation. Frame tall (4:3) so there is extra room below the wheel for the forearms.",
+    "cabin": "Edit this image. Remove the steering wheel and the driver's hands and arms completely, and show what is behind them: the steering column and stalk housing, the full backlit instrument cluster, the lower dashboard, and the driver's lap and seat, all in the same materials and lighting. Keep everything else, including the flat pure green windshield, side window and mirror glass, the dash, wood, metal trim, vents and A-pillars, exactly as it is, pixel for pixel. Same framing, same 4:3 size."
+  }
+}

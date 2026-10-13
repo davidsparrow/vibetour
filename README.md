@@ -22,12 +22,14 @@ All three share one procedural Three.js renderer and one activity/journey engine
 
 - **[Signal Map](docs/signal-map.md):** every signal VibeTour listens to, the moment it becomes, and what the car, the journey and each instrument do about it.
 - **[Journey Packs](docs/journey-packs.md):** what a pack contains (route, scene graph, scenic stops, variants, provenance) and how to write one. Today's packs are procedural.
-- **[Journey Video Standard](docs/journey-video-standard.md)** (proposed): how to make a video pack, so creators can build their own journeys and one day sell them. It covers:
+- **[Journey Video Standard](docs/journey-video-standard.md)** (proposed, draft 0.2): how to make a video pack, so creators can build their own journeys and one day sell them. It covers:
+  - the three layers: footage plates, a cockpit that steers with the road, and the instruments
   - the clips every pack needs, and the optional extra stops
   - Economy, Standard and Cinematic tiers
-  - the tools: OpenRouter, image and video models, FFmpeg
+  - the tools and which model to use for which slot: OpenRouter, HeyGen, image and video models, FFmpeg
   - what each tier costs
   - what a pack must pass to be sold
+- **[Footage Study](docs/site/footage-study.html):** the October 2026 bake-off behind draft 0.2: five models, two cockpit designs, what worked and what didn't. The scripts are in [tools/footage/](tools/footage/README.md), and the first car is in [cars/](cars/README.md).
 
 ## What it does
 
