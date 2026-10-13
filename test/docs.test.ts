@@ -34,8 +34,9 @@ describe('docs/signal-map.md', () => {
   });
 
   it('gives the motion timings the engine uses', () => {
-    const { scenicStopAfterMs, holdMs, defaultHoldMs } = DEFAULT_MOTION_CONFIG;
+    const { scenicStopAfterMs, holdMs, defaultHoldMs, refuelMs } = DEFAULT_MOTION_CONFIG;
     expect(rowFor('scenicStopAfterMs')).toContain(`| ${label(scenicStopAfterMs)} |`);
+    expect(rowFor('refuelMs')).toContain(`| ${label(refuelMs)} |`);
     const holds = [holdMs.checkpoint!, holdMs['scenic-stop']!, defaultHoldMs].map((ms) => ms / 1000).join(' · ');
     expect(rowFor('holdMs')).toContain(`| ${holds} s |`);
   });

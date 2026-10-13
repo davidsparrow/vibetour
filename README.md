@@ -109,6 +109,7 @@ Then run **VibeTour: Open Tour** or press `Ctrl+Alt+V` / `⌘⌥V`.
 | VibeTour: Where Do You Want to Go Today? / Take Me Somewhere | Quick-pick equivalents of the destination board |
 | VibeTour: Arrive — Objective Complete / Set Journey Objective | Earn your arrival |
 | VibeTour: Park (End Session) / Resume Journey / End Journey | Multi-session road trips persist per project |
+| VibeTour: Refuel and Drive Again | After you arrive: a stop for fuel, then the same route again by a different way (also on the arrival card) |
 | VibeTour: Cycle Display Mode | Tour → Dashboard → Work |
 | VibeTour: Open Companion Display / Copy Companion Display URL | Second-screen display |
 | VibeTour: Open Glovebox | Project docs |

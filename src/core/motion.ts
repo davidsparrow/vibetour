@@ -30,7 +30,7 @@ export interface MotionReading {
   stopReason?: StopReason;
 }
 
-export type StopReason = 'idle' | 'waiting' | 'blocked' | 'your-turn';
+export type StopReason = 'idle' | 'waiting' | 'blocked' | 'your-turn' | 'refuel';
 
 export const SPEEDS: Record<Behavior, number> = {
   cruise: 1,
@@ -54,6 +54,8 @@ export interface MotionConfig {
   defaultHoldMs: number;
   /** Quiet time after an agent finishes its turn before a scenic stop; null keeps driving. */
   yourTurnStopAfterMs: number | null;
+  /** How long the car stops to refuel before driving a route again. */
+  refuelMs: number;
 }
 
 export const DEFAULT_MOTION_CONFIG: MotionConfig = {
@@ -61,6 +63,7 @@ export const DEFAULT_MOTION_CONFIG: MotionConfig = {
   holdMs: { checkpoint: 4_000, 'scenic-stop': 2_000, 'pull-over': 2_000 },
   defaultHoldMs: 1_500,
   yourTurnStopAfterMs: null,
+  refuelMs: 15_000,
 };
 
 export function desiredBehavior(
@@ -112,6 +115,7 @@ function yourTurnDue(a: ActivityReading, now: number, cfg: MotionConfig): boolea
 export class MotionController {
   private current: MotionReading;
   private candidate?: { behavior: Behavior; stopReason?: MotionReading['stopReason']; since: number };
+  private held?: { until: number };
 
   constructor(
     now: number,
@@ -132,11 +136,23 @@ export class MotionController {
   /** Forces a behaviour immediately (journey start, park, arrival). */
   force(behavior: Behavior, now: number, stopReason?: MotionReading['stopReason']): MotionReading {
     this.candidate = undefined;
+    this.held = undefined;
     this.current = { behavior, targetSpeed: SPEEDS[behavior], since: now, stopped: STOPS.includes(behavior), stopReason };
     return this.current;
   }
 
+  /** Stops the car until `until`, whatever the activity: refuelling before the road again. Parking still wins. */
+  holdStop(until: number, now: number, stopReason: StopReason): MotionReading {
+    this.force('scenic-stop', now, stopReason);
+    this.held = { until };
+    return this.current;
+  }
+
   update(a: ActivityReading, phase: JourneyPhase, now: number): MotionReading {
+    if (this.held) {
+      if (now < this.held.until && phase !== 'parked') return this.current;
+      this.held = undefined;
+    }
     const want = desiredBehavior(a, phase, now, this.cfg);
     if (want.behavior === this.current.behavior) {
       this.candidate = undefined;

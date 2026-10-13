@@ -150,6 +150,22 @@ test('arriving stamps the passport', async ({ page }) => {
   await expect(page.locator('.pstat', { hasText: 'Routes completed' })).toContainText('1');
 });
 
+test('refuelling after arriving stops for fuel, then drives the same route again', async ({ page }) => {
+  // 8× time: the final approach takes ~11 s and the 15 s refuel stop about 2 s.
+  await page.goto('/?fresh&autopilot=0&speed=8');
+  await bookFirstJourney(page, 'Billing system');
+  await page.keyboard.press('a');
+  const card = page.locator('.arrival.show');
+  await expect(card).toBeVisible({ timeout: 40_000 });
+  await card.getByRole('button', { name: 'Refuel and drive again' }).click();
+  await expect(card).toHaveCount(0);
+  await expect(page.locator('.stop-card.show')).toContainText('Refuelling · a Carmel Highlands gas station');
+  await expect(page.locator('.hud-caption')).toContainText('Departing Monterey', { timeout: 15_000 });
+  await expect(page.locator('.stop-card')).not.toHaveClass(/show/);
+  await page.keyboard.press('p');
+  await expect(page.locator('.passport.show .stamp')).toHaveCount(1);
+});
+
 test('captures the workplace as a PNG without private details', async ({ page }) => {
   await page.goto('/?fresh&autopilot=0');
   await bookFirstJourney(page);

@@ -343,6 +343,38 @@ describe('VibeTourSession', () => {
     expect(session.latestSnapshot!.journey?.phase).toBe('arrived');
   });
 
+  it('refuels after arriving: a stop at the gas station, then the same route by a different way', () => {
+    const { session, clock, type } = makeSession();
+    expect(session.refuel()).toBe(false);
+    session.startJourney('california-coast', 'coffee-run', 'golden');
+    type();
+    clock.advance(MIN, 1_000);
+    expect(session.refuel()).toBe(false);
+    session.completeObjective();
+    clock.advance(3 * MIN, 1_000);
+    const first = session.activeJourney!;
+    expect(first.phase).toBe('arrived');
+
+    expect(session.handleCommand({ type: 'refuel' })).toBe(true);
+    const again = session.activeJourney!;
+    expect(again).toMatchObject({ packId: 'california-coast', scope: 'coffee-run', variantId: 'golden', phase: 'departing' });
+    expect(again.id).not.toBe(first.id);
+    expect(again.path).not.toEqual(first.path);
+    const snap = () => session.latestSnapshot!;
+    expect(snap().motion).toMatchObject({ behavior: 'scenic-stop', stopped: true, stopReason: 'refuel', stopName: 'a Carmel Highlands gas station' });
+    expect(snap().motion.caption).toBe('Refuelling at a Carmel Highlands gas station — then Monterey to Big Sur again');
+
+    // Typing doesn't cut the stop short; after it, the car departs and the journey moves.
+    type();
+    clock.advance(10_000, 1_000);
+    expect(snap().motion.stopReason).toBe('refuel');
+    type();
+    clock.advance(10_000, 1_000);
+    expect(snap().motion.stopped).toBe(false);
+    expect(snap().motion.caption).toBe('Departing Monterey');
+    expect(session.catalog().stamps).toHaveLength(1);
+  });
+
   it('replans a restored journey whose path no longer fits its pack, arrival included', () => {
     const first = makeSession();
     first.session.startJourney('california-coast', 'day-trip');

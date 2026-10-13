@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LANDMARK_KINDS, planPath, validatePack, variantForHour } from '../src/core/packs';
+import { freshSeed, LANDMARK_KINDS, planPath, refuelStop, validatePack, variantForHour } from '../src/core/packs';
 import { pickSurprise } from '../src/core/passport';
 import { BUILTIN_PACKS } from '../src/packs';
 
@@ -22,6 +22,16 @@ describe('built-in Journey Packs', () => {
           const path = planPath(pack, seed);
           expect(pack.sceneGraph.nodes[path[0]].kind).toBe('departure');
           expect(pack.sceneGraph.nodes[path.at(-1)!].kind).toBe('arrival');
+        }
+      });
+
+      it('has somewhere to refuel, and another way through the scene graph when it has forks', () => {
+        expect(pack.scenicStops).toContain(refuelStop(pack));
+        const forks = Object.values(pack.sceneGraph.nodes).some((n) => (n.next?.length ?? 0) > 1);
+        for (let seed = 0; seed < 20; seed++) {
+          const path = planPath(pack, seed);
+          const next = planPath(pack, freshSeed(pack, seed, path));
+          if (forks) expect(next).not.toEqual(path);
         }
       });
 
