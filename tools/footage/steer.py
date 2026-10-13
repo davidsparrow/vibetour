@@ -11,12 +11,22 @@ while True:
     if not ok: break
     g = cv2.cvtColor(cv2.resize(fr, (W, H)), cv2.COLOR_BGR2GRAY)
     flow = cv2.calcOpticalFlowFarneback(prev, g, None, 0.5, 3, 21, 3, 5, 1.2, 0)
-    # yaw shows as a common horizontal shift across the whole frame; forward motion cancels left/right.
-    # Use the band around the horizon (25-60% down), where forward-motion flow is smallest.
-    band = flow[int(H*0.25):int(H*0.60), :, 0]
-    dxs.append(float(np.median(band)))
+    # Yaw shows as the same horizontal shift everywhere; driving forward adds an outward flow that grows with distance
+    # from the vanishing point and with nearness. A median over the whole horizon band was pulled by whichever side was
+    # nearer: on the Big Sur cliffs the hillside on the left streamed past while the sea on the right stood still, and
+    # a left-hand curve read as a hard right. So measure only near the vanishing point (the middle 30% of the width,
+    # 30-56% down, with the horizon at 45%), where forward flow is small, and only on textured pixels: flat sky and sea
+    # report no motion whatever the camera does.
+    y0, y1, x0, x1 = int(H*0.30), int(H*0.56), int(W*0.35), int(W*0.65)
+    band = flow[y0:y1, x0:x1, 0]
+    gx = np.abs(cv2.Sobel(g[y0:y1, x0:x1], cv2.CV_32F, 1, 0, ksize=3))
+    tex = gx > 12
+    dxs.append(float(np.median(band[tex])) if tex.sum() > 40 else float(np.median(band)))
     prev = g
 dx = np.array(dxs)
+# A car passing through the window (a camper van, a tow truck) makes a spike of a few frames: a running median over
+# 0.4 s removes it before the smoothing.
+r = max(1, int(fps * 0.2)); dx = np.array([np.median(dx[max(0, i - r):i + r + 1]) for i in range(len(dx))])
 # smooth: a steering input lags and smooths the road; ~0.5 s box then ~0.3 s exponential
 k = max(1, int(fps*0.5)); dx_s = np.convolve(dx, np.ones(k)/k, mode="same")
 ema = np.zeros_like(dx_s); a = 1/(fps*0.3)

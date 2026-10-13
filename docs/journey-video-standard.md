@@ -212,6 +212,8 @@ Real roads are untidy and busy. Image models default to empty, clean and symmetr
 | The scenic overlook | One per tour. Make it the pack's main stop set: a busy pullout facing the view, with parked cars, people looking out, an interpretive sign, birds on the fence. Not a rest stop. |
 | A breakdown on the shoulder, with or without a tow truck | Once per tour at most. A cruise clip marked `"once": true`, so the player never repeats it. We pass by. |
 
+Count these across the scene's stills before making clips: image models put an oncoming car in most stills that ask for a lived-in road (11 of 14 on 13 October). **Edit the extras out** rather than regenerating: "Remove the dark car driving toward the camera far down the road in the left-hand lane … Keep everything else exactly as it is, pixel for pixel", with the still itself as the only reference at full size. Four edits removed the car cleanly and changed nothing else. Then tell the clip that the opposite lane stays empty, or the video model adds traffic of its own.
+
 **Region kits.** Name what belongs to the place. On the California coast: camper vans and cars with surf racks among the rental cars, a few motorcycles (fewer in rain or snow), Caltrans green guide signs, the Route 1 shield, mile markers, Adopt-a-Highway signs, cypress and ice plant, pelicans and gulls. Elsewhere, pick the vehicles and activities of the region: ski racks and snow chains in the Alps, scooters and delivery bikes in Tokyo, Vespas and tractors in Tuscany.
 
 **People and animals** are still, or move slowly: looking at the view, reading a sign, chatting, walking a dog. Nobody runs, nobody poses for the camera, and nobody stands in the road.
@@ -220,7 +222,7 @@ Real roads are untidy and busy. Image models default to empty, clean and symmetr
 
 **Framing a stop or a landmark.** For a stop still, say where the car is parked and what fills the bottom of the frame ("gravel right up to the fence; there is no road in front of us"), or the model may park you facing across the road. For a landmark seen from the road, curve the road away from it so its side is in view: a road that runs straight onto a bridge shows only the deck. A low sun meant to be seen goes just right of where the road disappears, not far right, where the rear-view mirror hides it.
 
-**Wear.** Tar-sealed cracks, uneven resurfacing, worn paint, raised markers, sand and leaves at the edges, a crushed cup in the gutter. Vary it from shot to shot: one shared sentence about "patched squares" put the same two patches in the same place in every still, and that repetition is a tell of its own.
+**Wear.** Tar-sealed cracks, uneven resurfacing, worn paint, raised markers, sand and leaves at the edges, a crushed cup in the gutter. Vary it from shot to shot: one shared sentence about "patched squares" put the same two patches in the same place in every still, and that repetition is a tell of its own. When a repeat slips through, edit it out the same way as extra traffic.
 
 **Keep it alive in the clip.** A clip prompt must describe the detail that keeps coming, not only what's in the start frame. In the town test the people in the anchor walked out of frame within two seconds, and the street the model invented after them was empty. Write "more people stroll on the sidewalks further down the street, and more cars come up the hill toward us".
 
@@ -303,9 +305,9 @@ For maintainers and car designers. Packs don't ship cockpits; VibeTour does, one
 **At play time** the renderer:
 
 1. Draws the plate, **centred so its vanishing point sits over the wheel hub**. This is what keeps the car pointing down the road.
-2. Fills each mirror with the current clip run backwards (what a mirror shows is the road receding), darkened 20%. Reverse each clip on its own, never the joined session, which would put a later scene behind the car. At stops and holds, which face the stop, hold the last moving clip's road instead. Use the centre of the frame for the rear-view, the left edge for the door mirror. The side window is a window; the plate shows through it.
+2. Fills each mirror with the current clip run backwards (what a mirror shows is the road receding), darkened 20%. Reverse each clip on its own, never the joined session, which would put a later scene behind the car. At stops and holds, which face the stop, hold the last moving clip's road instead. Use the centre of the frame for the rear-view, the left edge for the door mirror. The side window is a window; the plate shows through it. A clip run backwards keeps every car's front towards us, so at night, at dusk and in rain the mirrors **turn the lights round**: a lamp in the opposite lane becomes a red taillight going away, a lamp in our lane becomes the headlights of a car following us, and at night the rest of the road behind goes dark and faintly red, lit only by our own taillights (`tools/footage/mirrorlights.py`). Lamps are found as small, very bright, roundish spots, so lane lines, reflector posts and glare don't count. By day a passing car still shows its front in the mirror, but it is too small to notice.
 3. Draws the cabin at the variant's **light level** (1 at midday, down to 0.25 at night; see the variants table), with the cluster's numerals and needles kept lit, and a faint, neutral light bleed (the blurred plate at 15%, luminance only) so the dash takes the scene's light, and the sweep of passing headlights, without taking its colour.
-4. Draws the wheel-and-hands cutout, at the same light level, rotated about the hub by the clip's **steering track**: the plate's camera yaw per frame, from dense optical flow on the band around the horizon, smoothed over half a second, at a fixed gain (full lock, ±12.5°, at 0.25 px per frame of yaw at 320 px wide). A straight road keeps the wheel within a degree of centre, a gentle curve turns it a few degrees, and a hairpin turns it to full lock. Scaling each clip to its own peak instead swung the wheel to full lock on straight roads. The wheel holds through curves and comes back to centre only when the road straightens. At stops the wheel centres and a "hands resting" still crossfades in. The player holds the wheel through each dissolve.
+4. Draws the wheel-and-hands cutout, at the same light level, rotated about the hub by the clip's **steering track**: the plate's camera yaw per frame, from dense optical flow near the vanishing point (the middle 30% of the width, 30–56% down) on textured pixels only, with a running median over 0.4 s to remove passing cars, then smoothed over half a second, at a fixed gain (full lock, ±12.5°, at 0.25 px per frame of yaw at 320 px wide). A straight road keeps the wheel within a degree of centre, a gentle curve turns it a few degrees, and a hairpin turns it to full lock. Scaling each clip to its own peak instead swung the wheel to full lock on straight roads. The wheel holds through curves and comes back to centre only when the road straightens. At stops the wheel centres and a "hands resting" still crossfades in. The player holds the wheel through each dissolve. A median over the whole horizon band was pulled by whichever side was nearer: on the cliffs, the hillside on the left streamed past while the sea stood still, and a left-hand curve read as a hard right.
 5. Adds a windshield bloom from the plate's near-white highlights, on the glass only, desaturated.
 6. Adds the **glass**: the top of the dash reflected faintly in the bottom of the windshield (18%, strongest at the bottom edge, at the cabin's light level), and the glass dirt lit by the plate's blurred highlights. Dirt only shows where bright light is behind it: a low sun, a white sky, oncoming headlights. This is what "the sun flares off the windshield" looks like, and it moves with the light.
 7. For "into the sun" variants only, adds a **lens flare**: the sun found as one round clipping blob in the sky, a bloom, an anamorphic streak and tinted ghosts on the line through the frame centre, confined to the glass with faint ghosts allowed on the dash. Off by default: on a midday plate it fires on clouds. Lens-flare orbs *in the plate* are always a fault: paint them out of the still (`tools/footage/deorb.py`) and ask the clip prompt for "no lens flare, no orbs".
@@ -384,8 +386,11 @@ sidewalks further down the street; birds stay perched on the wires.} Everything 
 is parked stays parked; every building, pole, sign and tree is solid and stays
 rooted, passing only as we move; nothing fades in or out. Signs keep their exact
 text. People move slowly and naturally; nobody runs. Keep the exact colour and light
-of the start frame throughout: {the palette, in the anchor's words}. Camera locked
-at the driver's eye height, no shake; the horizon stays where it is in the start
+of the start frame throughout: {the palette, in the anchor's words}. The camera is
+fixed to the car and always faces straight along the road ahead: the road's
+vanishing point stays at the centre of the frame from the first frame to the last,
+and the camera never pans or turns towards the sea or the view. Camera locked at
+the driver's eye height, no shake; the horizon stays where it is in the start
 frame. Nothing of our own car: no hood, dashboard, glass or wipers. No lens flare,
 no orbs. No audio, no music.
 ```
@@ -433,7 +438,7 @@ A model works for a slot if it has:
 | --- | --- | --- |
 | `cruise`, `transition`, `landmark`, `approach` | **Veo 3.1 Lite** | Full-speed, steady drives at $0.03/s. Animates named events (waves, a rail sliding past). One ghost-object morph in nine shots. |
 | `stop-in`, `*-hold`, `stop-out` | **Seedance 2.0 Fast** | The only model that drove into the stop; holds are still with gentle motion. About $0.09/s. |
-| cruise plates on a budget; trailers and previews | **HeyGen Video** | $0.015/s at launch, $0.03 list, at 768p; matches the look; animates events. Can't hold a camera still, and drifts to invented lane markings in one shot of three. Longest clips (15 s). |
+| cruise plates on a budget; trailers and previews | **HeyGen Video** | $0.015/s at launch, $0.03 list, at 768p; matches the look; animates events. Can't hold a camera still, and drifts to invented lane markings in one shot of three. Longest clips (15 s). With lived-in stills and the clip block in the prompt kit, the 17 California Coast cruise plates kept traffic on the correct side, parked things parked and people walking. But 7 of them, every coast road with the sea on the right, turned the camera towards the sea after 6–8 s, until the road left the frame. All 7 retakes passed with one added sentence ("the camera is fixed to the car and always faces straight along the road ahead … never pans or turns towards the sea") and a new seed. |
 
 On OpenRouter unless noted, first-frame input, audio off:
 
@@ -492,13 +497,14 @@ Judge shots **through a cockpit**, not bare: the renderer's demo can composite a
 
 - [ ] Road layout drifts or morphs: lanes appear or vanish, the road bends impossibly, a new lane marking appears
 - [ ] Wrong driving side, a lane change, a turn, or a pull-in to the wrong side
+- [ ] The camera turns away from the road towards the view: the road's vanishing point strays more than 20% of the frame's width from the centre (`tools/footage/drift.py` measures it every half second). Through a cockpit it looks like the car leaving the road.
 - [ ] Shake, roll, a zoom, or a jump in apparent speed; a crawl at half speed
 - [ ] A hold whose camera drifts or reverses
 - [ ] A ghost: a translucent object crossing the frame, or scenery that fades in over the road
 - [ ] Any part of a car, glass or reflection
 - [ ] By day, a vehicle close ahead in our lane; oncoming traffic in our lane; cars that melt, merge or move while parked
 - [ ] Garbled text that stays on screen, real logos, readable licence plates
-- [ ] Lens-flare orbs in the sky
+- [ ] Lens-flare orbs in the part of the sky the windshield shows. HeyGen added faint orbs near the top of the frame in about half of the 17 California Coast plates; the cockpit's headliner and rear-view mirror hide the top 17% of the plate, so only orbs below that are faults.
 - [ ] People running, posing for the camera, or standing in the road
 - [ ] An empty world: the life in the start frame passes and nothing replaces it
 - [ ] The same detail in the same place in shot after shot
@@ -579,6 +585,7 @@ For maintainers. None of this exists yet:
 1. **Video renderer.** A *Video Director* that turns the existing `motion` and `journey` snapshot into a playlist:
    - shuffled cruise clips, with `once` clips shown at most once a trip
    - windshield rain and wipers in rain variants, from the car's wipers
+   - mirror lights turned round at night, at dusk and in rain
    - stop, checkpoint and approach sets
    - transitions when progress crosses into the next scene
    - playback rate from speed

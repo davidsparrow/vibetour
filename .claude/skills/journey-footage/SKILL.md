@@ -65,6 +65,8 @@ Use the variant's cabin light: 1 at midday, 0.75 before sunset, 0.45 at sunset, 
 - the sun blown out to a huge disc, or hidden behind the rear-view mirror when it's meant to be seen
 - people posing or running, or anyone in the road
 
+Then count the oncoming vehicles across each scene's cruise stills. Image models put one in most lived-in stills; by day the rate is 1–4 in 10 outside towns. Edit the extras out instead of regenerating (`REFMAX=2400`, the still as its only reference): "Remove the dark car driving toward the camera … Keep everything else exactly as it is, pixel for pixel." Remove any detail that repeats from still to still the same way.
+
 Show the user labelled contact sheets of the stills, bare and in the cockpit, before any clip is made.
 
 ## 4. Clips
@@ -76,6 +78,7 @@ Write clip prompts from the clip block in [prompts.md](prompts.md). Every clip p
 - **What keeps coming**, not just what's in the start frame. The life in the anchor passes in two seconds, and the model fills the road beyond with emptiness unless told otherwise.
 - **Traffic as events**: "the oncoming camper van in the opposite lane on our LEFT keeps to its lane and passes us on the left".
 - **Things that must not happen**: parked things stay parked, nothing fades in or out, signs keep their text, nobody runs, no lens flare or orbs, nothing of our own car.
+- **An empty opposite lane**, said outright, in every clip whose still has no oncoming traffic, so the model doesn't add some.
 
 Submit and poll with `tools/footage/submit.py` and `poll.py` (edit `SHOTS`), or the same calls in a small script. Download as soon as each finishes.
 
@@ -86,7 +89,7 @@ CABIN=<level> PYTHON=<venv python> tools/footage/session.sh review/<name>.mp4 ou
 ffmpeg -i out/<clip>.mp4 -vf "fps=1,scale=480:-1,tile=4x2" -frames:v 1 strip.png   # contact strip
 ```
 
-`session.sh` dissolves the clips, derives the steering track and the mirror feed, and composites. For rain, add `RAIN=900`: drops run down the windshield and the wipers clear them (`rain.py`). Never ask the video model for drops on the glass. Judge with contact strips, then watch the composite. Reject against the standard's [review checklist](../../../docs/journey-video-standard.md#review-checklist). Common faults are a car that morphs as it passes, orbs, garbled signs that linger, and a world that empties out.
+First run `python tools/footage/drift.py out/*.mp4`: it fails any clip whose camera turns away from the road (video models like to turn towards the view, and through a cockpit that looks like the car leaving the road). Retake a failing clip with the clip block's "the camera is fixed to the car and always faces straight along the road" sentence and a new seed, or trim it to the passing stretch it prints. Then `session.sh` dissolves the clips, derives the steering track and the mirror feed, and composites. For rain, add `RAIN=900`: drops run down the windshield and the wipers clear them (`rain.py`). Never ask the video model for drops on the glass. At night add `MIRRORLIGHTS=0.35`, and at dusk or in rain `MIRRORLIGHTS=1`, so the mirrors show taillights on cars that have passed us and headlights on a car behind us. Judge with contact strips, then watch the composite. Reject against the standard's [review checklist](../../../docs/journey-video-standard.md#review-checklist). Common faults are a car that morphs as it passes, orbs, garbled signs that linger, and a world that empties out.
 
 ## 6. Finish
 
