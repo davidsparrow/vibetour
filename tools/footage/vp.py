@@ -9,10 +9,15 @@ src = sys.argv[1]; out = sys.argv[2] if len(sys.argv) > 2 else None
 W, H = map(int, (sys.argv[3] if len(sys.argv) > 3 else "1280x720").split("x"))
 AT = float(sys.argv[4]) if len(sys.argv) > 4 else 0.45
 img = cv2.imread(src); h, w = img.shape[:2]
-# Lane lines are long, straight and bright: look for them in the lower 55% of the frame.
+# Lane lines are long, straight and painted white or yellow: look for them in the lower 55% of the frame, on a mask of
+# paint-coloured pixels, so tar-sealed cracks, shadows and guardrails don't count.
 y0 = int(h * 0.45)
-grey = cv2.cvtColor(img[y0:], cv2.COLOR_BGR2GRAY)
-edges = cv2.Canny(cv2.GaussianBlur(grey, (5, 5), 0), 60, 160)
+hsv = cv2.cvtColor(cv2.GaussianBlur(img[y0:], (5, 5), 0), cv2.COLOR_BGR2HSV)
+H_, S_, V_ = hsv[..., 0], hsv[..., 1], hsv[..., 2]
+white = (V_ > np.percentile(V_, 90)) & (S_ < 60)
+yellow = (H_ >= 12) & (H_ <= 38) & (S_ > 90) & (V_ > 110)
+paint = ((white | yellow) * 255).astype(np.uint8)
+edges = cv2.Canny(cv2.morphologyEx(paint, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8)), 60, 160)
 lines = cv2.HoughLinesP(edges, 1, np.pi / 180, 80, minLineLength=int(h * 0.12), maxLineGap=20)
 segs = []
 for x1, y1, x2, y2 in (lines.reshape(-1, 4) if lines is not None else []):

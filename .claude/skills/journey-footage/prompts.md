@@ -73,7 +73,7 @@ Say where the car is: "in a car parked nose-in on a wide gravel pullout, a few m
 ## Variant looks
 
 **Before sunset** (sun in frame: keep it small, and ahead of the camera rather than far right, or the rear-view mirror hides it)
-> in the late afternoon about half an hour before sunset. The road curves gently right towards the sea, which puts the low sun in frame ahead, just right of the road: a small, clean, round white-gold disc with a soft natural glow close around it, while the sky around it stays readable, warm blue-gold and not blown out. A glittering sun path runs across the water. Warm golden light rakes across the hills and the road; long shadows stretch from every post and bush. The sky is still blue overhead, warming to pale gold near the horizon; the scattered clouds near the sun are just beginning to show faint hints of white-pink along their edges. No lens-flare ghosts, orbs, rings or streaks.
+> in the late afternoon about half an hour before sunset. The road curves gently right towards the sea, which puts the low sun in frame ahead, just to the right of where the road disappears and a little above the ocean horizon: a small, clean, round white-gold disc with a soft natural glow close around it, while the sky around it stays readable, warm blue-gold and not blown out. A glittering sun path runs across the water. Warm golden light rakes across the hills and the road; long shadows stretch from every post and bush. The sky is still blue overhead, warming to pale gold near the horizon; the scattered clouds near the sun are just beginning to show faint hints of white-pink along their edges. No lens-flare ghosts, orbs, rings or streaks.
 
 **Sunset over the sea**
 > The sun is setting into the ocean ahead-right: only a thin bright sliver of the orange sun is left above the sea horizon, laying a glowing orange-red path across the water. The clouds over the sea are lit from below in deep pink, coral and crimson; higher up, the sky deepens to lavender and violet-blue. The hills on the left are dusky, with warm rim light along their crests. A line of pelicans flies low over the water. On the right, a gravel pullout where two cars are parked and a few people stand in silhouette watching the sunset. An oncoming car with its headlights on.
@@ -86,6 +86,14 @@ Say where the car is: "in a car parked nose-in on a wide gravel pullout, a few m
 
 **Rain**
 > on a rainy afternoon. Steady light rain falls from a low, even grey sky; cloud hangs on the hills and drifts through the trees. The asphalt is soaking wet and dark with silvery reflections of the sky, water in the wheel tracks and puddles along the shoulder. An oncoming car with its headlights on throws up a fine spray. Houses up the hill have lit windows; a person in a yellow raincoat walks a dog along a driveway. Wet foliage is a deep saturated green and the rock is dark and glistening. Colours are rich and wet, not washed out to grey. No raindrops on the lens or glass; they are added later.
+
+**Fog** (in and out of a bank of sea fog)
+> on a bright afternoon when the sea fog is rolling in. The road weaves along the cliff edge. On the right, a thick bank of brilliant white sea fog pours up over the cliff edge from the ocean and spills across the road in drifting tongues: about a hundred metres ahead, where the road curves right, it disappears into the fog, and beyond it the road reappears in bright sunshine on the next headland. Inside the fog everything softens to luminous white-grey, with the guardrail posts and the centre line fading into it. On the left the steep green hills rise above the fog into a clear deep-blue sky with bright sun. The edge of the fog is soft and alive, with wisps curling over the guardrail. Colours: rich greens and gold on the hills, deep blue sky, bright white fog, not grey and gloomy.
+
+Its clip: "The road weaves along the cliff edge in and out of the fog: we drive into the thick bank of white fog, the view softens to luminous white-grey with the guardrail posts and the centre line still faintly visible close by, then we come out into bright sunshine again as the road curves away from the sea, then slip back into a thinner tongue of fog curling over the guardrail."
+
+**Landmark, side on** (Bixby Bridge)
+> The road curves gently left along the north rim of the canyon, and ahead-left, across the canyon, the whole side of the bridge is in view, with the road we are on running out across it.
 
 ## Clip block
 

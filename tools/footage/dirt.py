@@ -2,19 +2,22 @@
 
 The texture is dark almost everywhere. The composite multiplies it by the plate's blurred highlights and adds it, so it
 only shows where bright light is behind the glass: the sun, a white sky, oncoming headlights. That is how a real
-windshield looks, and it is what makes "the sun flares off the windshield". The two wipers sweep arcs from pivots
-below the glass; inside the arcs the glass is cleaner, with fine streaks along the sweep, and dirt collects at the
+windshield looks, and it is what makes "the sun flares off the windshield". The two wipers (car.json "wipers") sweep
+arcs from pivots below the glass; inside the arcs the glass is cleaner, with fine streaks along the sweep, and dirt collects at the
 arcs' outer edges. Outside them there is more dust."""
-import sys, cv2, numpy as np
+import json, os, sys, cv2, numpy as np
 mask = cv2.imread(sys.argv[1], cv2.IMREAD_GRAYSCALE).astype(np.float32) / 255
 rng = np.random.default_rng(int(sys.argv[3]) if len(sys.argv) > 3 else 7)
 h, w = mask.shape
 ys, xs = np.nonzero(mask > 0.5); bottom = ys.max(); left, right = xs.min(), xs.max(); top = ys.min()
 gw, gh = right - left, bottom - top
 yy, xx = np.mgrid[:h, :w].astype(np.float32)
-# Wiper pivots just below the glass, a third and two thirds of the way across; each sweeps about 0.55 of the width.
-pivots = [(left + gw * 0.30, bottom + gh * 0.08), (left + gw * 0.68, bottom + gh * 0.08)]
-reach = gw * 0.42
+# The wipers from car.json beside the mask (the same pivots rain.py sweeps), or by default pivots just below the glass,
+# 30% and 68% of the way across, each reaching 42% of the glass's width.
+cj = os.path.join(os.path.dirname(os.path.abspath(sys.argv[1])), "car.json")
+wip = json.load(open(cj)).get("wipers") if os.path.exists(cj) else None
+if wip: pivots, reach = [tuple(p) for p in wip["pivots"]], wip["reach"]
+else: pivots, reach = [(left + gw * 0.30, bottom + gh * 0.08), (left + gw * 0.68, bottom + gh * 0.08)], gw * 0.42
 def noise(scale, octaves=3):
     """Smooth value noise in 0..1, from blurred random fields."""
     n = np.zeros((h, w), np.float32)
@@ -31,10 +34,10 @@ for px, py in pivots:
     for _ in range(45):
         r0 = rng.uniform(reach * 0.25, reach * 0.98); t0 = rng.uniform(-np.pi, 0); span = rng.uniform(0.15, 0.9)
         along = np.clip(1 - np.abs(((th - t0 + np.pi) % (2 * np.pi)) - np.pi) / span, 0, 1)
-        streaks += np.exp(-((r - r0) / 0.7) ** 2) * along * rng.uniform(0.02, 0.07)
+        streaks += np.exp(-((r - r0) / 0.7) ** 2) * along * rng.uniform(0.012, 0.04)
     # Dirt piles up in a ragged band where each wiper stops.
     rr = reach + (noise(40) - 0.5) * 14
-    edge = np.maximum(edge, np.exp(-((r - rr) / 7.0) ** 2) * (0.03 + 0.08 * noise(25)))
+    edge = np.maximum(edge, np.exp(-((r - rr) / 7.0) ** 2) * (0.01 + 0.035 * noise(25)))
 # Dust: specks, denser where the wipers don't reach.
 dust = np.zeros((h, w), np.float32)
 n = int(w * h * 0.0035)

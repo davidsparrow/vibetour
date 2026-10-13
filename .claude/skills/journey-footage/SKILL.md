@@ -13,7 +13,8 @@ What the user sees is three layers: the **plate** (footage through the glass, fr
 
 - Tools: `ffmpeg`, Python 3.9+ with Pillow, and a venv with `numpy` and `opencv-python-headless`. Pass its python to the shell scripts as `PYTHON=…`.
 - Keys in `.env.local` (gitignored): `OPENROUTER_API_KEY` for stills and most video models, `HEYGEN_API_KEY` for HeyGen's cheaper direct price. Export them as `OR` and `HG`.
-- Budget. Stills cost about $0.10 at 2K; clips cost $0.015–0.09 per second (the standard's model table). An OpenRouter key refuses image and video requests once less than $1.00 is left under its own limit, whatever the account holds, so check `GET https://openrouter.ai/api/v1/key` before a batch and ask the user to raise the limit if needed.
+- Budget. Stills cost about 10 US cents each at 2K; clips cost 1.5 to 9 cents a second (the standard's model table). An OpenRouter key refuses image and video requests once less than one dollar is left under its own limit, and the account's credit is a second limit, so check both (`GET https://openrouter.ai/api/v1/key` and `/api/v1/credits`) before a batch. Ask the user to raise the limit or top up if needed.
+- Prices in this file are written without a dollar sign, because Claude Code reads a dollar sign before a digit as an argument placeholder.
 - Ask the user before spending on a batch, and report what each step cost.
 
 ## 1. Plan the journey
@@ -39,9 +40,11 @@ AR=4:3 SIZE=2K python3 -I tools/footage/gen_image.py google/gemini-3.1-flash-ima
 
 - Generate at **4:3 and 2K**, with the horizon at the centre. Models put it there whatever you ask.
 - Build each prompt from the kit: place, look, lane, world detail for the stretch, signs, people, realism, frame. **Change the world detail and the wear in every still.** A shared sentence repeats the same detail in the same place in every frame.
-- Quote every legible word on a sign exactly, and keep it short. Put signs well down the road: one beside the camera ends up behind the A-pillar.
+- Quote every legible word on a sign exactly, keep it short, and name its colours. Put signs about 150 m down the road and small in the frame: a sign close on the right ends up behind the rear-view mirror, and one close on the left behind the A-pillar.
 - Anything moving our way in our lane is something the video must overtake. Put walkers and cyclists on the far side, facing us, or stopped.
 - For a stop still (gas station, overlook), say where the car is parked and what fills the bottom of the frame ("gravel right up to the fence; no road in front of us"). Otherwise the model may park you across the road.
+- For a landmark, curve the road away from it so its side shows. A road that runs straight onto a bridge shows only the deck.
+- A low sun meant to be seen goes just right of where the road disappears, not far right, where the rear-view mirror hides it.
 - For a variant, attach the place's still, but say the light and weather come from the prompt. To join two variant stills (rain on the road, then rain in town), make the second from the first.
 
 ## 3. Check every still before animating it
@@ -83,7 +86,7 @@ CABIN=<level> PYTHON=<venv python> tools/footage/session.sh review/<name>.mp4 ou
 ffmpeg -i out/<clip>.mp4 -vf "fps=1,scale=480:-1,tile=4x2" -frames:v 1 strip.png   # contact strip
 ```
 
-`session.sh` dissolves the clips, derives the steering track and the mirror feed, and composites. Judge with contact strips, then watch the composite. Reject against the standard's [review checklist](../../../docs/journey-video-standard.md#review-checklist). Common faults are a car that morphs as it passes, orbs, garbled signs that linger, and a world that empties out.
+`session.sh` dissolves the clips, derives the steering track and the mirror feed, and composites. For rain, add `RAIN=900`: drops run down the windshield and the wipers clear them (`rain.py`). Never ask the video model for drops on the glass. Judge with contact strips, then watch the composite. Reject against the standard's [review checklist](../../../docs/journey-video-standard.md#review-checklist). Common faults are a car that morphs as it passes, orbs, garbled signs that linger, and a world that empties out.
 
 ## 6. Finish
 

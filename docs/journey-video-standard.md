@@ -4,7 +4,7 @@
 
 It applies to every video pack: VibeTour Originals, community packs and packs sold in the marketplace (PRD §50).
 
-Draft 0.2 is based on a bake-off run on 12 October 2026: 40 generated clips across five models, two cockpit designs and three composited test sessions. The evidence is in [the Footage Study](site/footage-study.html). A realism pass on 13 October added [World detail](#world-detail), the glass and light in the cockpit, and the 45% horizon: 15 stills and 4 clips of a lived-in California coast, judged through the cockpit.
+Draft 0.2 is based on a bake-off run on 12 October 2026: 40 generated clips across five models, two cockpit designs and three composited test sessions. The evidence is in [the Footage Study](site/footage-study.html). A realism pass on 13 October added [World detail](#world-detail), the glass, light and rain in the cockpit, and the 45% horizon: 25 stills (30 takes) and 6 clips of a lived-in California coast, judged through the cockpit.
 
 ## What changed in 0.2
 
@@ -177,12 +177,13 @@ These rules are what make clips join and what makes the cockpit sit on them. Eve
   | Sunset | A thin sliver of sun on the sea horizon, clouds lit pink, coral and crimson from below, the sky deepening to violet; headlights coming on | 0.45 |
   | Night in town | Lit shop windows, lamps, string lights, parked cars, people on the sidewalks, oncoming headlights, a car's taillights well ahead; a navy sky, not black | 0.25 |
   | Night road | Our low beams on the road, reflector posts and markers glinting, taillights ahead, oncoming headlights passing; stars and a moon | 0.25 |
-  | Rain | A low even grey sky, mist on the hills, soaked asphalt with reflections, puddles, spray from passing cars, lit windows, rich wet greens | 0.6 |
+  | Rain | A low even grey sky, mist on the hills, soaked asphalt with reflections, puddles, spray from passing cars, lit windows, rich wet greens. The drops on the glass and the wipers come from the cockpit layer. | 0.6 |
+  | Fog | A bright afternoon with a thick bank of white sea fog pouring over the cliff edge and across the road ahead; the road runs into it and out again into sun on the next headland. Bright white fog, not grey and gloomy. In the clip, say "we drive into the fog … then come out into bright sunshine again". | 0.9 |
 
   The rain stills looked the most real of the 13 October set; sunny ones look too clean next to them, so ask for haze in the distance. Only `approach` and `arrival-hold` may move towards the variant's `arrivalTimeOfDay`.
 - **Details that sell a place:** name them, and describe the moving ones as events. "A corrugated steel guardrail on wooden posts slides past on the right" and "every few seconds a wave hits the rocks and white spray explodes upward" both animate; "a scenic coast" doesn't.
 - **Never mirror footage horizontally.** It flips the driving side.
-- **Weather on the glass:** VibeTour draws windshield rain. Bake rain, fog or snow into the landscape only, and ask for no drops on the lens.
+- **Weather on the glass:** VibeTour draws windshield rain and the wipers (step 7 of [The cockpit layer](#the-cockpit-layer)). Bake rain, fog or snow into the landscape only, and ask for no drops on the lens.
 
 ## World detail
 
@@ -215,7 +216,9 @@ Real roads are untidy and busy. Image models default to empty, clean and symmetr
 
 **People and animals** are still, or move slowly: looking at the view, reading a sign, chatting, walking a dog. Nobody runs, nobody poses for the camera, and nobody stands in the road.
 
-**Signs** use the region's real sign system, as in the reference sheets a creator collects. Quote the words. Put them well down the road in the anchor.
+**Signs** use the region's real sign system, as in the reference sheets a creator collects. Quote the words, and name the colours ("white letters on a GREEN background"): without them, one Caltrans distance sign came out black. Put signs far down the road, about 150 m ahead and small in the frame. A sign close to the camera on the right sits behind the rear-view mirror in the cockpit, and one close on the left sits behind the A-pillar.
+
+**Framing a stop or a landmark.** For a stop still, say where the car is parked and what fills the bottom of the frame ("gravel right up to the fence; there is no road in front of us"), or the model may park you facing across the road. For a landmark seen from the road, curve the road away from it so its side is in view: a road that runs straight onto a bridge shows only the deck. A low sun meant to be seen goes just right of where the road disappears, not far right, where the rear-view mirror hides it.
 
 **Wear.** Tar-sealed cracks, uneven resurfacing, worn paint, raised markers, sand and leaves at the edges, a crushed cup in the gutter. Vary it from shot to shot: one shared sentence about "patched squares" put the same two patches in the same place in every still, and that repetition is a tell of its own.
 
@@ -289,12 +292,13 @@ For maintainers and car designers. Packs don't ship cockpits; VibeTour does, one
 | Asset | How |
 | --- | --- |
 | Cabin without the wheel | An image-model edit: "remove the steering wheel and the driver's hands and arms; show the column, cluster and lap behind them; keep everything else pixel for pixel" |
-| Wheel-and-hands cutout | Where the two stills differ (colour distance), kept only where it connects to the wheel, with the hub's centre filled; then keyed and despilled like the cabin. An earlier cutout clipped this to a disc and two forearm bands, which cut off the backs of the hands and let the cabin's vents show through them. |
+| Wheel-and-hands cutout | Where the two stills differ (colour distance): inside the wheel's disc any difference, outside it only skin-coloured ones; kept where it connects to the wheel, with the hub's centre filled; then keyed and despilled like the cabin. An earlier cutout clipped this to a disc and two forearm bands, which cut off the backs of the hands and let the cabin's vents show through them. Without the skin test, a patch of door panel that the cabin edit repainted turned with the wheel. |
 | Glass mask | The keyed still's transparent regions. The largest is the windshield. |
 | Mirror masks | The other transparent regions above 800 px², one per mirror |
 | Glass dirt | A procedural texture over the windshield: dust specks, a few smudges, faint streaks along two wiper sweeps and the ragged line where each wiper stops, more haze low on the glass |
 | Hub position | The centre of the wheel |
 | Cluster box | The instrument cluster, which keeps its glow when the cabin darkens |
+| Wipers | Two pivots below the glass, the reach of the arms, the parked angle and the sweep, measured in the still. The glass dirt's streaks and the rain layer's blades use the same ones. |
 
 **At play time** the renderer:
 
@@ -305,8 +309,9 @@ For maintainers and car designers. Packs don't ship cockpits; VibeTour does, one
 5. Adds a windshield bloom from the plate's near-white highlights, on the glass only, desaturated.
 6. Adds the **glass**: the top of the dash reflected faintly in the bottom of the windshield (18%, strongest at the bottom edge, at the cabin's light level), and the glass dirt lit by the plate's blurred highlights. Dirt only shows where bright light is behind it: a low sun, a white sky, oncoming headlights. This is what "the sun flares off the windshield" looks like, and it moves with the light.
 7. For "into the sun" variants only, adds a **lens flare**: the sun found as one round clipping blob in the sky, a bloom, an anamorphic streak and tinted ghosts on the line through the frame centre, confined to the glass with faint ghosts allowed on the dash. Off by default: on a midday plate it fires on clouds. Lens-flare orbs *in the plate* are always a fault: paint them out of the still (`tools/footage/deorb.py`) and ask the clip prompt for "no lens flare, no orbs".
-8. Adds fine grain over the whole frame, so plate and cabin read as one camera.
-9. Adds ±1–2° of sway and a small bob keyed to speed. Nothing else.
+8. In rain, draws **rain on the windshield**, under the cockpit: drops land on the glass at a steady rate (about 900 a second in steady rain), each a small lens that shows the scene behind it blurred and upside down, with a dark rim and a highlight; big drops run down the glass and leave trails; a faint wet film builds up between wipes. The **wipers** sweep from their pivots every 1.6 s and clear every drop in their path, drawn as dark blades that smear into a translucent band while they move, as a camera shutter sees them. Steering comes from the dry plate, since the blades would read as camera yaw. `tools/footage/rain.py` is the reference.
+9. Adds fine grain over the whole frame, so plate and cabin read as one camera.
+10. Adds ±1–2° of sway and a small bob keyed to speed. Nothing else.
 
 Finger re-grips and a finger tapping the wheel are future experiments. Hands are what models get wrong most, so the cutout keeps them on the wheel.
 
@@ -573,6 +578,7 @@ For maintainers. None of this exists yet:
 
 1. **Video renderer.** A *Video Director* that turns the existing `motion` and `journey` snapshot into a playlist:
    - shuffled cruise clips, with `once` clips shown at most once a trip
+   - windshield rain and wipers in rain variants, from the car's wipers
    - stop, checkpoint and approach sets
    - transitions when progress crosses into the next scene
    - playback rate from speed

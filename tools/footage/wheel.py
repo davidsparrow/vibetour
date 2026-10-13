@@ -14,8 +14,13 @@ d = cv2.GaussianBlur(np.linalg.norm(la - lb, axis=2), (0, 0), 1.2)
 h, w = d.shape
 yy, xx = np.mgrid[:h, :w]
 disc = (xx - hx) ** 2 + (yy - hy) ** 2 < r * r
-# Inside the disc the rim is black on black, so take small differences; outside it only clear ones.
-m = np.where(disc, d > 7, d > 12).astype(np.uint8)
+# Inside the disc the rim is black on black, so take small differences. Outside it, only clear differences that are
+# skin-coloured: the forearms. The cabin edit also repainted part of the door panel beside the left arm, and that
+# piece swung into view when the wheel turned.
+ycc = cv2.cvtColor(a, cv2.COLOR_BGR2YCrCb)
+skin = cv2.inRange(ycc, (40, 133, 77), (255, 180, 135))
+skin = cv2.dilate(cv2.morphologyEx(skin, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8)), np.ones((7, 7), np.uint8)) > 0
+m = np.where(disc, d > 7, (d > 12) & skin).astype(np.uint8)
 m = cv2.morphologyEx(m, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
 m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9)))
 # Keep the big components that reach into the wheel's inner disc: the wheel itself and the arms holding it. Small ones
