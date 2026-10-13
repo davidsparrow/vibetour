@@ -3,7 +3,7 @@ import type { JourneyPhase, MotionReading } from './motion';
 
 /**
  * Moments: the named situations a dashboard can react to (see the signal map
- * in docs/architecture.md). Several hold at once, say thinking + problems +
+ * in docs/signal-map.md). Several hold at once, say thinking + problems +
  * your-turn. The host works them out once per snapshot; each display decides
  * which cues they switch on.
  */

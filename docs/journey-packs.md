@@ -11,6 +11,8 @@ A Journey Pack is the destination content (PRD §35). Built-in packs live in `pa
 - audio
 - provenance
 
+For video packs, see the proposed [Journey Video Standard](journey-video-standard.md).
+
 `validatePack()` in `src/core/packs.ts` checks every manifest. `test/packs.test.ts` runs it over all built-in packs and walks their scene graphs from departure to arrival for many seeds.
 
 ## Manifest overview
