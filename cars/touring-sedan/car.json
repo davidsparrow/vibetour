@@ -5,7 +5,7 @@
   "size": [1200, 896],
   "hub": [600, 590],
   "wheel": { "radius": 240, "forearmsBelow": 620, "forearms": [[290, 470], [730, 910]] },
-  "mirrors": { "rear": [941, 104, 259, 89], "side": [6, 345, 154, 123] },
+  "mirrors": { "rear": [941, 104, 259, 89], "side": [0, 335, 100, 130] },
   "key": { "color": "0x00FF00", "similarity": 0.22, "blend": 0.1 },
   "source": {
     "made": "2026-10-12",

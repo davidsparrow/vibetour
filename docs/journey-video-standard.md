@@ -236,7 +236,7 @@ For maintainers and car designers. Packs don't ship cockpits; VibeTour does, one
 **At play time** the renderer:
 
 1. Draws the plate, **centred so its vanishing point sits over the wheel hub**. This is what keeps the car pointing down the road.
-2. Fills each mirror with the plate run backwards (what a mirror shows is the road receding), darkened 20%: the centre of the frame for the rear-view, the left edge for the door mirror. The side window is a window; the plate shows through it.
+2. Fills each mirror with the current clip run backwards (what a mirror shows is the road receding), darkened 20%. Reverse each clip on its own, never the joined session, which would put a later scene behind the car. At stops and holds, which face the stop, hold the last moving clip's road instead. Use the centre of the frame for the rear-view, the left edge for the door mirror. The side window is a window; the plate shows through it.
 3. Draws the cabin with a faint, neutral light bleed (the blurred plate at 15%, luminance only) so the dash takes the scene's light without taking its colour.
 4. Draws the wheel-and-hands cutout rotated about the hub by the clip's **steering track**: the plate's camera yaw per frame, from dense optical flow on the band around the horizon, smoothed over half a second, scaled so the 97th percentile is ±12.5°. The wheel holds through curves and comes back to centre only when the road straightens. At stops the wheel centres and a "hands resting" still crossfades in. The player holds the wheel through each dissolve.
 5. Adds a windshield bloom from the plate's near-white highlights, on the glass only, desaturated.

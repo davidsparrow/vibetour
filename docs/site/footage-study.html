@@ -303,13 +303,15 @@ a{color:var(--blue)}
   <tr><th>Shot</th><th>Model</th><th class="n">Cost</th><th>Read</th></tr>
   <tr><td>Cruise A, Cruise B (8 s)</td><td>Veo 3.1 Lite</td><td class="n">$0.48</td><td><span class="pill ok">waves and rail</span> Two different sets break during each clip; the rail slides past cleanly.</td></tr>
   <tr><td>Transition Big Sur → Carmel (8 s)</td><td>Veo 3.1 Lite</td><td class="n">$0.24</td><td><span class="pill ok">ok</span> Granite and cypress arrive as the surf fades.</td></tr>
-  <tr><td>Carmel cruise (8 s)</td><td>Veo 3.1 Lite</td><td class="n">$0.24</td><td><span class="pill no">ghost</span> A translucent cypress crosses the road mid-clip. Retake.</td></tr>
+  <tr><td>Carmel cruise (8 s)</td><td>Veo 3.1 Lite</td><td class="n">$0.24</td><td><span class="pill no">ghost</span> A translucent cypress crosses the road mid-clip.</td></tr>
+  <tr><td>Carmel cruise, retake (8 s)</td><td>Veo 3.1 Lite</td><td class="n">$0.24</td><td><span class="pill ok">clean</span> A new seed, and one more line in the prompt: every tree, rock and post stays rooted, and nothing fades in or crosses the road. Clean at 6 fps. Halfway through, the road turns inland and the cove leaves the frame.</td></tr>
   <tr><td>Stop-in (10 s)</td><td>Seedance 2.0 Fast</td><td class="n">$0.91</td><td><span class="pill ok">pulls in</span> From the approach anchor, slows and rolls under the canopy. The "stop already in view" anchor rule works.</td></tr>
   <tr><td>Hold (12 s)</td><td>Seedance 2.0 Fast</td><td class="n">$1.09</td><td><span class="pill ok">still</span> Clouds and cypress move, nothing else.</td></tr>
   <tr><td>Cruise A (12 s)</td><td>HeyGen Video</td><td class="n">$0.18</td><td><span class="pill ok">waves and rail</span> Holds the palette; slightly softer than Veo.</td></tr>
   <tr><td>Hold (12 s)</td><td>HeyGen Video</td><td class="n">$0.18</td><td><span class="pill no">drifts</span> Reverses out onto the road. HeyGen can't hold a camera still; holds stay with Seedance.</td></tr>
 </table></div>
-<p>The six good shots, dissolved and composited with cockpit v4, make the 49-second <code>session-v4.mp4</code>: two Big Sur cruises with crashing waves, the transition, Carmel, the pull-in and the hold at the pumps. Round cost $3.30; the day's total is about $13.</p>
+<p>The six good shots, dissolved and composited with cockpit v4, make the 49-second <code>session-v4.mp4</code>: two Big Sur cruises with crashing waves, the transition, Carmel, the pull-in and the hold at the pumps. Round cost $3.54 with the Carmel retake; the day's total is about $13.</p>
+<p>Two mirror fixes came with the retake. The first render ran the whole 49-second plate backwards for the mirrors, so on the Big Sur cliff they showed the gas station; now each clip runs backwards on its own, dissolved on the same joins. And the door mirror's box took in a strip of the side window, which showed as a hard-edged rectangle; it now covers the glass only. At the stop the mirrors still show the station, because those clips face it. The renderer should hold the last stretch of road there instead.</p>
 
 <h3>The plan, as run</h3>
 <div class="scroll"><table>
@@ -335,7 +337,7 @@ a{color:var(--blue)}
   <tr><td>Join style default: anchored or dissolve?</td><td>Dissolve, judged on the composited sessions. <span class="pill ok">decided</span></td></tr>
   <tr><td>Plate model for VibeTour Originals</td><td>Per slot family. With dissolve joins, HeyGen Video is back in the running for cruise plates. <span class="pill ok">decided</span></td></tr>
   <tr><td>Cockpit framing</td><td>Straight ahead, wheel centred, forearms out of frame. The left-shift idea is dropped: it turns the cabin. <span class="pill ok">decided</span></td></tr>
-  <tr><td>Mirrors</td><td>Road behind, from the time-reversed plate, inside the glass only. The side window is a window: the plate shows through it. <span class="pill ok">done</span></td></tr>
+  <tr><td>Mirrors</td><td>Road behind, from each clip run backwards on its own, inside the glass only. The side window is a window: the plate shows through it. <span class="pill ok">done</span></td></tr>
   <tr><td>Palette</td><td>Vivid midday as the default look, named in the prompts. Golden hour and night become variants. <span class="pill ok">decided</span></td></tr>
   <tr><td>Cabin materials</td><td>Leather, wood, metal, lit cluster, named in the cockpit prompt. <span class="pill ok">done</span></td></tr>
   <tr><td>Lens flare</td><td>Per variant, on only with the sun in frame. <span class="pill ok">decided</span></td></tr>
