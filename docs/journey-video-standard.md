@@ -14,7 +14,7 @@ Draft 0.2 is based on a bake-off run on 12 October 2026: 40 generated clips acro
 | One model per pack | One model per slot family | No model won every slot. Veo 3.1 Lite drives; Seedance 2.0 Fast stops and holds; HeyGen Video is cheapest for cruise but can't hold a camera still. |
 | Footage is the whole picture | Three layers: plate, cockpit, instruments | The cockpit (dash, wheel, hands, mirrors) is a generated still per car, composited over the plate. It steers with the road and never drifts. |
 | "Natural muted colour, golden hour" | Vivid midday is the default look; golden hour and night are variants | The muted prompts made every pack beige. The reference footage is saturated: cerulean sky, cobalt water, several greens. |
-| Vanishing point 42% from the top, 24–28 mm | Vanishing point 35% from the top, 22–26 mm | The cockpit covers the lower 45% of the frame. |
+| Vanishing point 42% from the top, 24–28 mm | Vanishing point about half way down (50–55%), 22–26 mm | That's where image models put it whatever the prompt says, and every composite in the bake-off had it there. Through the cockpit it shows sky, horizon and sea above the dash. A test at 35% left mostly road in the windshield. |
 | Stop anchor is the stop itself | Stop anchor is the road anchor with the stop already in view | Asking a model to arrive somewhere new in 8 s produces morphs. From an approach anchor, the pull-in is clean. |
 
 ## The idea
@@ -158,7 +158,7 @@ These rules are what make clips join and what makes the cockpit sit on them. Eve
 - **Point of view:** forward-facing, from the driver's eye line in the middle of the lane, about 1.3 m up. Level horizon, no roll, no pitch.
 - **No car:** no hood, dashboard, wipers, mirrors, hands, glass or reflections. The cockpit layer provides all of it.
 - **Lens:** about 22–26 mm full-frame equivalent, the same for the whole pack. Wider than 0.1 asked for, because the cockpit hides the bottom of the frame.
-- **Framing:** put the road's vanishing point at the horizontal centre, **35% from the top**. The cockpit covers the bottom 45% and the rear-view mirror covers a band at the top right, so keep the horizon and landmarks between 15% and 50% from the top.
+- **Framing:** put the road's vanishing point at the horizontal centre, **about half way down (50–55% from the top)**. Image models put it there anyway, so ask for the horizon at the centre of the frame rather than for a number. Behind the cockpit the windshield shows the plate from about 15% to 60% from the top, and the rear-view mirror covers part of the top right, so keep landmarks in that band and clear of the mirror.
 - **Motion:** smooth and stabilised, a steady 50–70 km/h look. Use the same apparent speed in every moving clip. Slow down and speed up only in `stop-in`, `stop-out`, `departure` and the end of `approach`.
 - **Road:**
   - drive on the side the manifest's `drivingSide` says
@@ -277,11 +277,16 @@ distinct greens, from dark {cypress} to bright yellow-green scrub; {rock colour}
 charcoal asphalt with crisp {yellow centre and white edge} lines. Punchy contrast,
 clean highlights, deep but detailed shadows. {Place details: a corrugated steel
 guardrail on weathered wooden posts along the cliff edge; swells crashing onto dark
-rocks with spray exploding upward.} Level horizon; the road's vanishing point at the
-horizontal centre, 35% from the top. 24 mm lens. No car hood, dashboard, glass or
-wipers. No vehicles, no people, no signs, no text. Not beige, not muted, not
+rocks with spray exploding upward.} {Driving side: Americans drive on the right: the
+camera is in the right-hand lane, so the double yellow centre line runs on the
+camera's LEFT and the white edge line on its right.} Level camera at the driver's eye
+height: the horizon and the road's vanishing point at the horizontal and vertical
+centre of the frame. 24 mm lens. No car hood, dashboard, glass or wipers. No
+vehicles, no people, no signs, no text. No lens flare. Not beige, not muted, not
 golden-hour, not faded.
 ```
+
+Spell out the driving side by naming where the centre line runs. "The right-hand lane" alone put the camera in the wrong lane in one anchor of three. Ask for no lens flare: without it, Gemini added faint flare orbs to the sky in a third of the stills, and the video models animate them.
 
 Any other still in the scene: the same prompt with the change you want ("the road curves left between granite outcrops"; "a small gas station on a gravel forecourt sits ahead-right"), plus "Match the colour, light, lens and style of the reference image exactly", with the master attached.
 

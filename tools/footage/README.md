@@ -12,6 +12,7 @@ Needs `ffmpeg`, Python 3.9+, and for `steer.py`, `masks.py` and `flare.py` a ven
 | `steer.py <plate.mp4> <out> <max_deg>` | Steering track from optical-flow camera yaw: `<out>.cmd` for FFmpeg's `sendcmd`, `<out>.csv` to inspect. |
 | `car-build.sh <car dir>` | Derives a car's `wheel.png`, `glass-mask.png` and `mirror-mask.png` from its `cockpit.png`, `cabin.png` and `car.json`. See [cars/](../../cars/README.md). |
 | `masks.py <transparent.png> <glass.png> <mirrors.png>` | Splits a keyed cockpit's glass into the windshield and the mirrors. `car-build.sh` runs it. |
+| `vp.py <still> [<out> [WxH [at]]]` | Finds a still's vanishing point from its lane lines, and optionally crops a 16:9 band that puts it at the centre, 52% of the way down (or `at`). For anchors generated at 4:3. |
 | `car.py <car dir>` | Prints `car.json` as shell variables for `car-build.sh` and `composite.sh`. |
 | `flare.py <plate.mp4> <out.mp4> [strength]` | Lens-flare layer on black, for "into the sun" variants only. |
 | `composite.sh <plate> <mirrorfeed> <steer.cmd> <out> [flare]` | The three-layer composite: plate, mirrors, cabin, wheel, bloom. `CAR` selects the car folder (default `cars/touring-sedan`), which gives the hub and mirror boxes; `BLEED`/`BLOOM` set the strengths. |
