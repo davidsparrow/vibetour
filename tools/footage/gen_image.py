@@ -8,6 +8,7 @@ for p in refs:
     content.append({"type": "image_url", "image_url": {"url": f"data:{mt};base64," + base64.b64encode(open(p,"rb").read()).decode()}})
 body = {"model": model, "messages": [{"role": "user", "content": content}],
         "modalities": ["image", "text"], "image_config": {"aspect_ratio": os.environ.get("AR","16:9")}}
+if os.environ.get("SIZE"): body["image_config"]["image_size"] = os.environ["SIZE"]   # 1K (default), 2K or 4K
 req = urllib.request.Request("https://openrouter.ai/api/v1/chat/completions",
     data=json.dumps(body).encode(), headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
 with urllib.request.urlopen(req, timeout=240) as r:

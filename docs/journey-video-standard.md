@@ -4,7 +4,7 @@
 
 It applies to every video pack: VibeTour Originals, community packs and packs sold in the marketplace (PRD §50).
 
-Draft 0.2 is based on a bake-off run on 12 October 2026: 40 generated clips across five models, two cockpit designs and three composited test sessions. The evidence is in [the Footage Study](site/footage-study.html).
+Draft 0.2 is based on a bake-off run on 12 October 2026: 40 generated clips across five models, two cockpit designs and three composited test sessions. The evidence is in [the Footage Study](site/footage-study.html). A realism pass on 13 October added [World detail](#world-detail), the glass and light in the cockpit, and the 45% horizon: 15 stills and 4 clips of a lived-in California coast, judged through the cockpit.
 
 ## What changed in 0.2
 
@@ -14,8 +14,11 @@ Draft 0.2 is based on a bake-off run on 12 October 2026: 40 generated clips acro
 | One model per pack | One model per slot family | No model won every slot. Veo 3.1 Lite drives; Seedance 2.0 Fast stops and holds; HeyGen Video is cheapest for cruise but can't hold a camera still. |
 | Footage is the whole picture | Three layers: plate, cockpit, instruments | The cockpit (dash, wheel, hands, mirrors) is a generated still per car, composited over the plate. It steers with the road and never drifts. |
 | "Natural muted colour, golden hour" | Vivid midday is the default look; golden hour and night are variants | The muted prompts made every pack beige. The reference footage is saturated: cerulean sky, cobalt water, several greens. |
-| Vanishing point 42% from the top, 24–28 mm | Vanishing point about half way down (50–55%), 22–26 mm | That's where image models put it whatever the prompt says, and every composite in the bake-off had it there. Through the cockpit it shows sky, horizon and sea above the dash. A test at 35% left mostly road in the windshield. |
+| Vanishing point 42% from the top, 24–28 mm | Vanishing point 45% from the top (43–47%), 22–26 mm | Judged through the cockpit. At 54% the horizon sat 81% of the way down the windshield, and the driver seemed to sit far back. At 45% it sits 61% down, with road ahead and in the side window. At 35% the windshield was nearly all road. Models put the horizon at the centre of a still, so generate at 4:3 and crop. |
 | Stop anchor is the stop itself | Stop anchor is the road anchor with the stop already in view | Asking a model to arrive somewhere new in 8 s produces morphs. From an approach anchor, the pull-in is clean. |
+| "No vehicles, no people, no signs, no text" | A lived-in world: oncoming traffic, people, animals, houses, road furniture, signs and wear, at set rates | Empty, clean, symmetrical roads read as computer-made. Naming the clutter fixed that in one take. See [World detail](#world-detail). |
+| The cockpit is a still with bloom | The cockpit also has glass and light: the dash reflected in the windshield, dust and wiper arcs lit by the sun or headlights, grain, and a cabin light level per variant | Without them the windshield reads as a hole in the dash, and at night the cabin stayed lit like midday. |
+| Stills at about 1 megapixel | Stills at 2K (2400×1792 at 4:3) | $0.10 a still instead of $0.07, and the 16:9 crop is 2400×1350, more than 1080p |
 
 ## The idea
 
@@ -156,20 +159,67 @@ To repeat less, add cruise clips. Each extra minute of cruise footage takes abou
 These rules are what make clips join and what makes the cockpit sit on them. Every clip in a pack follows the same ones.
 
 - **Point of view:** forward-facing, from the driver's eye line in the middle of the lane, about 1.3 m up. Level horizon, no roll, no pitch.
-- **No car:** no hood, dashboard, wipers, mirrors, hands, glass or reflections. The cockpit layer provides all of it.
+- **Nothing of our own car:** no hood, dashboard, wipers, mirrors, hands, glass or reflections. The cockpit layer provides all of it. Other people's cars are welcome; see [World detail](#world-detail).
 - **Lens:** about 22–26 mm full-frame equivalent, the same for the whole pack. Wider than 0.1 asked for, because the cockpit hides the bottom of the frame.
-- **Framing:** put the road's vanishing point at the horizontal centre, **about half way down (50–55% from the top)**. Image models put it there anyway, so ask for the horizon at the centre of the frame rather than for a number. Behind the cockpit the windshield shows the plate from about 15% to 60% from the top, and the rear-view mirror covers part of the top right, so keep landmarks in that band and clear of the mirror.
+- **Framing:** put the road's vanishing point at the horizontal centre, **45% from the top (43–47%)**. Image models put the horizon at the centre whatever the prompt says, so ask for it at the centre of a 4:3 still and crop a 16:9 band with the point 45% down (`tools/footage/vp.py` does both). Behind the cockpit the windshield shows the plate from about 15% to 63% from the top, so the horizon lands about 60% of the way down the glass. The rear-view mirror covers part of the top right and the A-pillars the sides, so keep landmarks and signs in the middle of the band. A sign right beside the camera in the still ends up behind the pillar.
 - **Motion:** smooth and stabilised, a steady 50–70 km/h look. Use the same apparent speed in every moving clip. Slow down and speed up only in `stop-in`, `stop-out`, `departure` and the end of `approach`.
 - **Road:**
   - drive on the side the manifest's `drivingSide` says
   - stay in lane, with no lane changes, overtakes or turns
   - anchors sit on straight or gently curving road
-- **Traffic:** nothing directly ahead in your lane, because models morph cars. Sparse oncoming traffic is fine. Keep pedestrians away from the camera.
-- **Text:** no legible signs, brands, logos or licence plates. Models garble text, and real brands aren't ours to use. Blank signs are fine.
-- **Light and colour:** within a variant, every clip shares one time of day, weather and sun direction. The default variant is **vivid midday**: high sun, clear polarised air, saturated sky and water, several distinct greens, punchy contrast. Name the colours in every prompt, and name what you don't want ("not beige, not muted, not golden-hour"). Golden hour, "into the sun" and night are variants with their own anchors. Only `approach` and `arrival-hold` may move towards the variant's `arrivalTimeOfDay`.
+- **Traffic:** oncoming traffic stays in its own lane and passes on the driver's side. By day, nothing close ahead in our lane: a car we catch up with is a car the model has to morph. At night, taillights at a steady distance ahead are fine and look right. Walkers and cyclists going our way on our side are people we'd overtake, so put them on the far side, facing us, or stopped. [World detail](#world-detail) sets how often.
+- **Text:** signs are welcome, but quote every legible word exactly and keep it short ("SPEED LIMIT 25", "BIG SUR 26"); every other sign is too far away to read. No real brands, logos or readable licence plates. Shop names are short and made up ("BAKERY", "BOOKS"). Video models garble text as a sign comes close, which is fine for a moment.
+- **Light and colour:** within a variant, every clip shares one time of day, weather and sun direction. The default variant is **vivid midday**: high sun, saturated sky and water, several distinct greens, punchy contrast, and natural haze on the farthest ridges. Name the colours in every prompt, and name what you don't want ("not beige, not muted, not golden-hour"). The other variants have their own anchors:
+
+  | Variant | What to ask for | Cabin light |
+  | --- | --- | --- |
+  | Before sunset | Sun low, a small clean disc well above the horizon, a sun path on the water, golden raking light and long shadows, the first faint white-pink on the clouds | 0.75 |
+  | Sunset | A thin sliver of sun on the sea horizon, clouds lit pink, coral and crimson from below, the sky deepening to violet; headlights coming on | 0.45 |
+  | Night in town | Lit shop windows, lamps, string lights, parked cars, people on the sidewalks, oncoming headlights, a car's taillights well ahead; a navy sky, not black | 0.25 |
+  | Night road | Our low beams on the road, reflector posts and markers glinting, taillights ahead, oncoming headlights passing; stars and a moon | 0.25 |
+  | Rain | A low even grey sky, mist on the hills, soaked asphalt with reflections, puddles, spray from passing cars, lit windows, rich wet greens | 0.6 |
+
+  The rain stills looked the most real of the 13 October set; sunny ones look too clean next to them, so ask for haze in the distance. Only `approach` and `arrival-hold` may move towards the variant's `arrivalTimeOfDay`.
 - **Details that sell a place:** name them, and describe the moving ones as events. "A corrugated steel guardrail on wooden posts slides past on the right" and "every few seconds a wave hits the rocks and white spray explodes upward" both animate; "a scenic coast" doesn't.
 - **Never mirror footage horizontally.** It flips the driving side.
-- **Weather on the glass:** VibeTour draws windshield rain. Bake rain, fog or snow into the landscape only.
+- **Weather on the glass:** VibeTour draws windshield rain. Bake rain, fog or snow into the landscape only, and ask for no drops on the lens.
+
+## World detail
+
+Real roads are untidy and busy. Image models default to empty, clean and symmetrical, and that is what makes a frame look computer-made. Draft 0.2's first anchors asked for "no vehicles, no people, no signs" and got exactly that. Naming the clutter, the wear and the life of the place fixed it in one take.
+
+**What each stretch has.** Name some of each row in the anchor prompt. Not all of it, and not the same items every time.
+
+| Stretch | Nearly always | Often | Now and then |
+| --- | --- | --- | --- |
+| Town | Parked ordinary cars, some dusty; people walking, with dogs and children; shopfronts with short made-up names; a street-name sign; utility poles and wires; bins at the kerb | A bicycle against a post; a sandwich board; boxes by a door; a little litter in the gutter; pigeons on a roof; oncoming cars | A delivery van unloading; a bus stop; a cyclist waiting at a corner |
+| Edge of town | Utility poles carrying wires on down the road until well out of town; mailboxes; driveways | The route shield and a distance sign; a for-sale sign; a bus stop with a bench; a parked pickup | A lemonade stand; a lost-dog flyer on a pole |
+| Country | Fences; reflector posts; a mile marker | A farm or ranch every few miles: farmhouse, barn, pickup, tractor, animals. Lived in, not always farmed | A small cluster of well-spaced homes tucked into a hillside among trees; rarely one on the sea side |
+| Wild road | A guardrail; warning signs; reflector posts | Birds on posts, wires and signs; a pullout with a parked car | A vista-point sign; an Adopt-a-Highway sign |
+| Stops | Other customers, their cars and dogs; posted signs | Motorcycles; an ice chest; a propane cage; a trash can | Someone walking out with a coffee |
+
+**How often.** These are pack-level rates, set in the shot list, not per clip:
+
+| Detail | Rate |
+| --- | --- |
+| An oncoming vehicle passes, by day | 1 to 4 cruise clips in every 10. None in empty places: deserts, Iceland's interior, the Moon. |
+| Oncoming headlights, at night | Most night clips. Headlights are what night driving looks like. |
+| A vehicle ahead in our lane | Night only, at a steady distance |
+| A house, farm or cluster of homes, outside towns | Every few clips |
+| Signs | One or two per clip in the country, many in town |
+| Birds perched on wires, poles, posts and signs | Now and then |
+| The scenic overlook | One per tour. Make it the pack's main stop set: a busy pullout facing the view, with parked cars, people looking out, an interpretive sign, birds on the fence. Not a rest stop. |
+| A breakdown on the shoulder, with or without a tow truck | Once per tour at most. A cruise clip marked `"once": true`, so the player never repeats it. We pass by. |
+
+**Region kits.** Name what belongs to the place. On the California coast: camper vans and cars with surf racks among the rental cars, a few motorcycles (fewer in rain or snow), Caltrans green guide signs, the Route 1 shield, mile markers, Adopt-a-Highway signs, cypress and ice plant, pelicans and gulls. Elsewhere, pick the vehicles and activities of the region: ski racks and snow chains in the Alps, scooters and delivery bikes in Tokyo, Vespas and tractors in Tuscany.
+
+**People and animals** are still, or move slowly: looking at the view, reading a sign, chatting, walking a dog. Nobody runs, nobody poses for the camera, and nobody stands in the road.
+
+**Signs** use the region's real sign system, as in the reference sheets a creator collects. Quote the words. Put them well down the road in the anchor.
+
+**Wear.** Tar-sealed cracks, uneven resurfacing, worn paint, raised markers, sand and leaves at the edges, a crushed cup in the gutter. Vary it from shot to shot: one shared sentence about "patched squares" put the same two patches in the same place in every still, and that repetition is a tell of its own.
+
+**Keep it alive in the clip.** A clip prompt must describe the detail that keeps coming, not only what's in the start frame. In the town test the people in the anchor walked out of frame within two seconds, and the street the model invented after them was empty. Write "more people stroll on the sidewalks further down the street, and more cars come up the hill toward us".
 
 ## Delivery format
 
@@ -181,10 +231,21 @@ These rules are what make clips join and what makes the cockpit sit on them. Eve
 | Keyframes | Every 2 s, with no scene-cut keyframes, so loops and seeks are clean |
 | Audio | **None.** Strip any audio the model makes. VibeTour's own soundscape follows the car. The engine's pitch rises with speed and idles when stopped, road noise fades out at a stop, and wind drops to a breeze. Pick ambience such as ocean or city with `audio.ambience` in the manifest. |
 | Joins | Don't bake crossfades or fades into files. The player dissolves joins and loop seams. |
-| Stills | One `.webp` per anchor and stop still, at the pack's resolution. They are the posters while clips load, and the *Static scenery* and *Reduced motion* modes show them instead of video. |
+| Stills | One `.webp` per anchor and stop still, at the pack's resolution. They are the posters while clips load, and the *Static scenery* and *Reduced motion* modes show them instead of video. Generate them at 2K (see below). |
 | Steering track | Optional `.json` per clip with the camera yaw per frame, for the cockpit's wheel. The validator derives it from the footage if the pack doesn't ship it. |
 
 VS Code's bundled Chromium includes an H.264 decoder, and VP9 is built into Chromium, so `.mp4` (H.264) or `.webm` (VP9) should both play. Confirming that on Windows and Linux is on the engine list.
+
+**Resolution, from still to screen.** The still is what the video model starts from, so it sets the detail in the first seconds of every clip:
+
+| Stage | The bake-off | Recommended |
+| --- | --- | --- |
+| Anchor still | 1200×896 (Gemini's default, $0.07) | 2400×1792 (`image_size: "2K"`, $0.10), cropped to 16:9 at 2400×1350 |
+| Video model input | the still, cropped and downscaled to 1280×720 | the 2K crop, scaled to the model's output size |
+| Plate | 768p (HeyGen), 720p (Veo 3.1 Lite) | 1080p for a pack you sell: Veo 3.1 Lite at 1080p ($0.05/s), or 720p upscaled |
+| Cockpit | 1200×896 | 2K, generated once per car, for a 1080p composite |
+
+Draft at 768p or 720p while you choose shots; a retake at a higher resolution is a new generation, not an upscale of the one you approved, so decide the release resolution before the final takes.
 
 With FFmpeg (free):
 
@@ -228,20 +289,24 @@ For maintainers and car designers. Packs don't ship cockpits; VibeTour does, one
 | Asset | How |
 | --- | --- |
 | Cabin without the wheel | An image-model edit: "remove the steering wheel and the driver's hands and arms; show the column, cluster and lap behind them; keep everything else pixel for pixel" |
-| Wheel-and-hands cutout | The difference between the two stills, clipped to a disc around the hub and two bands for the forearms, then keyed and despilled like the cabin |
+| Wheel-and-hands cutout | Where the two stills differ (colour distance), kept only where it connects to the wheel, with the hub's centre filled; then keyed and despilled like the cabin. An earlier cutout clipped this to a disc and two forearm bands, which cut off the backs of the hands and let the cabin's vents show through them. |
 | Glass mask | The keyed still's transparent regions. The largest is the windshield. |
 | Mirror masks | The other transparent regions above 800 px², one per mirror |
-| Hub position | The centre of the wheel-cutout's disc |
+| Glass dirt | A procedural texture over the windshield: dust specks, a few smudges, faint streaks along two wiper sweeps and the ragged line where each wiper stops, more haze low on the glass |
+| Hub position | The centre of the wheel |
+| Cluster box | The instrument cluster, which keeps its glow when the cabin darkens |
 
 **At play time** the renderer:
 
 1. Draws the plate, **centred so its vanishing point sits over the wheel hub**. This is what keeps the car pointing down the road.
 2. Fills each mirror with the current clip run backwards (what a mirror shows is the road receding), darkened 20%. Reverse each clip on its own, never the joined session, which would put a later scene behind the car. At stops and holds, which face the stop, hold the last moving clip's road instead. Use the centre of the frame for the rear-view, the left edge for the door mirror. The side window is a window; the plate shows through it.
-3. Draws the cabin with a faint, neutral light bleed (the blurred plate at 15%, luminance only) so the dash takes the scene's light without taking its colour.
-4. Draws the wheel-and-hands cutout rotated about the hub by the clip's **steering track**: the plate's camera yaw per frame, from dense optical flow on the band around the horizon, smoothed over half a second, scaled so the 97th percentile is ±12.5°. The wheel holds through curves and comes back to centre only when the road straightens. At stops the wheel centres and a "hands resting" still crossfades in. The player holds the wheel through each dissolve.
+3. Draws the cabin at the variant's **light level** (1 at midday, down to 0.25 at night; see the variants table), with the cluster's numerals and needles kept lit, and a faint, neutral light bleed (the blurred plate at 15%, luminance only) so the dash takes the scene's light, and the sweep of passing headlights, without taking its colour.
+4. Draws the wheel-and-hands cutout, at the same light level, rotated about the hub by the clip's **steering track**: the plate's camera yaw per frame, from dense optical flow on the band around the horizon, smoothed over half a second, at a fixed gain (full lock, ±12.5°, at 0.25 px per frame of yaw at 320 px wide). A straight road keeps the wheel within a degree of centre, a gentle curve turns it a few degrees, and a hairpin turns it to full lock. Scaling each clip to its own peak instead swung the wheel to full lock on straight roads. The wheel holds through curves and comes back to centre only when the road straightens. At stops the wheel centres and a "hands resting" still crossfades in. The player holds the wheel through each dissolve.
 5. Adds a windshield bloom from the plate's near-white highlights, on the glass only, desaturated.
-6. For "into the sun" variants only, adds a **lens flare**: the sun found as one round clipping blob in the sky, a bloom, an anamorphic streak and tinted ghosts on the line through the frame centre, confined to the glass with faint ghosts allowed on the dash. Off by default: on a midday plate it fires on clouds.
-7. Adds ±1–2° of sway and a small bob keyed to speed. Nothing else.
+6. Adds the **glass**: the top of the dash reflected faintly in the bottom of the windshield (18%, strongest at the bottom edge, at the cabin's light level), and the glass dirt lit by the plate's blurred highlights. Dirt only shows where bright light is behind it: a low sun, a white sky, oncoming headlights. This is what "the sun flares off the windshield" looks like, and it moves with the light.
+7. For "into the sun" variants only, adds a **lens flare**: the sun found as one round clipping blob in the sky, a bloom, an anamorphic streak and tinted ghosts on the line through the frame centre, confined to the glass with faint ghosts allowed on the dash. Off by default: on a midday plate it fires on clouds. Lens-flare orbs *in the plate* are always a fault: paint them out of the still (`tools/footage/deorb.py`) and ask the clip prompt for "no lens flare, no orbs".
+8. Adds fine grain over the whole frame, so plate and cabin read as one camera.
+9. Adds ±1–2° of sway and a small bob keyed to speed. Nothing else.
 
 Finger re-grips and a finger tapping the wheel are future experiments. Hands are what models get wrong most, so the cutout keeps them on the wheel.
 
@@ -252,7 +317,7 @@ The PRD's Creator Studio steps (§52), with the tools to use today:
 | # | Step | Output | Tools |
 | --- | --- | --- | --- |
 | 1 | **Journey Bible**: route research, scenes, scenic stops, look, prompts | `bible.md`, `shotlist.json` | Claude, or any LLM (via OpenRouter too) |
-| 2 | **Anchors**: one master still per scene, then every other still edited from it so the look holds | `anchors/*.png` | An image model with reference input: Gemini image, gpt-image, FLUX Kontext |
+| 2 | **Anchors**: one master still per scene, then every other still edited from it so the look holds. 4:3 at 2K, cropped to 16:9 with the horizon at 45%, and judged through a cockpit before any clip is made. | `anchors/*.png` | An image model with reference input: Gemini image, gpt-image, FLUX Kontext; `vp.py`, `deorb.py`, `still.sh` |
 | 3 | **Clips**: image-to-video from each still | raw shots | A video model per slot family ([choosing one](#choosing-a-video-model)) |
 | 4 | **Review and retake** against the [checklist](#review-checklist) | approved shots | Your eyes, contact strips, and a composite with a cockpit, since that's what users see |
 | 5 | **Finish**: trim, conform, encode, strip audio, make the 720p rendition | `clips/*.mp4` | FFmpeg; optionally Topaz Video AI or Real-ESRGAN to upscale |
@@ -260,35 +325,46 @@ The PRD's Creator Studio steps (§52), with the tools to use today:
 | 7 | **Test drive** every behaviour, fast-forwarded | — | `npm run demo` with `?speed=20` and the Demo controls |
 | 8 | **Cover, ticket, preview, provenance**; publish | `.vibetour` package | An image model for the cover; HeyGen Video for the preview |
 
-Only steps 2, 3 and 5 need tools from outside VibeTour. In step 3, generation is the cost. In step 4, rejection is the time. The scripts used for the bake-off (submit and poll, steering track, masks, flare, composite) are in [`tools/footage/`](../tools/footage/README.md).
+Only steps 2, 3 and 5 need tools from outside VibeTour. In step 3, generation is the cost. In step 4, rejection is the time. The scripts used for the bake-off (submit and poll, steering track, masks, flare, composite) are in [`tools/footage/`](../tools/footage/README.md). For Claude Code there is a project skill, [`journey-footage`](../.claude/skills/journey-footage/SKILL.md), that walks through the whole workflow with these tools.
 
 ### Prompt templates
 
-Master anchor (step 2):
+Master anchor (step 2), at 4:3 and 2K:
 
 ```
-Photorealistic still from a forward-facing dashcam at the driver's eye height,
-centred in the {right|left}-hand lane of {road description} in {scene}, {region},
-on a brilliant clear early afternoon. Sun high and to the {left|right}, crisp
-polarised air, no haze. Colour is vivid and true: a deep saturated cerulean sky
-grading to pale blue at the horizon with a few bright white cumulus; {water: rich
-cobalt turning turquoise near the shore with brilliant white surf}; trees in several
-distinct greens, from dark {cypress} to bright yellow-green scrub; {rock colour};
-charcoal asphalt with crisp {yellow centre and white edge} lines. Punchy contrast,
-clean highlights, deep but detailed shadows. {Place details: a corrugated steel
-guardrail on weathered wooden posts along the cliff edge; swells crashing onto dark
-rocks with spray exploding upward.} {Driving side: Americans drive on the right: the
-camera is in the right-hand lane, so the double yellow centre line runs on the
-camera's LEFT and the white edge line on its right.} Level camera at the driver's eye
-height: the horizon and the road's vanishing point at the horizontal and vertical
-centre of the frame. 24 mm lens. No car hood, dashboard, glass or wipers. No
-vehicles, no people, no signs, no text. No lens flare. Not beige, not muted, not
-golden-hour, not faded.
+Photograph from a forward-facing dashcam at the driver's eye height, centred in the
+{right|left}-hand lane of {road description} in {scene}, {region}, on a brilliant
+clear early afternoon. Sun high and to the {left|right}. Colour is vivid and true:
+a deep saturated cerulean sky grading to pale blue at the horizon with a few bright
+white cumulus; {water: rich cobalt turning turquoise near the shore with brilliant
+white surf}; trees in several distinct greens, from dark {cypress} to bright
+yellow-green scrub; {rock colour}; charcoal asphalt. Punchy contrast, deep but
+detailed shadows, and natural haze on the farthest ridges. {Driving side: Americans
+drive on the right: the camera is in the right-hand lane, so the double yellow
+centre line runs on the camera's LEFT and the white edge line on its right.}
+{Place details: a corrugated steel guardrail on weathered wooden posts; swells
+crashing onto dark rocks with spray exploding upward.} {World detail, from the
+tables above: a brown-shingled house up a gravel driveway with a dusty pickup in
+front, a wooden mailbox, a green wheeled bin; a utility pole with sagging wires and
+two crows on the wire; a small white sign reading SPEED LIMIT 25; far down the road,
+one oncoming car in the opposite lane on the camera's left.} Any text on signs is
+short, correct and plainly printed, exactly as quoted; every other sign is too far
+away to read. No real brand names or logos, no readable licence plates. People look
+natural and candid, at rest or walking slowly, never posing, nobody running. It must
+look like a real, unretouched photograph of an ordinary day, not a render, not CGI,
+not a postcard: the road is used, with {wear: tar-sealed cracks, worn paint, raised
+reflective markers, sand and leaves at the edges}. Fine natural grain, no
+over-sharpening, no HDR halos. Level camera at the driver's eye height: the road's
+vanishing point at the horizontal and vertical centre of the frame. 24 mm lens.
+Nothing of our own car: no hood, dashboard, glass or wipers. No lens flare, no sun
+spots, no orbs. Not beige, not muted, not golden-hour, not faded.
 ```
 
-Spell out the driving side by naming where the centre line runs. "The right-hand lane" alone put the camera in the wrong lane in one anchor of three. Ask for no lens flare: without it, Gemini added faint flare orbs to the sky in a third of the stills, and the video models animate them.
+Spell out the driving side by naming where the centre line runs. "The right-hand lane" alone put the camera in the wrong lane in one anchor of three. Ask for no lens flare: without it, Gemini added faint flare orbs to the sky in a third of the stills, and the video models animate them. Even with it, one still in fifteen had orbs; paint them out with `deorb.py`.
 
-Any other still in the scene: the same prompt with the change you want ("the road curves left between granite outcrops"; "a small gas station on a gravel forecourt sits ahead-right"), plus "Match the colour, light, lens and style of the reference image exactly", with the master attached.
+Say "photograph", not "photorealistic". Change the world detail and the wear in every still, so no two look stamped from one template.
+
+Any other still in the scene: the same prompt with the change you want ("the road curves left between granite outcrops"; "a small gas station on a gravel forecourt sits ahead-right"), with the master attached, plus "Match the colour, light, palette and photographic style of the reference image exactly, but not its emptiness." When the master predates a realism pass, attach a lived-in still as a second reference: "The first reference image sets the place, colour and light; the second sets how real and lived-in the world looks." For a variant (sunset, night, rain), attach the place's still but say "Use the reference images for the kind of place and the photographic style only; the light, sky and weather are as described here." To join two variant stills, make the second from the first: the two rain stills on 13 October match because the second was made from the first.
 
 Clip (step 3, start still attached):
 
@@ -297,10 +373,16 @@ Smooth forward drive along {road description} at a steady 60 km/h, centred in th
 {right|left}-hand lane, no lane changes, no turns. {What happens: the road curves
 gently right past the guardrail.} {Events: every few seconds a wave hits the rocks
 below and white spray explodes upward and hangs in the air before falling back.}
-Keep the exact colour and light of the start frame throughout: {the palette, in the
-anchor's words}. Camera locked at the driver's eye height, no shake. No car hood,
-dashboard, glass or wipers. No vehicles, no people, no signs, no text. No audio,
-no music.
+{Traffic: the oncoming camper van in the opposite lane on our LEFT keeps to its own
+lane and passes us on the left.} {Life that keeps coming: more people stroll on the
+sidewalks further down the street; birds stay perched on the wires.} Everything that
+is parked stays parked; every building, pole, sign and tree is solid and stays
+rooted, passing only as we move; nothing fades in or out. Signs keep their exact
+text. People move slowly and naturally; nobody runs. Keep the exact colour and light
+of the start frame throughout: {the palette, in the anchor's words}. Camera locked
+at the driver's eye height, no shake; the horizon stays where it is in the start
+frame. Nothing of our own car: no hood, dashboard, glass or wipers. No lens flare,
+no orbs. No audio, no music.
 ```
 
 Add, depending on the slot:
@@ -381,7 +463,7 @@ OpenRouter reaches about 30 video models, the image models for anchors and cover
 }
 ```
 
-OpenRouter doesn't keep generated videos permanently, so download them straight away. A key carries its own spending cap, separate from the account balance.
+OpenRouter doesn't keep generated videos permanently, so download them straight away. A key carries its own spending cap, separate from the account balance, and refuses image and video requests once less than $1.00 is left under that cap, whatever the account holds.
 
 HeyGen direct ([docs](https://developers.heygen.com/docs/models/heygen-video)): `POST https://api.heygen.com/v3/models/videos` with `x-api-key`, `{"model":"heygen-video-1","mode":"image_to_video","prompt":…,"duration":12,"resolution":"768p","seed":7,"prompt_enhancement":"disabled","image":{"type":"base64","media_type":"image/jpeg","data":…}}`; poll `GET /v3/models/videos/{id}`. 1080p and 2K bill at three times the 768p rate. Turn off the wallet's auto-reload while experimenting.
 
@@ -395,7 +477,7 @@ The generated seconds from [How much to make](#how-much-to-make), with cruise an
 | Veo 3.1 Lite at $0.03 | ~$14 | ~$45 | $130–175 |
 | Seedance 2.0 Fast throughout | ~$32 | ~$110 | $320–430 |
 
-Stills cost about $0.07 each with Gemini image; a Standard pack needs 10–15. Language models and encoding cost little next to the video.
+Stills cost about $0.10 each at 2K with Gemini image ($0.07 at its default size); a Standard pack needs 10–15, plus retakes and variants. Language models and encoding cost little next to the video.
 
 Retakes are the biggest cost. Every rejected shot is paid for. A tight camera spec and good anchors save more than a cheaper model does.
 
@@ -409,9 +491,13 @@ Judge shots **through a cockpit**, not bare: the renderer's demo can composite a
 - [ ] A hold whose camera drifts or reverses
 - [ ] A ghost: a translucent object crossing the frame, or scenery that fades in over the road
 - [ ] Any part of a car, glass or reflection
-- [ ] A vehicle ahead in the lane, or cars that melt or merge
-- [ ] Legible or garbled text, logos, licence plates
-- [ ] Light or palette that doesn't match the scene's anchor: haze, a beige cast, a different sun
+- [ ] By day, a vehicle close ahead in our lane; oncoming traffic in our lane; cars that melt, merge or move while parked
+- [ ] Garbled text that stays on screen, real logos, readable licence plates
+- [ ] Lens-flare orbs in the sky
+- [ ] People running, posing for the camera, or standing in the road
+- [ ] An empty world: the life in the start frame passes and nothing replaces it
+- [ ] The same detail in the same place in shot after shot
+- [ ] Light or palette that doesn't match the scene's anchor: a beige cast, a different sun
 - [ ] Named details (the rail, the surf) that vanish mid-clip
 - [ ] Flicker, smearing, or detail boiling in foliage, water and asphalt
 - [ ] Anything unsafe or alarming: no crashes, near misses or emergencies, ever (PRD §41)
@@ -426,7 +512,7 @@ A video pack keeps everything a procedural pack has: ticket, route, variants, sc
   "joins": "dissolve",
   "format": { "width": 1920, "height": 1080, "fps": 24, "codec": "h264" },
   "renditions": { "720p": "720/" },
-  "look": { "variant": "vivid-midday", "sunInFrame": false },
+  "look": { "variant": "vivid-midday", "sunInFrame": false, "cabinLight": 1 },
   "anchors": {
     "start":        { "still": "anchors/start.webp" },
     "bigsur":       { "still": "anchors/bigsur.webp" },
@@ -441,12 +527,13 @@ A video pack keeps everything a procedural pack has: ticket, route, variants, sc
     { "id": "to-carmel",  "slot": "transition", "scene": "bigsur",    "from": "bigsur",       "to": "carmel", "file": "clips/to-carmel.mp4" },
     { "id": "gas-in",     "slot": "stop-in",    "scene": "*",         "from": "gas-approach", "to": "gas",    "file": "clips/gas-in.mp4" },
     { "id": "gas-hold",   "slot": "stop-hold",  "scene": "*",         "from": "gas",          "to": "gas",    "file": "clips/gas-hold.mp4" },
-    { "id": "gas-out",    "slot": "stop-out",   "scene": "*",         "from": "gas",          "to": "bigsur", "file": "clips/gas-out.mp4" }
+    { "id": "gas-out",    "slot": "stop-out",   "scene": "*",         "from": "gas",          "to": "bigsur", "file": "clips/gas-out.mp4" },
+    { "id": "breakdown",  "slot": "cruise",     "scene": "bigsur",    "from": "bigsur",       "once": true,   "file": "clips/breakdown.mp4" }
   ]
 }
 ```
 
-Durations come from the files. The validator would check:
+Durations come from the files. `once` marks a set-piece clip (a breakdown on the shoulder) that the player shows at most once per trip. `look.cabinLight` is the cabin's light level for the variant, from the variants table in [Camera and look](#camera-and-look). The validator would check:
 
 - every file exists, matches `format` and has no audio
 - every required slot is filled
@@ -485,14 +572,14 @@ What the marketplace (the "IDE Travel Agency", PRD §50) would ask of a submissi
 For maintainers. None of this exists yet:
 
 1. **Video renderer.** A *Video Director* that turns the existing `motion` and `journey` snapshot into a playlist:
-   - shuffled cruise clips
+   - shuffled cruise clips, with `once` clips shown at most once a trip
    - stop, checkpoint and approach sets
    - transitions when progress crosses into the next scene
    - playback rate from speed
    - one-second dissolves at every join and loop seam, early when the next boundary is far away
 
    It plays through two `<video>` elements so joins can be blended. It's chosen when `media.kind === "video"`, and the procedural renderer stays for everything else.
-2. **Cockpit layer.** A car library and a compositor that draws plate, mirrors, cabin, wheel and bloom as in [The cockpit layer](#the-cockpit-layer), with the wheel driven by each clip's steering track and held through dissolves. The library has started: [cars/](../cars/README.md) holds the first car (the still, the no-wheel edit, the wheel cutout, the masks and a `car.json` with the hub), and `tools/footage/car-build.sh` derives the assets. Still to build: the compositor in the renderer, a car picker, and a `vibetour car build` command.
+2. **Cockpit layer.** A car library and a compositor that draws plate, mirrors, cabin, wheel, bloom, glass and grain as in [The cockpit layer](#the-cockpit-layer), with the wheel driven by each clip's steering track and held through dissolves, and the cabin lit at the variant's `cabinLight`. The library has started: [cars/](../cars/README.md) holds the first car (the still, the no-wheel edit, the wheel cutout, the masks, the glass dirt and a `car.json` with the hub and cluster), and `tools/footage/car-build.sh` derives the assets. Still to build: the compositor in the renderer, a car picker, and a `vibetour car build` command.
 3. **Steering tracks.** Derive camera yaw per frame from each clip at pack-build time (`tools/footage/steer.py` is the reference), ship it as `*.steer.json`, and fall back to deriving it on first play.
 4. **Packs from disk.** Today packs are bundled at build time (`src/packs/index.ts`). Video packs need a user pack folder, `localResourceRoots` for the webview, and a static route on the companion server.
 5. **Schema and validator.** Add the `media` block to `JourneyPack`, plus the checks above in `validatePack()` and a `vibetour pack validate <dir>` command for creators.

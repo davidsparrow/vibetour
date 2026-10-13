@@ -24,12 +24,22 @@ All three share one procedural Three.js renderer and one activity/journey engine
 - **[Journey Packs](docs/journey-packs.md):** what a pack contains (route, scene graph, scenic stops, variants, provenance) and how to write one. Today's packs are procedural.
 - **[Journey Video Standard](docs/journey-video-standard.md)** (proposed, draft 0.2): how to make a video pack, so creators can build their own journeys and one day sell them. It covers:
   - the three layers: footage plates, a cockpit that steers with the road, and the instruments
+  - the world detail that makes footage look real: traffic, people, houses, signs, wear, and sunset, night and rain variants
   - the clips every pack needs, and the optional extra stops
   - Economy, Standard and Cinematic tiers
   - the tools and which model to use for which slot: OpenRouter, HeyGen, image and video models, FFmpeg
   - what each tier costs
   - what a pack must pass to be sold
 - **[Footage Study](docs/site/footage-study.html):** the October 2026 bake-off behind draft 0.2: five models, two cockpit designs, what worked and what didn't. The scripts are in [tools/footage/](tools/footage/README.md), and the first car is in [cars/](cars/README.md).
+- **[`journey-footage` skill](.claude/skills/journey-footage/SKILL.md):** the step-by-step process for Claude Code, with a [prompt kit](.claude/skills/journey-footage/prompts.md) for realistic tours. Open this repo in Claude Code and ask it to make footage for a journey.
+
+### Advanced video ideas
+
+Not in the standard yet:
+
+1. Let the people, dogs and birds move. Today they stand still or walk slowly, because models garble fast movement.
+2. Animals, creatures and funny characters for journeys to weird, faraway or planetary places.
+3. A broken-down car with the driver and family sitting at the side of the road. As we pass, they reach out for help, but we never stop. They look sad and dejected, and the kids look hungry. Maybe we add an audio chuckle from the driver. (It's a joke: anybody would stop in the real world.)
 
 ## What it does
 

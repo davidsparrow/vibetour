@@ -1,11 +1,13 @@
 """vp.py <still.png> [<out.png> [<width>x<height> [<at>]]]: find the road's vanishing point from its lane and edge lines,
 and optionally crop a 16:9 band (as wide as fits) that puts it at the horizontal centre and <at> of the way down (default
-0.52, the standard's 50-55%), scaled to the size given (default 1280x720). Prints the vanishing point and the crop, and
-writes <out>-check.png to show what it found."""
-import sys, cv2, numpy as np
+0.45, the standard's 43-47%), scaled to the size given (default 1280x720). Prints the vanishing point and the crop, and
+writes <out>-check.png to show what it found. A still with no lane lines (a stop facing the view) is taken to have its
+horizon at the centre, as the anchor prompts ask; set CENTRE=1 to assume that for any stop still, whose forecourt or
+parking lines would mislead the search."""
+import os, sys, cv2, numpy as np
 src = sys.argv[1]; out = sys.argv[2] if len(sys.argv) > 2 else None
 W, H = map(int, (sys.argv[3] if len(sys.argv) > 3 else "1280x720").split("x"))
-AT = float(sys.argv[4]) if len(sys.argv) > 4 else 0.52
+AT = float(sys.argv[4]) if len(sys.argv) > 4 else 0.45
 img = cv2.imread(src); h, w = img.shape[:2]
 # Lane lines are long, straight and bright: look for them in the lower 55% of the frame.
 y0 = int(h * 0.45)
@@ -24,9 +26,13 @@ for a in left:
         (x1, y1, _, _, m1), (x3, y3, _, _, m2) = a, b
         x = (y3 - y1 + m1 * x1 - m2 * x3) / (m1 - m2); y = y1 + m1 * (x - x1)
         if 0 <= x < w and h * 0.2 < y < h * 0.8: pts.append((x, y))
-if not pts: sys.exit(f"{src}: no vanishing point found ({len(left)} left, {len(right)} right lines)")
-vx, vy = np.median(np.array(pts), axis=0)
-print(f"{src}: vanishing point x={vx:.0f} ({vx / w:.0%}) y={vy:.0f} ({vy / h:.0%}) from {len(pts)} line pairs")
+if pts and not os.environ.get("CENTRE"):
+    vx, vy = np.median(np.array(pts), axis=0)
+    print(f"{src}: vanishing point x={vx:.0f} ({vx / w:.0%}) y={vy:.0f} ({vy / h:.0%}) from {len(pts)} line pairs")
+else:
+    vx, vy = w / 2, h / 2
+    why = "CENTRE=1" if os.environ.get("CENTRE") else f"no vanishing point found ({len(left)} left, {len(right)} right lines)"
+    print(f"{src}: {why}; assuming the centre")
 if out:
     # The tallest 16:9 band with the point AT of the way down and centred, inside the frame.
     bh = min(h, w * 9 / 16, vy / AT, (h - vy) / (1 - AT), 2 * min(vx, w - vx) * 9 / 16)

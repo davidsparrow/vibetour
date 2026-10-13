@@ -1,6 +1,6 @@
 """Derive a steering track from a forward plate: camera yaw per frame from dense optical flow.
 Writes <out>.cmd (ffmpeg sendcmd for rotate's angle) and <out>.csv (t, dx, angle_deg)."""
-import sys, cv2, numpy as np
+import os, sys, cv2, numpy as np
 src, out, max_deg = sys.argv[1], sys.argv[2], float(sys.argv[3])
 cap = cv2.VideoCapture(src); fps = cap.get(cv2.CAP_PROP_FPS) or 24
 W, H = 320, 180
@@ -22,8 +22,10 @@ k = max(1, int(fps*0.5)); dx_s = np.convolve(dx, np.ones(k)/k, mode="same")
 ema = np.zeros_like(dx_s); a = 1/(fps*0.3)
 for i in range(len(dx_s)): ema[i] = dx_s[i] if i == 0 else ema[i-1] + a*(dx_s[i]-ema[i-1])
 # scene moving left (dx<0) means the car is turning right: wheel clockwise (positive angle in ffmpeg)
-peak = np.percentile(np.abs(ema), 97) or 1.0
-ang = np.clip(-ema/peak*max_deg, -max_deg, max_deg)
+# A fixed gain, not one scaled to each clip's peak: full lock at 0.25 px/frame of yaw (at 320 px wide), so a straight road
+# keeps the wheel near centre, a gentle curve turns it a few degrees and a hairpin turns it to max_deg. LOCK overrides.
+lock = float(os.environ.get("LOCK", 0.25))
+ang = np.clip(-ema/lock*max_deg, -max_deg, max_deg)
 with open(out + ".cmd", "w") as f, open(out + ".csv", "w") as c:
     c.write("t,dx,angle\n")
     for i, (d, a_) in enumerate(zip(ema, ang)):

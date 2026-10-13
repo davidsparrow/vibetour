@@ -17,12 +17,14 @@ VibeTour can't play video packs yet, so nothing in the app reads this folder. To
 | `wheel.png` | The wheel-and-hands cutout, with alpha, that rotates about the hub | `car-build.sh` |
 | `glass-mask.png` | The windshield, white on black, for the bloom | `car-build.sh` |
 | `mirror-mask.png` | The mirror glass, white on black, filled with the road behind | `car-build.sh` |
+| `glass-dirt.png` | Dust, smudges and wiper arcs on the windshield, lit by bright light behind the glass | `car-build.sh` |
 | `car.json` | Id, name, size, hub, wheel region, mirror boxes, key settings, and the model and prompts that made the stills | By hand |
 
 In `car.json`:
 
 - `hub` is the wheel's centre in cockpit pixels. The plate's vanishing point sits over it.
-- `wheel` is the region the cutout may use: a disc of `radius` around the hub, plus two bands for the forearms, as x ranges below `forearmsBelow`.
+- `wheel.radius` is the wheel's radius about the hub. The cutout takes what differs between the two stills and connects to the wheel, so the hands and forearms come out whole.
+- `cluster` is the instrument cluster's box, `[x, y, w, h]`. It keeps its glow when the cabin darkens for night.
 - `mirrors` are the glass boxes as `[x, y, w, h]`. The door mirror (`side`) touches the frame edge, so its mask comes from its box.
 - `key` is the chroma key: colour, similarity and blend.
 - `source` records the model, the date and both prompts.
@@ -31,7 +33,7 @@ In `car.json`:
 
 1. Generate `cockpit.png` with the cockpit prompt in the standard, at 4:3. Gemini 3.1 Flash Image returns 1200×896, the size the tools expect. Name the materials and the light. Keep the camera square to the car with the wheel hub at the horizontal centre.
 2. Generate `cabin.png` as an edit of it. The prompt is in [`touring-sedan/car.json`](touring-sedan/car.json).
-3. Write `car.json`: find the hub, the wheel region and the mirror boxes in the still.
+3. Write `car.json`: find the hub, the wheel's radius, the cluster and the mirror boxes in the still.
 4. Run `tools/footage/car-build.sh cars/<id>` (it needs OpenCV; see the tools README).
 5. Composite a few plates with `CAR=cars/<id>` and look at them before you commit the car.
 
