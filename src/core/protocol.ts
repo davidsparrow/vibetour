@@ -165,7 +165,10 @@ export interface ClientPrefs {
   fps: 30 | 60;
   lowGpu: boolean;
   autoThrottle: boolean;
-  fuel: 'journey' | 'context' | 'battery';
+  /** Show a gauge for how much of the agent's context window is left. */
+  contextGauge: boolean;
+  /** Show a gauge for this computer's battery, where the browser reports one. */
+  batteryGauge: boolean;
   /** Dashboard cue for the your-turn moment on this display. */
   yourTurnCue: 'none' | 'light';
   captureIncludeProject: boolean;
@@ -183,7 +186,8 @@ export const DEFAULT_PREFS: ClientPrefs = {
   fps: 60,
   lowGpu: false,
   autoThrottle: true,
-  fuel: 'journey',
+  contextGauge: true,
+  batteryGauge: false,
   yourTurnCue: 'none',
   captureIncludeProject: false,
   audio: { enabled: false, master: 0.6, engine: 0.5, road: 0.5, wind: 0.4, weather: 0.6, ambience: 0.6, music: 0.35 },

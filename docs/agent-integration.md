@@ -74,7 +74,7 @@ curl -s -X POST "http://127.0.0.1:47477/api/agent-event" \
 - `status` is one of `working`, `tool`, `waiting`, `idle`, `done`, `error`.
 - `role` is optional: `copilot`, `nav`, `eng`, `qa`, `comms`, `ops` or `crew`.
 - Set `parentId` to show an agent as crew under another agent.
-- `context` (0–1) feeds the fuel gauge when it is set to *Agent context*.
+- `context` (0–1) is how full the agent's context window is. It feeds the Context gauge, which shows the fullest agent's window as how much is left.
 - Remove an agent with `{"type":"agent.remove","agentId":"my-agent"}`.
 - The port and token are in `~/.vibetour/companion.json`. Requests need the token (`?token=` or a Bearer header) and a loopback `Host`.
 

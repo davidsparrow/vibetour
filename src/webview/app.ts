@@ -3,6 +3,7 @@ import { mergePrefs, type Catalog, type ClientPrefs, type DisplayMode, type Host
 import { Soundscape } from './audio/soundscape';
 import { hashString, TourRenderer, type RenderState } from './renderer/TourRenderer';
 import type { Transport } from './transport';
+import { batteryStatus, type BatteryReading, type BatteryStatus } from './ui/battery';
 import { captionFor, composeCapture, downloadCanvas } from './ui/capture';
 import { Cockpit } from './ui/cockpit';
 import type { AppContext } from './ui/context';
@@ -25,6 +26,7 @@ export class App implements AppContext {
   catalog?: Catalog;
   snapshot?: TourSnapshot;
   prefs: ClientPrefs;
+  battery: BatteryStatus = { kind: 'none' };
 
   private readonly root: HTMLElement;
   private readonly sceneEl = h('div', { class: 'scene' });
@@ -409,13 +411,27 @@ export class App implements AppContext {
   }
 
   private watchBattery(): void {
-    const nav = navigator as Navigator & { getBattery?: () => Promise<{ level: number; addEventListener(t: string, cb: () => void): void }> };
+    const nav = navigator as Navigator & { getBattery?: () => Promise<BatteryReading & { addEventListener(t: string, cb: () => void): void }> };
+    if (!nav.getBattery) return this.setBattery({ kind: 'unsupported' });
     nav
-      .getBattery?.()
+      .getBattery()
       .then((b) => {
-        this.cockpit.battery = b;
+        let seen = false;
+        const read = () => {
+          const status = batteryStatus(b, seen);
+          seen ||= status.kind === 'battery';
+          this.setBattery(status);
+        };
+        for (const ev of ['levelchange', 'chargingchange', 'dischargingtimechange']) b.addEventListener(ev, read);
+        read();
       })
-      .catch(() => undefined);
+      .catch(() => this.setBattery({ kind: 'unsupported' }));
+  }
+
+  private setBattery(status: BatteryStatus): void {
+    this.battery = status;
+    if (this.snapshot) this.cockpit.update(this.snapshot);
+    if (this.overlay === 'settings') this.settings.render();
   }
 
   // ------------------------------------------------------------------ demo

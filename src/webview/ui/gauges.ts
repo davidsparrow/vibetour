@@ -80,6 +80,7 @@ export class Gauge {
   }
 
   set(value: number, readout: string, valueText?: string): void {
+    this.el.classList.remove('gauge-unknown');
     const v = Math.max(0, Math.min(1, value));
     if (Math.abs(v - this.last) > 0.004) {
       this.last = v;
@@ -91,7 +92,13 @@ export class Gauge {
     if (valueText) this.el.setAttribute('aria-valuetext', valueText);
   }
 
-  setLabel(label: string): void {
-    text(this.el.querySelector('.gauge-label')!, label);
+  /** No reading yet: an empty dial with a dash and no needle. */
+  setUnknown(valueText: string): void {
+    this.el.classList.add('gauge-unknown');
+    this.last = -1;
+    this.valueArc.style.strokeDashoffset = `${this.length}`;
+    this.el.removeAttribute('aria-valuenow');
+    this.el.setAttribute('aria-valuetext', valueText);
+    text(this.readout, '—');
   }
 }

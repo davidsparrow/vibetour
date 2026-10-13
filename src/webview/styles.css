@@ -454,6 +454,21 @@ body {
   display: flex;
   gap: 10px;
 }
+/* Context and battery can join Journey and Issues: smaller dials keep the row in the cluster. */
+.mini-gauges[data-count='3'] .gauge-small .gauge-svg {
+  width: clamp(60px, 8.2vh, 84px);
+  height: clamp(60px, 8.2vh, 84px);
+}
+.mini-gauges[data-count='4'] {
+  gap: 6px;
+}
+.mini-gauges[data-count='4'] .gauge-small .gauge-svg {
+  width: clamp(54px, 7.4vh, 76px);
+  height: clamp(54px, 7.4vh, 76px);
+}
+.mini-gauges[data-count='4'] .gauge-label {
+  letter-spacing: 0.12em;
+}
 
 .gauge {
   position: relative;
@@ -507,6 +522,12 @@ body {
 .gauge-end {
   fill: var(--ink-faint);
   font: 600 8px var(--font);
+}
+.gauge-unknown .gauge-needle {
+  opacity: 0;
+}
+.gauge-unknown .gauge-readout {
+  fill: var(--ink-faint);
 }
 .gauge-label {
   margin-top: -6px;

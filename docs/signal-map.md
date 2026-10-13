@@ -46,7 +46,7 @@ This split decides where any new setting can live.
 
 - lights, gauges, gear, stop card, mirrors and HUD
 - render settings: reduced motion, weather, frame rate, contrast
-- sound, and what the fuel gauge measures
+- sound, and which gauges show (Context, Battery)
 - which moments light which cue, such as the blue your-turn light
 
 ## Moments and what they do
@@ -107,7 +107,9 @@ The same wiring, read the other way: pick an object and see which signals reach 
 | **Gauges and gear** | | |
 | Speedometer | Your activity score: edits (bigger edits count more), saves, navigation, focus, plus outside edits. Fades with a 15 s half-life. | You're coding, Agent at work |
 | Tachometer | Agent and tool score: agent events, outside edits, commands starting, commands running, agents working. 20 s half-life. | Agent at work, Verifying |
-| Fuel | Journey progress: reads the percent while the needle drops toward E. A display setting can switch it to agent context left or laptop battery. | Every moving moment |
+| Fuel | Journey progress: reads the percent while the needle drops toward E. | Every moving moment |
+| Context | How much of the fullest agent's context window is left, from the HTTP API's `context`. Reads — until an agent reports it. On by default; Settings › Display on each screen. | Any agent signal that reports context |
+| Battery | This computer's battery. Off by default; Settings › Display on each screen. Hidden where the browser doesn't report battery (Safari, Firefox) and until a battery shows up: a desktop, or a laptop that's plugged in and full, reports no battery. | — |
 | Temperature | Errors, warnings (a fifth as much) and failed checks. | Heads-up, Build left failing |
 | Gear P · R · N · D | P when stopped. R within 60 s of a diff while coding or thinking. D while coding, agent at work, verifying or on final approach. N otherwise. | Every moment |
 | **Windshield and mirrors** | | |
@@ -149,7 +151,7 @@ What each source sends, and the moment it feeds.
 | HTTP API `waiting` | That agent waits for you | Agent needs you |
 | HTTP API `error` | That agent needs help | Agent hit a problem |
 | HTTP API `idle` / `done` | Status only | Your turn |
-| HTTP API `context` | Context-window use, for the fuel gauge's context mode | — |
+| HTTP API `context` | Context-window use, for the Context gauge | — |
 | **VS Code** | | |
 | Typing in the active editor | `editor.edit`, by you | You're coding |
 | Edits in an editor you can't see | `editor.edit`, by an agent | Agent at work |
