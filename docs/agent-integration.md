@@ -7,7 +7,7 @@ VibeTour treats AI agents as cockpit entities (PRD §15):
 - **Activity:** agent activity moves the **tachometer** and keeps the journey cruising on autopilot.
 - **Waiting for you:** when an agent needs approval or a reply, the car pulls into a **scenic stop** until you answer.
 
-VibeTour only ever receives metadata: event names, tool names, ids and sub-agent types. Prompts, tool inputs, diffs and outputs are dropped before anything is sent, and everything stays on `127.0.0.1`.
+VibeTour only ever receives metadata: event names, tool names, ids, sub-agent types and how full the context window is. Prompts, tool inputs, diffs and outputs are dropped before anything is sent, and everything stays on `127.0.0.1`.
 
 ## Claude Code
 
@@ -46,6 +46,32 @@ How hook events map onto the journey:
 | `SessionEnd` | co-pilot leaves the cockpit | — |
 
 The forwarder finds the server through `VIBETOUR_URL` and `VIBETOUR_TOKEN` when they are set. The extension sets them in its integrated terminals, so several VS Code windows each get their own agents. Otherwise, or when that server turns the event away (say, a stale token), it reads the session file `~/.vibetour/companion.json` (override the directory with `VIBETOUR_HOME`). The newest running window or CLI owns that file, and when it closes another running one takes it over within about 10 seconds. It always exits 0, prints nothing, and gives up after about a second, so it can never slow down or confuse the agent.
+
+### Context
+
+The Context gauge shows how much of Claude's context window is left. It works with the hooks above and needs no extra setup.
+
+- **From the hooks.** On `SessionStart`, `PostToolUse` and `Stop`, the forwarder reads the token counts of the last reply from the session's transcript (`transcript_path`). It sends one number: how full the window is. Nothing else is read from the transcript, and nothing else leaves your machine.
+- **Window size.** Claude Code gives current models (Claude 5, and Opus 4.7 and later) a 1M window, and older ones 200K unless you use a `[1m]` model. The transcript doesn't record the window, so the forwarder works it out from the model name. It also respects `CLAUDE_CODE_DISABLE_1M_CONTEXT`. If it guesses wrong, set `VIBETOUR_CONTEXT_WINDOW` to the window size in tokens.
+- **Limits.** The transcript format is internal to Claude Code and can change between releases. If it does, the gauge reads — rather than a wrong number. Just after a compaction it keeps its last reading until Claude's next reply.
+
+For Claude Code's own exact figure, also use the forwarder as your status line. Claude Code runs it after every reply:
+
+```json
+{
+  "statusLine": { "type": "command", "command": "node \"/home/you/.vibetour/bin/vibetour-hook.js\" --statusline" }
+}
+```
+
+It prints the model and how much context is left, for example `Opus 5.5 · 58% context left`. Claude Code allows one status line. If you already have one, put its command after `--statusline`, in quotes. The forwarder passes it the same input and prints what it prints:
+
+```json
+{
+  "statusLine": { "type": "command", "command": "node \"/home/you/.vibetour/bin/vibetour-hook.js\" --statusline \"bash ~/.claude/statusline.sh\"" }
+}
+```
+
+The status line only updates the gauge for a session the hooks have already put in the cockpit.
 
 Agents started inside the VS Code terminal (`claude`, `codex`, `aider`, `gemini`, …) are also detected through shell integration. Files the agent changes on disk count as agent activity even without hooks.
 

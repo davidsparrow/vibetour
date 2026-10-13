@@ -64,6 +64,8 @@ export type DevEventBody =
       parentId?: string;
     }
   | { type: 'agent.remove'; agentId: string }
+  /** A new context-window reading (0..1) for an agent already in the cockpit. Changes nothing else. */
+  | { type: 'agent.context'; agentId: string; context: number }
   | { type: 'fs.external'; file: FileRef }
   | { type: 'terminal.open' };
 

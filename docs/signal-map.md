@@ -108,7 +108,7 @@ The same wiring, read the other way: pick an object and see which signals reach 
 | Speedometer | Your activity score: edits (bigger edits count more), saves, navigation, focus, plus outside edits. Fades with a 15 s half-life. | You're coding, Agent at work |
 | Tachometer | Agent and tool score: agent events, outside edits, commands starting, commands running, agents working. 20 s half-life. | Agent at work, Verifying |
 | Fuel | Journey progress: reads the percent while the needle drops toward E. | Every moving moment |
-| Context | How much of the fullest agent's context window is left, from the HTTP API's `context`. Reads — until an agent reports it. On by default; Settings › Display on each screen. | Any agent signal that reports context |
+| Context | How much of the fullest agent's context window is left: from Claude Code's transcript or status line, or the HTTP API's `context`. Reads — until an agent reports it. On by default; Settings › Display on each screen. | Any agent signal that reports context |
 | Battery | This computer's battery. Off by default; Settings › Display on each screen. Hidden where the browser doesn't report battery (Safari, Firefox) and until a battery shows up: a desktop, or a laptop that's plugged in and full, reports no battery. | — |
 | Temperature | Errors, warnings (a fifth as much) and failed checks. | Heads-up, Build left failing |
 | Gear P · R · N · D | P when stopped. R within 60 s of a diff while coding or thinking. D while coding, agent at work, verifying or on final approach. N otherwise. | Every moment |
@@ -145,6 +145,8 @@ What each source sends, and the moment it feeds.
 | `PreCompact` | Claude: compacting context | Agent at work |
 | `SubagentStart`, `SubagentStop` | Ignored: `PostToolUse` retires the exact crew agent | — |
 | `SessionEnd` | Claude and its crew leave the cockpit | — |
+| Context on `SessionStart`, `PostToolUse`, `Stop` | The forwarder reads the last reply's token counts from the transcript and sends how full the window is, for the Context gauge | — |
+| Status line (`--statusline`, optional) | Claude Code's own exact context reading after each reply, for the Context gauge. Not activity: it changes nothing else. | — |
 | **Other agents** | | |
 | Codex `agent-turn-complete` | Codex: finished, "your move" | Your turn |
 | HTTP API `working` / `tool` | That agent is working | Agent at work |
