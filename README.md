@@ -61,7 +61,9 @@ All three share one procedural Three.js renderer and one activity/journey engine
   | --- | --- |
   | Speedometer | Development activity |
   | Tachometer | Agent and tool activity |
-  | Fuel | Journey, agent context or laptop battery |
+  | Fuel | Journey left |
+  | Context | How much of your agent's context window is left |
+  | Battery | Laptop battery, where the browser reports it (off by default) |
   | Temperature | Warnings and errors |
   | Check-engine light | Failing builds or tests |
   | Rear-view mirror | Recent activity and your Git timeline |
@@ -128,7 +130,11 @@ Inside the view: `T` `D` `W` switch modes, `G` destinations, `P` passport, `C` c
 | `vibetour.agents.detectExternalEdits` | Treat files changed outside the editor as agent activity |
 | `vibetour.yourTurn.pullOver`, `vibetour.yourTurn.pullOverAfterSeconds` | Pull over when an agent finishes its turn and nothing happens for a while (off by default; 30 s) |
 
-Each display also has its own **Your-turn cue** in Settings (None or a blue light).
+Each display also has its own settings for these:
+
+- the **Your-turn cue**: none, or a blue light
+- the **Context** gauge: on by default
+- the **Battery** gauge: off by default
 
 ### Companion Display (second screen)
 

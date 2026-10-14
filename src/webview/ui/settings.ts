@@ -1,6 +1,14 @@
 import type { AudioPrefs, ClientPrefs, DisplayMode } from '../../core/protocol';
+import { batteryHiddenReason } from './battery';
 import type { AppContext } from './context';
 import { clear, h } from './dom';
+
+/** The battery gauge's fixed hiding rules, plus why it's hidden on this screen right now. */
+function batteryNote(hiddenBecause: string | null): string {
+  const rules =
+    "Always hidden in Safari and Firefox, which don't report battery, and on computers without one. A laptop that's plugged in and full looks like a desktop, so the gauge appears once its battery starts to drain.";
+  return hiddenBecause ? `${rules} Hidden on this screen: ${hiddenBecause}.` : rules;
+}
 
 /** Settings: display, comfort & accessibility (PRD §24), performance (§25), sound (§14), privacy (§29). */
 export class SettingsPanel {
@@ -53,7 +61,14 @@ export class SettingsPanel {
           segmented<DisplayMode>('Mode', [['tour', 'Tour'], ['dashboard', 'Dashboard'], ['work', 'Work']], p.mode, (pr, v) => (pr.mode = v)),
           segmented<number>('Interface scale', [[0.85, 'S'], [1, 'M'], [1.15, 'L'], [1.3, 'XL']], p.uiScale, (pr, v) => (pr.uiScale = v)),
           toggleRow('High-contrast instruments', 'Solid panels, bolder gauges', p.highContrast, (pr, v) => (pr.highContrast = v)),
-          segmented<ClientPrefs['fuel']>('Fuel gauge shows', [['journey', 'Journey'], ['context', 'Agent context'], ['battery', 'Battery']], p.fuel, (pr, v) => (pr.fuel = v)),
+          toggleRow('Context gauge', "How much of your agent's context window is left", p.contextGauge, (pr, v) => (pr.contextGauge = v)),
+          h(
+            'p',
+            { class: 'small muted' },
+            "Filled by agents that report their context window (the HTTP API's context field). Until one does, it reads —. Claude Code's hooks don't report it.",
+          ),
+          toggleRow('Battery gauge', "This computer's battery", p.batteryGauge, (pr, v) => (pr.batteryGauge = v)),
+          h('p', { class: 'small muted battery-note' }, batteryNote(p.batteryGauge ? batteryHiddenReason(this.ctx.battery) : null)),
           segmented<ClientPrefs['yourTurnCue']>('Your-turn cue', [['none', 'None'], ['light', 'Blue light']], p.yourTurnCue, (pr, v) => (pr.yourTurnCue = v)),
           h(
             'p',

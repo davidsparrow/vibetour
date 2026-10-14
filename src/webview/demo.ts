@@ -77,6 +77,7 @@ export class DemoHost {
   private changes = 0;
   private staged = 0;
   private fileIndex = 0;
+  private context = 0.2;
   private procId = 0;
 
   constructor(
@@ -171,7 +172,9 @@ export class DemoHost {
       }
       case 'agent': {
         const f = this.nextFile();
-        this.ev({ type: 'agent', agentId: 'claude:demo', name: 'Claude', role: 'copilot', status: 'tool', detail: ['Using Edit', 'Using Bash', 'Using Read', 'Using Grep'][this.fileIndex % 4] });
+        // The context window fills as Claude works, then a compaction frees it up.
+        this.context = this.context >= 0.85 ? 0.3 : this.context + 0.05;
+        this.ev({ type: 'agent', agentId: 'claude:demo', name: 'Claude', role: 'copilot', status: 'tool', detail: ['Using Edit', 'Using Bash', 'Using Read', 'Using Grep'][this.fileIndex % 4], context: this.context });
         this.ev({ type: 'fs.external', file: fileRef(f, 'TypeScript') });
         this.changes = Math.min(12, this.changes + 1);
         this.gitStatus();

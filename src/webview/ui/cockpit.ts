@@ -60,8 +60,11 @@ export class Cockpit {
   private readonly sideRight = h('div', { class: 'side-mirror right', 'aria-label': 'Side mirror: background agents' });
   private readonly speedo = new Gauge({ label: 'Activity', tone: 'amber', ariaLabel: 'Speedometer: development activity' });
   private readonly tacho = new Gauge({ label: 'Agents & tools', tone: 'cyan', ariaLabel: 'Tachometer: agent and tool activity' });
-  private readonly fuel = new Gauge({ label: 'Journey', size: 'small', tone: 'green', ends: ['E', 'F'], ticks: 5, ariaLabel: 'Fuel gauge' });
+  private readonly fuel = new Gauge({ label: 'Journey', size: 'small', tone: 'green', ends: ['E', 'F'], ticks: 5, ariaLabel: 'Fuel gauge: journey left' });
+  private readonly contextGauge = new Gauge({ label: 'Context', size: 'small', tone: 'cyan', ends: ['E', 'F'], ticks: 5, ariaLabel: 'Agent context window left' });
+  private readonly batteryGauge = new Gauge({ label: 'Battery', size: 'small', tone: 'green', ends: ['E', 'F'], ticks: 5, ariaLabel: 'Battery' });
   private readonly temp = new Gauge({ label: 'Issues', size: 'small', tone: 'red', ends: ['C', 'H'], ticks: 5, ariaLabel: 'Temperature: warnings and errors' });
+  private readonly miniGauges = h('div', { class: 'mini-gauges' }, this.fuel.el, this.contextGauge.el, this.batteryGauge.el, this.temp.el);
   private readonly lights = h(
     'div',
     { class: 'lights' },
@@ -125,7 +128,7 @@ export class Cockpit {
       h(
         'div',
         { class: 'cluster cluster-right' },
-        h('div', { class: 'mini-gauges' }, this.fuel.el, this.temp.el),
+        this.miniGauges,
         this.lights,
         h('div', { class: 'gear-wrap' }, this.gear, this.gearHint),
         h('button', { class: 'glovebox', onclick: () => this.ctx.send({ type: 'openDocs' }), title: 'Glovebox: project docs (also in the command palette)' }, 'Glovebox'),
@@ -216,6 +219,9 @@ export class Cockpit {
     const rpm = a.agentActivity * 8;
     this.tacho.set(a.agentActivity, rpm.toFixed(1), `${Math.round(a.agentActivity * 100)} percent agent and tool activity`);
     this.updateFuel(snap);
+    this.updateContextGauge(snap);
+    this.updateBatteryGauge();
+    this.miniGauges.dataset.count = String([...this.miniGauges.children].filter((g) => !(g as HTMLElement).hidden).length);
     const issues = snap.ide.diagnostics.errors;
     this.temp.set(a.errorIntensity, String(issues), `${issues} errors, ${snap.ide.diagnostics.warnings} warnings`);
     const setLight = (name: string, on: boolean, title?: string) => {
@@ -250,25 +256,26 @@ export class Cockpit {
   }
 
   private updateFuel(snap: TourSnapshot): void {
-    const mode = this.ctx.prefs.fuel;
     const j = snap.journey;
-    if (mode === 'context' && snap.activity.context !== null) {
-      const left = 1 - snap.activity.context;
-      this.fuel.setLabel('Context');
-      this.fuel.set(left, `${Math.round(left * 100)}%`, `${Math.round(left * 100)} percent of the agent context window left`);
-      return;
-    }
-    if (mode === 'battery' && this.battery) {
-      this.fuel.setLabel('Battery');
-      this.fuel.set(this.battery.level, `${Math.round(this.battery.level * 100)}%`, `Battery ${Math.round(this.battery.level * 100)} percent`);
-      return;
-    }
-    this.fuel.setLabel('Journey');
     const remaining = j ? (j.scope === 'free-drive' ? 1 : 1 - j.progress) : 1;
     this.fuel.set(remaining, j && j.scope !== 'free-drive' ? `${Math.round(j.progress * 100)}%` : '∞', `Journey ${j ? Math.round(j.progress * 100) : 0} percent complete`);
   }
 
-  battery?: { level: number };
+  private updateContextGauge(snap: TourSnapshot): void {
+    this.contextGauge.el.hidden = !this.ctx.prefs.contextGauge;
+    const used = snap.activity.context;
+    if (used === null) return this.contextGauge.setUnknown('No agent has reported its context window yet');
+    const left = Math.round((1 - used) * 100);
+    this.contextGauge.set(1 - used, `${left}%`, `${left} percent of the agent context window left`);
+  }
+
+  private updateBatteryGauge(): void {
+    const b = this.ctx.battery;
+    this.batteryGauge.el.hidden = !this.ctx.prefs.batteryGauge || b.kind !== 'battery';
+    if (b.kind !== 'battery') return;
+    const pct = Math.round(b.level * 100);
+    this.batteryGauge.set(b.level, `${pct}%`, `Battery ${pct} percent${b.charging ? ', charging' : ''}`);
+  }
 
   private updateStopCard(snap: TourSnapshot, pack?: JourneyPack): void {
     const m = snap.motion;

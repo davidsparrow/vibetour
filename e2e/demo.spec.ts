@@ -189,3 +189,45 @@ test('fits a phone screen without horizontal scrolling', async ({ page }) => {
   const cardWidth = await page.locator('.card').first().evaluate((el) => el.getBoundingClientRect().width);
   expect(cardWidth).toBeLessThanOrEqual(390 - 32 + 1);
 });
+
+test('the context and battery gauges follow Settings', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(Navigator.prototype, 'getBattery', {
+      configurable: true,
+      value: () => Promise.resolve({ level: 0.42, charging: false, dischargingTime: 5400, addEventListener() {} }),
+    });
+  });
+  await page.goto('/?fresh&autopilot=0');
+  await bookFirstJourney(page);
+  const context = page.getByRole('meter', { name: 'Agent context window left' });
+  const battery = page.getByRole('meter', { name: 'Battery', exact: true });
+  await expect(context).toBeVisible();
+  await expect(context).toHaveAttribute('aria-valuetext', /No agent has reported/);
+  await expect(battery).toBeHidden();
+
+  await page.locator('.demo-panel summary').click();
+  await page.getByRole('button', { name: 'Agent edits' }).click();
+  await expect(context).toHaveAttribute('aria-valuetext', /percent of the agent context window left/);
+
+  await page.keyboard.press('s');
+  await page.getByLabel(/Battery gauge/).check();
+  await page.getByLabel(/Context gauge/).uncheck();
+  await page.getByRole('button', { name: 'Done' }).click();
+  await expect(battery).toBeVisible();
+  await expect(battery).toHaveAttribute('aria-valuetext', 'Battery 42 percent');
+  await expect(context).toBeHidden();
+});
+
+test('the battery gauge stays hidden, and says why, where the browser reports no battery', async ({ page }) => {
+  await page.addInitScript(() => {
+    delete (Navigator.prototype as { getBattery?: unknown }).getBattery;
+  });
+  await page.goto('/?fresh&autopilot=0');
+  await bookFirstJourney(page);
+  await page.keyboard.press('s');
+  await expect(page.locator('.battery-note')).toContainText('Always hidden in Safari and Firefox');
+  await page.getByLabel(/Battery gauge/).check();
+  await expect(page.locator('.battery-note')).toContainText("Hidden on this screen: this browser doesn't report battery.");
+  await page.getByRole('button', { name: 'Done' }).click();
+  await expect(page.getByRole('meter', { name: 'Battery', exact: true })).toBeHidden();
+});

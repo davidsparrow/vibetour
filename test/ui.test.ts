@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { MOMENTS, type Moment } from '../src/core/moments';
+import { DEFAULT_PREFS, mergePrefs } from '../src/core/protocol';
+import { batteryHiddenReason, batteryStatus } from '../src/webview/ui/battery';
 import { CUES, cueTable, litCues } from '../src/webview/ui/cues';
 import { formatDuration, formatElapsed } from '../src/webview/ui/dom';
 
@@ -28,5 +30,28 @@ describe('cue table', () => {
       const table = cueTable(prefs);
       for (const cue of CUES) for (const m of table[cue]) expect(MOMENTS).toContain(m);
     }
+  });
+});
+
+describe('dashboard gauges', () => {
+  it('shows the context gauge and hides the battery gauge by default', () => {
+    expect(DEFAULT_PREFS.contextGauge).toBe(true);
+    expect(DEFAULT_PREFS.batteryGauge).toBe(false);
+    expect(mergePrefs({ batteryGauge: true })).toMatchObject({ contextGauge: true, batteryGauge: true });
+  });
+
+  it('treats a full battery on mains power as no battery until one shows up', () => {
+    const mains = { level: 1, charging: true, dischargingTime: Infinity };
+    expect(batteryStatus(mains, false)).toEqual({ kind: 'none' });
+    expect(batteryStatus({ level: 0.42, charging: false, dischargingTime: 5400 }, false)).toEqual({ kind: 'battery', level: 0.42, charging: false });
+    expect(batteryStatus({ level: 0.9, charging: true, dischargingTime: Infinity }, false)).toEqual({ kind: 'battery', level: 0.9, charging: true });
+    // Once a laptop has shown its battery, plugging back in at 100% keeps the gauge.
+    expect(batteryStatus(mains, true)).toEqual({ kind: 'battery', level: 1, charging: true });
+  });
+
+  it('says why the battery gauge is hidden', () => {
+    expect(batteryHiddenReason({ kind: 'unsupported' })).toBe("this browser doesn't report battery");
+    expect(batteryHiddenReason({ kind: 'none' })).toBe('no battery found yet');
+    expect(batteryHiddenReason({ kind: 'battery', level: 0.5, charging: false })).toBeNull();
   });
 });
