@@ -3,7 +3,7 @@ import type { DevEvent, ProcessKind } from './events';
 import { JourneyEngine, SCOPES, scopeInfo, type JourneyRecord, type ScopeId } from './journey';
 import { momentsOf } from './moments';
 import { DEFAULT_MOTION_CONFIG, MotionController, type MotionConfig, type MotionReading } from './motion';
-import { findVariant, planPath, rng, variantForHour, type JourneyPack } from './packs';
+import { findVariant, freshSeed, planPath, refuelStop, rng, variantForHour, type JourneyPack, type ScenicStop } from './packs';
 import { makeStamp, passportStats, updateLibrary, type LibraryEntry, type Stamp, type TravelMemory } from './passport';
 import type { Catalog, ClientCommand, Gear, JourneySnapshot, TourSnapshot } from './protocol';
 import { WorkspaceTracker, type HistoryItem } from './workspace';
@@ -91,6 +91,8 @@ export class VibeTourSession {
   private readonly sessionStartedAt: number;
   private lastCaption = '';
   private stopName?: string;
+  /** Where the car is refuelling, while it is. */
+  private refuelAt?: string;
   private stopKey?: string;
   private lastStampId?: string;
   private streaming: boolean;
@@ -162,7 +164,7 @@ export class VibeTourSession {
 
   // -------------------------------------------------------------- commands
 
-  startJourney(packId: string, scope: ScopeId, variantId?: string, objective?: string): boolean {
+  startJourney(packId: string, scope: ScopeId, variantId?: string, objective?: string, opts: { seed?: number; refuelAt?: ScenicStop } = {}): boolean {
     const pack = this.packs.get(packId);
     if (!pack) return false;
     const now = this.now();
@@ -174,11 +176,14 @@ export class VibeTourSession {
       objective,
       project: this.opts.project,
       now,
+      seed: opts.seed,
     });
     this.parkedBy = undefined;
     this.lastStampId = undefined;
     this.tracker.lastUserInputAt = now;
-    this.motion.force('cruise', now);
+    this.refuelAt = opts.refuelAt?.name;
+    if (opts.refuelAt) this.motion.holdStop(now + (this.opts.motionConfig ?? DEFAULT_MOTION_CONFIG).refuelMs, now, 'refuel');
+    else this.motion.force('cruise', now);
     this.rememberVisit(pack);
     this.updateLibraryEntry(pack.id, (e) => {
       e.lastVisitedAt = now;
@@ -188,6 +193,20 @@ export class VibeTourSession {
     this.emitCatalog();
     this.tick();
     return true;
+  }
+
+  /**
+   * After arriving: refuel at the pack's gas station, then drive the same route again,
+   * on a different path through the scene graph where it has one.
+   */
+  refuel(): boolean {
+    const j = this.journey;
+    if (!j || (j.phase !== 'arrived' && j.phase !== 'staying')) return false;
+    const { pack, record } = j;
+    return this.startJourney(pack.id, record.scope, record.variantId, undefined, {
+      seed: freshSeed(pack, record.seed, record.path),
+      refuelAt: refuelStop(pack),
+    });
   }
 
   completeObjective(): void {
@@ -293,6 +312,9 @@ export class VibeTourSession {
         return true;
       case 'endJourney':
         this.endJourney();
+        return true;
+      case 'refuel':
+        this.refuel();
         return true;
       case 'saveMemory':
         this.saveMemory(cmd.stampId, cmd.note);
@@ -463,6 +485,7 @@ export class VibeTourSession {
       if (motion.behavior === 'pull-over') this.stopName = 'the shoulder';
       else if (motion.behavior === 'arrived') this.stopName = pack.arrival.scene;
       else if (motion.behavior === 'parked') this.stopName = undefined;
+      else if (motion.stopReason === 'refuel' && this.refuelAt) this.stopName = this.refuelAt;
       else {
         const r = rng(Math.floor(now / 1000) ^ this.journey!.record.seed);
         this.stopName = pack.scenicStops[Math.floor(r() * pack.scenicStops.length)].name;
@@ -490,6 +513,7 @@ export class VibeTourSession {
       case 'scenic-stop':
         if (motion.stopReason === 'waiting') return `Scenic stop at ${stopName} — ${a.waitingAgent ?? 'your agent'} is waiting for you`;
         if (motion.stopReason === 'your-turn') return `Scenic stop at ${stopName} — ${a.yourTurn?.agent ?? 'your agent'} finished, your turn`;
+        if (motion.stopReason === 'refuel') return `Refuelling at ${stopName} — then ${j.pack.route.from} to ${to} again`;
         return `Parked at ${stopName} — resume whenever you're ready`;
       case 'pull-over':
         return `Pulled over safely — ${a.blockedReason ?? 'something needs attention'}`;

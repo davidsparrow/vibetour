@@ -57,7 +57,7 @@ Top to bottom is the engine's priority order for the car: the first row that mat
 
 | Moment | Trigger | Car | Journey |
 | --- | --- | --- | --- |
-| **Arrived** `arrived`<br/>COMPLETE | The final approach reached 100%. | Stopped. Arrival scene. | **Passport stamped**, trip added to the library. |
+| **Arrived** `arrived`<br/>COMPLETE | The final approach reached 100%. | Stopped. Arrival scene. | **Passport stamped**, trip added to the library. *Refuel and drive again* (arrival card or command) starts the same route as a new journey, by a different way where the scene graph has one, after a 15 s stop at the pack's gas station. |
 | **Final approach** `final-approach`<br/>journey phase | You click *Arrive — objective complete*, press <kbd>A</kbd>, or run the command. | 60%. Only parking stops it, even when you're idle or an agent is waiting. | 90 s of driving to 100%. |
 | **Agent hit a problem** `agent-problem`<br/>BLOCKED | An agent reports `error` (HTTP API only; Claude Code hooks never send it). Lasts up to 10 min. | Stopped. Pulls onto the shoulder. | Paused. |
 | **Build left failing** `build-failing`<br/>BLOCKED | The last build failed, then 30 s passed with no input, no agent working and nothing verifying. | Stopped. Pulls onto the shoulder. | Paused. |
@@ -76,7 +76,7 @@ Top to bottom is the engine's priority order for the car: the first row that mat
 
 | Moment | Caption and stop card | Lights and gear | Rest of the dashboard and sound |
 | --- | --- | --- | --- |
-| **Arrived** | *"Arrived in Big Sur"*. Arrival card with the stamp. | Gear **P**. | Fuel reads 100%. Status bar: *Arrived*. Soft music. |
+| **Arrived** | *"Arrived in Big Sur"*. Arrival card with the stamp, *Refuel and drive again* and *Choose next destination*. Refuelling: *"Refuelling at a Carmel Highlands gas station — then Monterey to Big Sur again"*, with a stop card. | Gear **P**. | Fuel reads 100%. Status bar: *Arrived*. Soft music. |
 | **Final approach** | *"Final approach to Big Sur"*. Arrival scenery. | Gear **D**. | Sound follows speed. |
 | **Agent hit a problem** | *"Pulled over safely — Aider needs help"*. Stop card: *Pulled over safely*. | **Hazard** on. Gear **P**. | Rear view: *Aider hit a problem*. Radio: *Needs help*. Soft music. |
 | **Build left failing** | *"Pulled over safely — Build is failing"*. Stop card. | **Hazard** and **check engine** on. Gear **P**. | Temperature up. Rear view: *Build failed*. Strip: ⚠. |
@@ -107,13 +107,13 @@ The same wiring, read the other way: pick an object and see which signals reach 
 | **Gauges and gear** | | |
 | Speedometer | Your activity score: edits (bigger edits count more), saves, navigation, focus, plus outside edits. Fades with a 15 s half-life. | You're coding, Agent at work |
 | Tachometer | Agent and tool score: agent events, outside edits, commands starting, commands running, agents working. 20 s half-life. | Agent at work, Verifying |
-| Fuel | Journey progress: reads the percent while the needle drops toward E. | Every moving moment |
+| Fuel | Journey progress: reads the percent while the needle drops toward E. Back to F when you refuel. | Every moving moment |
 | Context | How much of the fullest agent's context window is left: from Claude Code's transcript or status line, or the HTTP API's `context`. Reads — until an agent reports it. On by default; Settings › Display on each screen. | Any agent signal that reports context |
 | Battery | This computer's battery. Off by default; Settings › Display on each screen. Hidden where the browser doesn't report battery (Safari, Firefox) and until a battery shows up: a desktop, or a laptop that's plugged in and full, reports no battery. | — |
 | Temperature | Errors, warnings (a fifth as much) and failed checks. | Heads-up, Build left failing |
 | Gear P · R · N · D | P when stopped. R within 60 s of a diff while coding or thinking. D while coding, agent at work, verifying or on final approach. N otherwise. | Every moment |
 | **Windshield and mirrors** | | |
-| Stop card | The car stopped (scenic stop, pull over) or the journey is parked. | Agent needs you, Your turn, Idle, Blocked, Parked |
+| Stop card | The car stopped (scenic stop, pull over, refuelling) or the journey is parked. | Agent needs you, Your turn, Idle, Blocked, Parked |
 | HUD | Location and caption, plus chips for the active file, the objective and a running test, build or lint. | Every moment |
 | Rear-view mirror | The last four events: saves, test/build/check results, commits, branch switches, agent needs you / finished / hit a problem, agent edits. | Most moments |
 | Side mirrors | Crew agents (each Claude Code `Task`/`Agent` call until it reports back), and any agent after the first. | Agent at work |
@@ -187,9 +187,10 @@ What each source sends, and the moment it feeds.
 | 30 s | Quiet after an agent's turn before a your-turn stop, when that's on | `vibetour.yourTurn.pullOverAfterSeconds` |
 | 15 min | A finished agent leaves; your turn ends | `AGENT_EXPIRY_MS` |
 | 4 · 2 · 1.5 s | Hold before a checkpoint, a stop, anything else | `holdMs`, `defaultHoldMs` |
+| 15 s | Refuelling before driving a route again; typing doesn't cut it short | `refuelMs` |
 | 250 ms | A new snapshot reaches every display | — |
 
-The first ten live in `DEFAULT_ACTIVITY_CONFIG` (`src/core/activity.ts`) and `DEFAULT_MOTION_CONFIG` (`src/core/motion.ts`).
+The first ten, and `refuelMs`, live in `DEFAULT_ACTIVITY_CONFIG` (`src/core/activity.ts`) and `DEFAULT_MOTION_CONFIG` (`src/core/motion.ts`).
 
 ## Your turn: the two settings
 

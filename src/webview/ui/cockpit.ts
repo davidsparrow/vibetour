@@ -298,6 +298,9 @@ export class Cockpit {
     } else if (m.stopReason === 'your-turn') {
       title = `Scenic stop · ${m.stopName ?? ''}`;
       line = `${snap.activity.yourTurnAgent ?? 'Your agent'} finished its turn. The drive resumes when you reply or get back to work.`;
+    } else if (m.stopReason === 'refuel') {
+      title = `Refuelling · ${m.stopName ?? ''}`;
+      line = `Filling up for ${pack?.route.from ?? 'the start'} to ${pack?.route.to ?? 'your destination'} again, by a different way where the road allows.`;
     } else {
       title = `Scenic stop · ${m.stopName ?? ''}`;
       line = 'Taking a breather. Start working again to continue the drive.';

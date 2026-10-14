@@ -112,6 +112,11 @@ export class ArrivalCard {
           this.ctx.send({ type: 'stay' });
           this.el.classList.remove('show');
         } }, 'Stay here'),
+        h('button', { class: 'btn', title: 'Stop for fuel, then drive the same route again by a different way', onclick: () => {
+          this.dismissed = j!.id;
+          this.ctx.send({ type: 'refuel' });
+          this.el.classList.remove('show');
+        } }, 'Refuel and drive again'),
         h('button', { class: 'btn btn-primary', onclick: () => {
           this.dismissed = j!.id;
           this.ctx.send({ type: 'endJourney' });

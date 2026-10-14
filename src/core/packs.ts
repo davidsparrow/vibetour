@@ -348,6 +348,22 @@ export function rng(seed: number): () => number {
  * Walks the scene graph from start to an arrival, choosing branches with a
  * seeded RNG so each trip can vary (PRD §40) while staying reproducible.
  */
+/** Where the car refuels before driving a route again: a gas station if the pack has one, else a rest area, else its first stop. */
+export function refuelStop(pack: JourneyPack): ScenicStop {
+  const stops = pack.scenicStops;
+  return stops.find((s) => /\b(gas|fuel|petrol|filling|charging)\b/i.test(s.name)) ?? stops.find((s) => s.kind === 'rest-area') ?? stops[0];
+}
+
+/**
+ * A seed for another trip on the same pack whose path through the scene graph differs
+ * from the last one, where the graph has another way through. Deterministic.
+ */
+export function freshSeed(pack: JourneyPack, lastSeed: number, lastPath: string[]): number {
+  const last = lastPath.join('>');
+  const seeds = Array.from({ length: 16 }, (_, k) => (lastSeed + (k + 1) * 0x9e3779b1) % 2 ** 31);
+  return seeds.find((seed) => planPath(pack, seed).join('>') !== last) ?? seeds[0];
+}
+
 export function planPath(pack: JourneyPack, seed: number): string[] {
   const rand = rng(seed);
   const { nodes, start } = pack.sceneGraph;

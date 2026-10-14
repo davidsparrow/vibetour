@@ -81,6 +81,11 @@
         "category": "VibeTour"
       },
       {
+        "command": "vibetour.refuel",
+        "title": "Refuel and Drive Again",
+        "category": "VibeTour"
+      },
+      {
         "command": "vibetour.cycleDisplayMode",
         "title": "Cycle Display Mode (Tour / Dashboard / Work)",
         "category": "VibeTour"

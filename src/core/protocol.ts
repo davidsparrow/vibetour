@@ -220,6 +220,7 @@ export type ClientCommand =
   | { type: 'resume' }
   | { type: 'stay' }
   | { type: 'endJourney' }
+  | { type: 'refuel' }
   | { type: 'saveMemory'; stampId: string; note: string }
   | { type: 'openDocs' }
   | { type: 'openFile'; path: string; line?: number }
@@ -253,6 +254,7 @@ export function isClientCommand(raw: unknown): raw is ClientCommand {
     case 'resume':
     case 'stay':
     case 'endJourney':
+    case 'refuel':
     case 'openDocs':
     case 'focusIde':
       return true;

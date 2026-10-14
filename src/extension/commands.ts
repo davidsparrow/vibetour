@@ -47,6 +47,7 @@ export function registerCommands(host: CommandHost): vscode.Disposable[] {
     reg('vibetour.park', () => withJourney(host, () => host.session.park('user'))),
     reg('vibetour.resume', () => withJourney(host, () => host.session.resume())),
     reg('vibetour.endJourney', () => endJourney(host)),
+    reg('vibetour.refuel', () => refuel(host)),
     reg('vibetour.cycleDisplayMode', () => host.cycleDisplayMode()),
     reg('vibetour.openCompanion', () => openCompanion(host)),
     reg('vibetour.copyCompanionUrl', () => copyCompanionUrl(host)),
@@ -191,6 +192,14 @@ async function confirmLeaving(host: CommandHost, action: 'End Journey' | 'Start 
 async function endJourney(host: CommandHost): Promise<void> {
   if (!host.session.activeJourney) return withJourney(host, () => undefined);
   if (await confirmLeaving(host, 'End Journey')) host.session.endJourney();
+}
+
+/** After arriving: the same route again, by a different way where the pack has one. */
+async function refuel(host: CommandHost): Promise<void> {
+  if (host.session.refuel()) return;
+  if (!host.session.activeJourney) return withJourney(host, () => undefined);
+  const to = host.session.packs.get(host.session.activeJourney.packId)?.route.to ?? 'your destination';
+  vscode.window.showInformationMessage(`You can refuel and drive again once you've arrived in ${to}.`);
 }
 
 // -------------------------------------------------------------- companion
