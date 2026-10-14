@@ -1,23 +1,38 @@
 #!/bin/bash
 # session.sh <out.mp4> <clip1> <clip2> ... : dissolve the clips (1 s), derive steering and the mirror feed, and composite
 # with a car (CAR, default cars/touring-sedan). The mirrors show each clip run backwards on its own, dissolved on the
-# same joins, so they show the stretch of road the car is on, never a later one. RAIN=<drops a second> adds windshield
+# same joins, so they show the stretch of road the car is on, never a later one; a clip named *hold* keeps the road the
+# car came in on. RAIN=<drops a second> adds windshield
 # rain and wipers (rain.py); MIRRORLIGHTS=<dark> turns the mirrors' car lights round (mirrorlights.py);
 # rain or WET=1 wets the side window and mirrors, and at night the side window shows taillights (glass.py);
 # FLARE=<strength> adds lens flare for a sun in frame (flare.py).
 T="$(cd "$(dirname "$0")" && pwd)"; V="${PYTHON:-python3}"; OUT="$1"; shift
-W="$(mktemp -d)"; n=0; ins=""
-for c in "$@"; do ins="$ins -i \"$c\""; durs+=("$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$c")"); n=$((n+1)); done
+W="$(mktemp -d)"; n=0; ins=""; mins=""; prev_clip=""
+for c in "$@"; do
+  ins="$ins -i \"$c\""; d="$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$c")"; durs+=("$d")
+  # A hold faces the stop, so its mirrors keep showing the road the car came in on: the first frame of the clip before,
+  # which is where that clip's reversed mirror feed ended.
+  case "$(basename "$c")" in
+    checkpoint*) mins="$mins -i \"$c\"" ;;   # the tunnel hold keeps driving, so its mirrors keep moving
+    *hold*) if [ -n "$prev_clip" ]; then
+              ffmpeg -v error -y -i "$prev_clip" -frames:v 1 "$W/mh$n.png"
+              ffmpeg -v error -y -loop 1 -i "$W/mh$n.png" -t "$d" -r 24 -vf "scale=1280:720,format=yuv420p" -c:v libx264 -crf 18 "$W/mh$n.mp4"
+              mins="$mins -i \"$W/mh$n.mp4\""
+            else mins="$mins -i \"$c\""; fi ;;
+    *) mins="$mins -i \"$c\"" ;;
+  esac
+  prev_clip="$c"; n=$((n+1))
+done
 # dissolve <per-clip filters> <out>: joins every clip with a 1 s fade, each clip first run through the given filters.
 dissolve() {
   local fc="" prev="v0" off=0 i=0 o
   while [ $i -lt $n ]; do fc="$fc[$i:v]$1,setpts=PTS-STARTPTS[v$i];"; i=$((i+1)); done
   i=1; while [ $i -lt $n ]; do off=$(python3 -c "print(round($off + ${durs[$((i-1))]} - 1.0, 3))"); o="x$i"; [ $i -eq $((n-1)) ] && o="out"; fc="$fc[$prev][v$i]xfade=transition=fade:duration=1:offset=$off[$o];"; prev="$o"; i=$((i+1)); done
   [ $n -eq 1 ] && fc="${fc}[v0]null[out];"
-  eval ffmpeg -v error -y $ins -filter_complex "\"${fc%;}\"" -map "[out]" -an -c:v libx264 -crf ${3:-20} -pix_fmt yuv420p "\"$2\""
+  eval ffmpeg -v error -y ${4:-$ins} -filter_complex "\"${fc%;}\"" -map "[out]" -an -c:v libx264 -crf ${3:-20} -pix_fmt yuv420p "\"$2\""
 }
 dissolve "fps=24,scale=1280:720:flags=lanczos,setsar=1,format=yuv420p" "$W/plate.mp4"
-dissolve "fps=24,scale=320:180,setsar=1,format=yuv420p,reverse" "$W/mirror.mp4" 18
+dissolve "fps=24,scale=320:180,setsar=1,format=yuv420p,reverse" "$W/mirror.mp4" 18 "$mins"
 # MIRRORLIGHTS (night about 0.35, dusk or rain 1) turns the mirrors' car lights round: taillights on cars driving away,
 # headlights on a car following us, and the rest of the mirror darkened by that factor.
 if [ -n "${MIRRORLIGHTS:-}" ]; then "$V" "$T/mirrorlights.py" "$W/mirror.mp4" "$W/mirror-lit.mp4" "$MIRRORLIGHTS" | tail -1; mv "$W/mirror-lit.mp4" "$W/mirror.mp4"; fi

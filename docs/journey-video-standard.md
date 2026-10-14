@@ -279,6 +279,8 @@ A pack may instead declare `"joins": "anchored"`: every clip starts and ends on 
 
 Either way, **hide hard changes**: tunnels, bridges, overpasses, tight bends, tree cover, fog banks and crests all cover a transition between scenes.
 
+**Make a transition by driving, not by fading.** A transition is longer than one Veo shot, so chain two: the second starts on the first's last frame, which makes that join exact. Don't give the second shot the next scene's still as its last frame. On 13 October Veo 3.1 Lite cross-faded into the landing still every time it was given a different-looking one: the Big Sur cliffs faded in over the Highlands road, a meadow appeared under the car on the way into the Little Sur valley, and a see-through second copy of a sign drifted in on the way into the tree tunnel. Instead, describe the change in the prompt and let the player's dissolve join the transition to the next scene. Even without a landing frame, Veo cross-fades when asked for a large change (out of a forest into open grassland) within 8 s, so give a big change a 12 s shot (HeyGen) or trim the clip before the fade. When a clip must land exactly on a still (a pull-in, a tunnel entry), use Seedance 2.0, which drove into its landing still cleanly in 4 of 4 shots.
+
 Loops that will play for a long time (`stop-hold`, `checkpoint-hold`, `arrival-hold`) should move only gently: waves, clouds, leaves, tunnel lights. A hold made with the same still as its first and last frame loops cleanly (seam SSIM 0.98 on both California Coast holds), and about 5% of its pixels change over the loop: surf, cloud and people shifting. That is about right for a stop. Make them 15–30 s so the repeat isn't obvious. A second hold clip helps on long stops: agents can wait 30 minutes, and a parked trip can wait for days.
 
 ## The cockpit layer
@@ -440,7 +442,7 @@ A model works for a slot if it has:
 
 | Slot family | Model | Why |
 | --- | --- | --- |
-| `cruise`, `transition`, `landmark`, `approach` | **Veo 3.1 Lite** | Full-speed, steady drives at $0.03/s. Animates named events (waves, a rail sliding past). One ghost-object morph in nine shots. |
+| `cruise`, `transition`, `landmark`, `approach` | **Veo 3.1 Lite** | Full-speed, steady drives at $0.03/s. Animates named events (waves, a rail sliding past). One ghost-object morph in nine shots. Cross-fades instead of driving when given a different scene's still as its last frame, or a big change in 8 s; see [Joins and loops](#joins-and-loops). |
 | `stop-in`, `*-hold`, `stop-out` | **Seedance 2.0 Fast** | The only model that drove into the stop; holds are still with gentle motion. About $0.09/s ($0.91 for 10 s, $1.37 for 15 s). Two full stop sets with three retakes cost $9.10. |
 | cruise plates on a budget; trailers and previews | **HeyGen Video** | $0.015/s at launch, $0.03 list, at 768p; matches the look; animates events. Can't hold a camera still, and drifts to invented lane markings in one shot of three. Longest clips (15 s). With lived-in stills and the clip block in the prompt kit, the 17 California Coast cruise plates kept traffic on the correct side, parked things parked and people walking. But 7 of them, every coast road with the sea on the right, turned the camera towards the sea after 6–8 s, until the road left the frame. All 7 retakes passed with one added sentence ("the camera is fixed to the car and always faces straight along the road ahead … never pans or turns towards the sea") and a new seed. |
 

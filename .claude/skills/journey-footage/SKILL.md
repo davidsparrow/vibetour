@@ -71,7 +71,7 @@ Show the user labelled contact sheets of the stills, bare and in the cockpit, be
 
 ## 4. Clips
 
-Pick the model per slot family from the standard (`cruise` on HeyGen or Veo 3.1 Lite, stops and holds on Seedance 2.0 Fast). Start each clip from its 16:9 crop. For a `stop-in`, also give Seedance the stop still as the last frame, so the pull-in lands where the hold starts; give a hold the stop still as both frames, so it loops. In a `stop-out`, name what is parked in front of us and say we drive round it. For a variant with the sun in frame, composite with `FLARE=0.8`.
+Pick the model per slot family from the standard (`cruise` on HeyGen or Veo 3.1 Lite, stops and holds on Seedance 2.0 Fast). Start each clip from its 16:9 crop. For a `stop-in`, also give Seedance the stop still as the last frame, so the pull-in lands where the hold starts; give a hold the stop still as both frames, so it loops. In a `stop-out`, name what is parked in front of us and say we drive round it. For a variant with the sun in frame, composite with `FLARE=0.8`. For a transition, chain two Veo shots (the second starting on the first's last frame) and give neither the next scene's still: describe the change and let the dissolve join it. Look for cross-fades at four frames a second, since a 1 fps strip can miss them, and trim before one rather than keep it.
 
 Write clip prompts from the clip block in [prompts.md](prompts.md). Every clip prompt needs these:
 
