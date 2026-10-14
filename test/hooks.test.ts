@@ -92,6 +92,49 @@ describe('AgentHookMapper', () => {
   });
 });
 
+describe('context readings', () => {
+  it('gives the co-pilot the reading its hooks carry, and the status line updates it without counting as activity', () => {
+    const { session, clock, emit } = makeSession();
+    const mapper = new AgentHookMapper();
+    const hook = (payload: Record<string, unknown>) => {
+      const events = mapper.map(sanitizeHookPayload({ session_id: SESSION, ...payload }));
+      for (const e of events) emit(e);
+      clock.advance(250);
+      return events;
+    };
+    const snap = () => session.latestSnapshot!;
+
+    hook({ hook_event_name: 'UserPromptSubmit' });
+    expect(snap().activity.context).toBeNull();
+
+    const pre = hook({ hook_event_name: 'PreToolUse', tool_name: 'Task', tool_use_id: 'toolu_1', tool_input: { subagent_type: 'Explore' }, context: 0.31 });
+    expect(pre).toMatchObject([{ role: 'copilot', context: 0.31 }, { parentId: 'claude:f00dcafe' }]);
+    expect(pre[1]).not.toHaveProperty('context');
+    hook({ hook_event_name: 'PostToolUse', tool_name: 'Task', tool_use_id: 'toolu_1', context: 0.42 });
+    expect(snap().activity.context).toBeCloseTo(0.42);
+
+    hook({ hook_event_name: 'Stop', context: 0.45 });
+    clock.advance(60_000);
+    const before = snap().activity;
+    expect(hook({ hook_event_name: 'StatusLine', context: 0.47 })).toEqual([{ type: 'agent.context', agentId: 'claude:f00dcafe', context: 0.47 }]);
+    expect(snap().activity.context).toBeCloseTo(0.47);
+    expect(snap().activity.agentActivity).toBeLessThanOrEqual(before.agentActivity);
+    expect(snap().ide.agents.find((a) => a.id === 'claude:f00dcafe')?.status).toBe('done');
+
+    // A status line without a reading, or for a session that never sent a hook, changes nothing.
+    expect(hook({ hook_event_name: 'StatusLine' })).toEqual([]);
+    expect(mapper.map(sanitizeHookPayload({ hook_event_name: 'StatusLine', session_id: 'beefbeef', context: 0.9 }))).toHaveLength(1);
+    emit({ type: 'agent.context', agentId: 'claude:beefbeef', context: 0.9 });
+    clock.advance(250);
+    expect(snap().activity.context).toBeCloseTo(0.47);
+  });
+
+  it('keeps only readings between 0 and 1', () => {
+    expect(sanitizeHookPayload({ hook_event_name: 'Stop', context: 0.5 }).context).toBe(0.5);
+    for (const context of [-0.1, 1.5, '0.5', Number.NaN, null]) expect(sanitizeHookPayload({ hook_event_name: 'Stop', context })).not.toHaveProperty('context');
+  });
+});
+
 describe('sanitizeHookPayload', () => {
   it('keeps metadata and drops prompts, tool inputs and outputs', () => {
     const clean = sanitizeHookPayload({

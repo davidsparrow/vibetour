@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -116,6 +116,69 @@ describe('bin/vibetour-hook.js', () => {
     expect(run).toMatchObject({ code: 0, stdout: '', stderr: '' });
     expect(received).toHaveLength(1);
     expect(received[0][0]).toMatchObject({ agentId: 'claude:feedface', status: 'done' });
+  });
+
+  it('adds how full the context window is, from the transcript, and nothing else from it', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'vibetour-transcript-'));
+    const transcript = (name: string, entries: unknown[]) => {
+      const file = join(dir, `${name}.jsonl`);
+      writeFileSync(file, `${entries.map((e) => JSON.stringify(e)).join('\n')}\n`);
+      return file;
+    };
+    const reply = (model: string, tokens: number, extra: Record<string, unknown> = {}) => ({
+      type: 'assistant',
+      isSidechain: false,
+      ...extra,
+      message: { model, content: [{ type: 'text', text: SECRET }], usage: { input_tokens: 2, cache_creation_input_tokens: 998, cache_read_input_tokens: tokens - 1000, output_tokens: 900 } },
+    });
+    const hook = async (event: string, file: string, env: Record<string, string> = {}) => {
+      received.length = 0;
+      const run = await runHook(home, { stdin: JSON.stringify({ hook_event_name: event, session_id: 'feedface', transcript_path: file, tool_name: 'Read' }), env });
+      expect(run).toMatchObject({ code: 0, stdout: '', stderr: '' });
+      expect(JSON.stringify(received)).not.toContain(SECRET);
+      return received[0]?.[0] as { context?: number } | undefined;
+    };
+    try {
+      // A current model has a 1M window; the sub-agent's reply after it is not the session's.
+      const opus = transcript('opus', [{ type: 'user', message: { content: SECRET } }, reply('claude-opus-5-5', 250_000), reply('claude-opus-5-5', 900_000, { isSidechain: true }), { type: 'user', message: { content: [{ type: 'tool_result', content: SECRET }] } }]);
+      expect(await hook('Stop', opus)).toEqual({ type: 'agent', agentId: 'claude:feedface', name: 'Claude', role: 'copilot', status: 'done', detail: 'Finished — your turn', context: 0.25 });
+      // Older models have 200K, unless the session has already gone past it.
+      expect((await hook('PostToolUse', transcript('sonnet', [reply('claude-sonnet-4-5-20250929', 50_000)])))?.context).toBe(0.25);
+      expect((await hook('PostToolUse', transcript('big', [reply('claude-sonnet-4-5-20250929', 300_000)])))?.context).toBe(0.3);
+      expect((await hook('PostToolUse', opus, { VIBETOUR_CONTEXT_WINDOW: '500000' }))?.context).toBe(0.5);
+      const opus150 = transcript('opus150', [reply('claude-opus-5-5', 150_000)]);
+      expect((await hook('PostToolUse', opus150))?.context).toBe(0.15);
+      expect((await hook('PostToolUse', opus150, { CLAUDE_CODE_DISABLE_1M_CONTEXT: '1' }))?.context).toBe(0.75);
+      // Just after a compaction there's no reading until the next reply.
+      const compacted = transcript('compacted', [reply('claude-opus-5-5', 900_000), { type: 'system', subtype: 'compact_boundary', compactMetadata: { trigger: 'auto' } }]);
+      expect(await hook('Stop', compacted)).not.toHaveProperty('context');
+      // Other events, a missing file and a relative path send no reading.
+      expect(await hook('PreToolUse', opus)).not.toHaveProperty('context');
+      expect(await hook('Stop', join(dir, 'missing.jsonl'))).not.toHaveProperty('context');
+      expect(await hook('Stop', 'opus.jsonl')).not.toHaveProperty('context');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("in status line mode, sends Claude Code's own reading and prints a status line", async () => {
+    const input = JSON.stringify({ session_id: 'cafebabe-1234', model: { display_name: 'Opus 5.5' }, context_window: { used_percentage: 42, context_window_size: 1_000_000 } });
+    const run = await runHook(home, { args: ['--statusline'], stdin: input });
+    expect(run).toMatchObject({ code: 0, stdout: 'Opus 5.5 · 58% context left', stderr: '' });
+    expect(received).toEqual([[{ type: 'agent.context', agentId: 'claude:cafebabe', context: 0.42 }]]);
+
+    // Wrapping the user's own status line: it gets the same input, and its output is what shows.
+    received.length = 0;
+    const echo = `"${process.execPath}" -e "process.stdin.pipe(process.stdout)"`;
+    const wrapped = await runHook(home, { args: ['--statusline', echo], stdin: input });
+    expect(wrapped).toMatchObject({ code: 0, stdout: input });
+    expect(received).toHaveLength(1);
+
+    // Before the first reply Claude Code has no reading yet.
+    received.length = 0;
+    const early = await runHook(home, { args: ['--statusline'], stdin: JSON.stringify({ session_id: 'cafebabe-1234', model: { display_name: 'Opus 5.5' }, context_window: { used_percentage: null } }) });
+    expect(early).toMatchObject({ code: 0, stdout: 'Opus 5.5' });
+    expect(received).toHaveLength(0);
   });
 
   it('exits 0 quickly and silently when VibeTour is not running', async () => {

@@ -170,7 +170,7 @@ Run `node dist/cli.js --help` for options (`--port`, `--no-open`, `--scope`, `--
 
 ### Claude Code (and other agents)
 
-VibeTour shows your agents in the cockpit. The main agent is your co-pilot on the radio, and sub-agents appear in the side mirrors as crew. When an agent waits for approval, the car pulls into a scenic stop. Run **VibeTour: Copy Claude Code Hook Configuration** and paste the result into `.claude/settings.json`, or see [docs/agent-integration.md](docs/agent-integration.md) for the hook forwarder, Codex `notify`, and the provider-neutral HTTP API.
+VibeTour shows your agents in the cockpit. The main agent is your co-pilot on the radio, and sub-agents appear in the side mirrors as crew. When an agent waits for approval, the car pulls into a scenic stop. Run **VibeTour: Copy Claude Code Hook Configuration** and paste the result into `.claude/settings.json`. The hooks also feed the Context gauge with how full Claude's context window is, and an optional status line makes it exact. See [docs/agent-integration.md](docs/agent-integration.md) for the hook forwarder, the status line, Codex `notify`, and the provider-neutral HTTP API.
 
 ## Development
 

@@ -19,6 +19,8 @@ export interface AgentHookPayload {
   type?: string;
   /** Generic forwarders may pass a provider name. */
   provider?: string;
+  /** How full the session's context window is, 0..1, worked out by the forwarder. */
+  context?: number;
 }
 
 const SUBAGENT_TOOLS = new Set(['Task', 'Agent']);
@@ -38,6 +40,7 @@ export function sanitizeHookPayload(raw: unknown): AgentHookPayload {
   out.provider = str(src.provider, 30);
   const input = src.tool_input as Record<string, unknown> | undefined;
   out.subagent_type = str(src.subagent_type ?? src.agent_type ?? input?.subagent_type, 40);
+  if (typeof src.context === 'number' && src.context >= 0 && src.context <= 1) out.context = src.context;
   for (const k of Object.keys(out) as Array<keyof AgentHookPayload>) if (out[k] === undefined) delete out[k];
   return out;
 }
@@ -61,6 +64,14 @@ export class AgentHookMapper {
   private counter = 0;
 
   map(payload: AgentHookPayload): DevEventBody[] {
+    const events = this.mapEvent(payload);
+    const ctx = payload.context;
+    if (ctx === undefined) return events;
+    // The reading belongs to the co-pilot whose session sent it, never to its crew.
+    return events.map((e) => (e.type === 'agent' && e.role === 'copilot' ? { ...e, context: ctx } : e));
+  }
+
+  private mapEvent(payload: AgentHookPayload): DevEventBody[] {
     if (payload.type === 'agent-turn-complete') {
       return [{ type: 'agent', agentId: 'codex', name: 'Codex', role: 'copilot', status: 'done', detail: 'Turn complete — your move' }];
     }
@@ -126,6 +137,9 @@ export class AgentHookMapper {
         return [{ ...base, status: 'tool', detail: 'Compacting context' }];
       case 'SessionEnd':
         return [{ type: 'agent.remove', agentId }, ...this.retireCrew(agentId)];
+      case 'StatusLine':
+        // Sent by the forwarder's --statusline mode after each reply: a reading, not activity.
+        return payload.context === undefined ? [] : [{ type: 'agent.context', agentId, context: payload.context }];
       default:
         return [];
     }

@@ -213,6 +213,11 @@ export class WorkspaceTracker {
       case 'agent.remove':
         this.agents.delete(e.agentId);
         break;
+      case 'agent.context': {
+        const a = this.agents.get(e.agentId);
+        if (a) this.agents.set(e.agentId, { ...a, context: e.context });
+        break;
+      }
       case 'fs.external':
         this.lastExternalEditAt = e.at;
         this.bump('agentEdits');
