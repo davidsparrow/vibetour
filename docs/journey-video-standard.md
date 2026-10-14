@@ -287,6 +287,8 @@ For maintainers and car designers. Packs don't ship cockpits; VibeTour does, one
 
 **Generate the cockpit square to the car.** The camera is at the driver's eye, looking straight ahead: wheel hub at the horizontal centre, windshield symmetric, an A-pillar at each edge, the rear-view mirror housing top centre-right, a sliver of the door mirror at the far left. Asking for an off-centre framing in the prompt *turns the cabin*, which points the car at the shoulder; if an off-centre crop is ever wanted, crop a wider straight-ahead still. Generate at 4:3 and crop 16:9 from the top, so the forearms run out of the bottom of the frame and the rotated wheel cutout never shows its edge.
 
+**Keep the whole wheel in view.** From the driver's eye the top of the rim should sit clearly below the windshield's bottom edge, or clearly in front of it. A rim that just touches the glass line merges with the windshield seal and looks cut off. Ask for it in the prompt ("the top of the steering wheel rim sits a little below the bottom edge of the windshield"), or move the wheel layer with `wheel.offset` in `car.json`.
+
 **Name the materials and light.** Charcoal everywhere reads as clay. Say what the dash is made of (leather with stitching, open-pore wood, brushed aluminium, gloss black, a perforated leather wheel with a metal spoke), ask for a backlit cluster with legible numerals and glowing needles, and say that daylight through the windshield lights the dash top. Every pane of glass, including the mirrors, is flat chroma green (#00FF00) so the renderer can key it.
 
 **Derived assets**, all made by script from the one still:
@@ -311,7 +313,9 @@ For maintainers and car designers. Packs don't ship cockpits; VibeTour does, one
 5. Adds a windshield bloom from the plate's near-white highlights, on the glass only, desaturated.
 6. Adds the **glass**: the top of the dash reflected faintly in the bottom of the windshield (18%, strongest at the bottom edge, at the cabin's light level), and the glass dirt lit by the plate's blurred highlights. Dirt only shows where bright light is behind it: a low sun, a white sky, oncoming headlights. This is what "the sun flares off the windshield" looks like, and it moves with the light.
 7. For "into the sun" variants only, adds a **lens flare**: the sun found as one round clipping blob in the sky, a bloom, an anamorphic streak and tinted ghosts on the line through the frame centre, confined to the glass with faint ghosts allowed on the dash. Off by default: on a midday plate it fires on clouds. Lens-flare orbs *in the plate* are always a fault: paint them out of the still (`tools/footage/deorb.py`) and ask the clip prompt for "no lens flare, no orbs".
-8. In rain, draws **rain on the windshield**, under the cockpit: drops land on the glass at a steady rate (about 900 a second in steady rain), each a small lens that shows the scene behind it blurred and upside down, with a dark rim and a highlight; big drops run down the glass and leave trails; a faint wet film builds up between wipes. The **wipers** sweep from their pivots every 1.6 s and clear every drop in their path, drawn as dark blades that smear into a translucent band while they move, as a camera shutter sees them. Steering comes from the dry plate, since the blades would read as camera yaw. `tools/footage/rain.py` is the reference.
+8. In rain, or on a wet road, wets **the other glass** too, after the cockpit (`tools/footage/glass.py`): drops on the side window that the wind pushes back and up out of view, a band of beads along its front and top edges where water blown off the windshield streams round the A-pillar, fine drops on the door mirror that collect along its bottom rim, and soft out-of-focus drops in the rear-view mirror, which shows the wet rear window. Wet glass softens the view through it a little.
+   At night, a lamp seen through the side window is drawn as a small red taillight and its glare is darkened: the side window shows the far left of the forward plate, which is still ahead of the car, so a car level with the door mirror still showed its headlights there.
+   In rain, draws **rain on the windshield**, under the cockpit: drops land on the glass at a steady rate (about 900 a second in steady rain), each a small lens that shows the scene behind it blurred and upside down, with a dark rim and a highlight; big drops run down the glass and leave trails; a faint wet film builds up between wipes. The **wipers** sweep from their pivots every 1.6 s and clear every drop in their path, drawn as dark blades that smear into a translucent band while they move, as a camera shutter sees them. Steering comes from the dry plate, since the blades would read as camera yaw. `tools/footage/rain.py` is the reference.
 9. Adds fine grain over the whole frame, so plate and cabin read as one camera.
 10. Adds ±1–2° of sway and a small bob keyed to speed. Nothing else.
 
@@ -584,7 +588,7 @@ For maintainers. None of this exists yet:
 
 1. **Video renderer.** A *Video Director* that turns the existing `motion` and `journey` snapshot into a playlist:
    - shuffled cruise clips, with `once` clips shown at most once a trip
-   - windshield rain and wipers in rain variants, from the car's wipers
+   - windshield rain and wipers in rain variants, from the car's wipers, and wet side glass and mirrors
    - mirror lights turned round at night, at dusk and in rain
    - stop, checkpoint and approach sets
    - transitions when progress crosses into the next scene

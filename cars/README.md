@@ -17,13 +17,14 @@ VibeTour can't play video packs yet, so nothing in the app reads this folder. To
 | `wheel.png` | The wheel-and-hands cutout, with alpha, that rotates about the hub | `car-build.sh` |
 | `glass-mask.png` | The windshield, white on black, for the bloom | `car-build.sh` |
 | `mirror-mask.png` | The mirror glass, white on black, filled with the road behind | `car-build.sh` |
+| `side-window-mask.png` | The driver's side window, white on black: the keyed glass that is neither the windshield nor a mirror | `car-build.sh` |
 | `glass-dirt.png` | Dust, smudges and wiper arcs on the windshield, lit by bright light behind the glass | `car-build.sh` |
 | `car.json` | Id, name, size, hub, wheel region, mirror boxes, key settings, and the model and prompts that made the stills | By hand |
 
 In `car.json`:
 
 - `hub` is the wheel's centre in cockpit pixels. The plate's vanishing point sits over it.
-- `wheel.radius` is the wheel's radius about the hub. The cutout takes what differs between the two stills and connects to the wheel, so the hands and forearms come out whole.
+- `wheel.radius` is the wheel's radius about the hub. `wheel.offset` moves the wheel and hands down (or up, if negative) by that many pixels in the composite: the touring sedan's rim touched the windshield's bottom seal in the still, so its wheel sits 16 px lower and shows whole below the dash line. The cutout takes what differs between the two stills and connects to the wheel, so the hands and forearms come out whole.
 - `cluster` is the instrument cluster's box, `[x, y, w, h]`. It keeps its glow when the cabin darkens for night.
 - `wipers` are the two wiper pivots below the glass, in cockpit pixels, the arms' `reach`, the `park` angle above horizontal and the `sweep`, both in degrees. The glass dirt and the rain layer use them.
 - `mirrors` are the glass boxes as `[x, y, w, h]`. The door mirror (`side`) touches the frame edge, so its mask comes from its box.

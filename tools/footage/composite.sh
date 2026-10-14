@@ -10,7 +10,8 @@
 # instrument cluster (car.json "cluster") keeps its glow as the cabin darkens.
 C="${CAR:-$(cd "$(dirname "$0")/../.." && pwd)/cars/touring-sedan}"
 PLATE="$1"; FEED="$2"; CMD="$3"; OUT="$4"; FLARE="${5:-}"
-eval "$(python3 "$(dirname "$0")/car.py" "$C")"   # HX HY (wheel hub), REAR SIDE (mirror glass boxes x:y:w:h), KEY
+eval "$(python3 "$(dirname "$0")/car.py" "$C")"   # HX HY (wheel hub), WY (wheel moved down, px), REAR SIDE (mirror boxes x:y:w:h), KEY
+WY="${WHEEL_OFFSET:-$WY}"
 BLEED="${BLEED:-0.15}"; BLOOM="${BLOOM:-0.6}"; REFLECT="${REFLECT:-0.18}"; GLARE="${GLARE:-0.8}"; GRAIN="${GRAIN:-5}"; CABIN="${CABIN:-1}"
 IFS=: read RX RY RW RH <<< "$REAR"; IFS=: read SX SY SW SH <<< "$SIDE"
 T=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$PLATE")
@@ -47,7 +48,7 @@ color=c=black:s=1200x896:d=1,format=rgb24[kbg];[cabk]colorchannelmixer=rr=${CABI
 [p1][cab]overlay=format=auto:eof_action=endall[c0];
 ${GLOW_FC}
 [3:v]format=rgba,colorchannelmixer=rr=${CABIN}:gg=${CABIN}:bb=${CABIN},pad=2400:1800:$((1200-HX)):$((900-HY)):color=0x00000000,sendcmd=f='${CMD}',rotate@wheel=a=0:c=0x00000000,crop=1200:896:$((1200-HX)):$((900-HY))[wl];
-[c1][wl]overlay=format=auto:eof_action=endall,format=rgb24[comp];
+[c1][wl]overlay=0:${WY}:format=auto:eof_action=endall,format=rgb24[comp];
 [caba]format=rgba,alphaextract,format=gray,format=rgb24[mask];
 [pb]scale=120:90,gblur=sigma=5,scale=1200:896:flags=bicubic[blur];
 [blur][mask]blend=all_mode=multiply,format=rgb24[bm];

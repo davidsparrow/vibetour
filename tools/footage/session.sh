@@ -2,7 +2,8 @@
 # session.sh <out.mp4> <clip1> <clip2> ... : dissolve the clips (1 s), derive steering and the mirror feed, and composite
 # with a car (CAR, default cars/touring-sedan). The mirrors show each clip run backwards on its own, dissolved on the
 # same joins, so they show the stretch of road the car is on, never a later one. RAIN=<drops a second> adds windshield
-# rain and wipers (rain.py); MIRRORLIGHTS=<dark> turns the mirrors' car lights round (mirrorlights.py).
+# rain and wipers (rain.py); MIRRORLIGHTS=<dark> turns the mirrors' car lights round (mirrorlights.py);
+# rain or WET=1 wets the side window and mirrors, and at night the side window shows taillights (glass.py).
 T="$(cd "$(dirname "$0")" && pwd)"; V="${PYTHON:-python3}"; OUT="$1"; shift
 W="$(mktemp -d)"; n=0; ins=""
 for c in "$@"; do ins="$ins -i \"$c\""; durs+=("$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$c")"); n=$((n+1)); done
@@ -24,5 +25,10 @@ if [ -n "${MIRRORLIGHTS:-}" ]; then "$V" "$T/mirrorlights.py" "$W/mirror.mp4" "$
 # since the wipers would read as camera yaw.
 P="$W/plate.mp4"; [ -n "${RAIN:-}" ] && "$V" "$T/rain.py" "$W/plate.mp4" "$W/wet.mp4" "${CAR:-}" | tail -1 && P="$W/wet.mp4"
 "$T/composite.sh" "$P" "$W/mirror.mp4" "$W/steer.cmd" "$OUT"
+# The side glass: wet whenever it rains (or WET=1 for a wet road), and at night (MIRRORLIGHTS below 1) any lamp in the
+# side window shown as a taillight, since a car beside us has passed.
+WETG="${WET:-}"; [ -n "${RAIN:-}" ] && WETG=1
+NIGHTG=""; [ -n "${MIRRORLIGHTS:-}" ] && python3 -c "import sys; sys.exit(0 if float('$MIRRORLIGHTS') < 1 else 1)" && NIGHTG=1
+if [ -n "$WETG$NIGHTG" ]; then WET="$WETG" NIGHT="$NIGHTG" "$V" "$T/glass.py" "$OUT" "$W/glass.mp4" "${CAR:-}" | tail -1 && mv "$W/glass.mp4" "$OUT"; fi
 cp "$W/plate.mp4" "${OUT%.mp4}-plate.mp4"; rm -rf "$W"
 echo "$OUT: $(ffprobe -v error -show_entries format=duration -of csv=p=0 "$OUT") s"
