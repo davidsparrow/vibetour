@@ -3,7 +3,8 @@
 # with a car (CAR, default cars/touring-sedan). The mirrors show each clip run backwards on its own, dissolved on the
 # same joins, so they show the stretch of road the car is on, never a later one. RAIN=<drops a second> adds windshield
 # rain and wipers (rain.py); MIRRORLIGHTS=<dark> turns the mirrors' car lights round (mirrorlights.py);
-# rain or WET=1 wets the side window and mirrors, and at night the side window shows taillights (glass.py).
+# rain or WET=1 wets the side window and mirrors, and at night the side window shows taillights (glass.py);
+# FLARE=<strength> adds lens flare for a sun in frame (flare.py).
 T="$(cd "$(dirname "$0")" && pwd)"; V="${PYTHON:-python3}"; OUT="$1"; shift
 W="$(mktemp -d)"; n=0; ins=""
 for c in "$@"; do ins="$ins -i \"$c\""; durs+=("$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$c")"); n=$((n+1)); done
@@ -24,7 +25,9 @@ if [ -n "${MIRRORLIGHTS:-}" ]; then "$V" "$T/mirrorlights.py" "$W/mirror.mp4" "$
 # RAIN (drops a second, e.g. 900) puts rain on the windshield and turns the wipers on. Steering comes from the dry plate,
 # since the wipers would read as camera yaw.
 P="$W/plate.mp4"; [ -n "${RAIN:-}" ] && "$V" "$T/rain.py" "$W/plate.mp4" "$W/wet.mp4" "${CAR:-}" | tail -1 && P="$W/wet.mp4"
-"$T/composite.sh" "$P" "$W/mirror.mp4" "$W/steer.cmd" "$OUT"
+# FLARE=<strength> (about 0.8) adds the lens-flare layer, for variants with the sun in frame only.
+FL=""; [ -n "${FLARE:-}" ] && "$V" "$T/flare.py" "$W/plate.mp4" "$W/flare.mp4" "$FLARE" | tail -1 && FL="$W/flare.mp4"
+"$T/composite.sh" "$P" "$W/mirror.mp4" "$W/steer.cmd" "$OUT" $FL
 # The side glass: wet whenever it rains (or WET=1 for a wet road), and at night (MIRRORLIGHTS below 1) any lamp in the
 # side window shown as a taillight, since a car beside us has passed.
 WETG="${WET:-}"; [ -n "${RAIN:-}" ] && WETG=1

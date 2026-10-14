@@ -117,7 +117,7 @@ Each scene has one **master anchor**. Make it first, then make the scene's other
 
 One **checkpoint set** is recommended for tests. Everything beyond that is optional. Each optional slot only adds variety, and every one has a fallback.
 
-**The stop set needs two stills, not one.** The `stop-in` starts from an *approach* still: the road anchor, edited so the stop is already in view ahead-right (the forecourt, the overlook, the café). The hold starts from the *stop* still, facing the view. A model asked to drive from open road into a place it can't see will morph the scenery; from the approach still it slows and pulls in.
+**The stop set needs two stills, not one.** The `stop-in` starts from an *approach* still: the road anchor, edited so the stop is already in view ahead-right (the forecourt, the overlook, the café). The hold starts from the *stop* still, facing the view. A model asked to drive from open road into a place it can't see will morph the scenery; from the approach still it slows and pulls in. Give the `stop-in` the stop still as its **last frame** too (Seedance 2.0 takes both), so it lands exactly where the hold starts. On 13 October, without it, the overlook pull-in ended facing the sea with the parked cars gone, and the gas-station pull-in stopped nose-up to a pickup; with it, both landed on their holds first time. For the `stop-out`, name what is parked in front of the car and say the car drives round it, or the model drives that car out ahead of you.
 
 ## How much to make
 
@@ -279,7 +279,7 @@ A pack may instead declare `"joins": "anchored"`: every clip starts and ends on 
 
 Either way, **hide hard changes**: tunnels, bridges, overpasses, tight bends, tree cover, fog banks and crests all cover a transition between scenes.
 
-Loops that will play for a long time (`stop-hold`, `checkpoint-hold`, `arrival-hold`) should move only gently: waves, clouds, leaves, tunnel lights. Make them 15–30 s so the repeat isn't obvious. A second hold clip helps on long stops: agents can wait 30 minutes, and a parked trip can wait for days.
+Loops that will play for a long time (`stop-hold`, `checkpoint-hold`, `arrival-hold`) should move only gently: waves, clouds, leaves, tunnel lights. A hold made with the same still as its first and last frame loops cleanly (seam SSIM 0.98 on both California Coast holds), and about 5% of its pixels change over the loop: surf, cloud and people shifting. That is about right for a stop. Make them 15–30 s so the repeat isn't obvious. A second hold clip helps on long stops: agents can wait 30 minutes, and a parked trip can wait for days.
 
 ## The cockpit layer
 
@@ -441,7 +441,7 @@ A model works for a slot if it has:
 | Slot family | Model | Why |
 | --- | --- | --- |
 | `cruise`, `transition`, `landmark`, `approach` | **Veo 3.1 Lite** | Full-speed, steady drives at $0.03/s. Animates named events (waves, a rail sliding past). One ghost-object morph in nine shots. |
-| `stop-in`, `*-hold`, `stop-out` | **Seedance 2.0 Fast** | The only model that drove into the stop; holds are still with gentle motion. About $0.09/s. |
+| `stop-in`, `*-hold`, `stop-out` | **Seedance 2.0 Fast** | The only model that drove into the stop; holds are still with gentle motion. About $0.09/s ($0.91 for 10 s, $1.37 for 15 s). Two full stop sets with three retakes cost $9.10. |
 | cruise plates on a budget; trailers and previews | **HeyGen Video** | $0.015/s at launch, $0.03 list, at 768p; matches the look; animates events. Can't hold a camera still, and drifts to invented lane markings in one shot of three. Longest clips (15 s). With lived-in stills and the clip block in the prompt kit, the 17 California Coast cruise plates kept traffic on the correct side, parked things parked and people walking. But 7 of them, every coast road with the sea on the right, turned the camera towards the sea after 6–8 s, until the road left the frame. All 7 retakes passed with one added sentence ("the camera is fixed to the car and always faces straight along the road ahead … never pans or turns towards the sea") and a new seed. |
 
 On OpenRouter unless noted, first-frame input, audio off:

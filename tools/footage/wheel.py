@@ -41,13 +41,19 @@ for i in range(1, n):
         m[lab == i] = 1
 # The top of the rim can touch the windshield's bottom seal in the still, and a sliver of the seal comes along as a
 # flat top on the rim. Fit an ellipse to the rim's outer edge away from the top centre and drop what lies outside it
-# above the hub, so the rim stays round when the wheel is moved up in front of the glass (car.json "wheel.offset").
+# near the top of the rim, so the rim stays round when the wheel is moved up in front of the glass (car.json "wheel.offset").
 xs = [x for x in range(int(hx - r * 0.85), int(hx + r * 0.85)) if abs(x - hx) > r * 0.3 and m[:hy, x].any()]
 edge = np.array([(x, int(np.argmax(m[:hy, x]))) for x in xs], np.float32)
 if len(edge) >= 20:
     (ex, ey), (ea, eb), ang = cv2.fitEllipse(edge)
     inside = np.zeros_like(m); cv2.ellipse(inside, ((ex, ey), (ea + 2, eb + 2), ang), 1, -1)
-    m[:hy] &= inside[:hy]
+    top = int(hy - r * 0.6)                  # the top of the rim only: the hands at 9 and 3 reach outside the rim
+    m[:top] &= inside[:top]
+# Guard: skin that differs between the two stills, near the wheel, belongs to the hands and arms. If much of it is
+# missing from the matte the cabin's vents and dash show through the hands, which happened twice while this was tuned.
+near = (xx - hx) ** 2 + (yy - hy) ** 2 < (r * 1.8) ** 2
+lost = int(((d > 12) & skin & near & (m == 0)).sum())
+if lost > 800: print(f"WARNING: {lost} px of hand or arm are missing from the wheel matte", file=sys.stderr)
 alpha = cv2.GaussianBlur(m.astype(np.float32), (0, 0), 1.0)
 cv2.imwrite(out, np.clip(alpha * 255, 0, 255).astype(np.uint8))
 print(f"{out}: {m.mean():.1%} of the frame")
