@@ -8,7 +8,7 @@ every drop in their path. Drops and wipers are placed in cockpit coordinates and
 composite.sh maps the plate into the cockpit (scale 1.125, offset 120,119), so they sit on the car's glass."""
 import json, os, sys, cv2, numpy as np
 src, out = sys.argv[1], sys.argv[2]
-car = sys.argv[3] if len(sys.argv) > 3 and sys.argv[3] else os.environ.get("CAR", os.path.join(os.path.dirname(__file__), "../../cars/touring-sedan"))
+car = sys.argv[3] if len(sys.argv) > 3 and sys.argv[3] else os.environ.get("CAR", os.path.join(os.path.dirname(__file__), "../../cars/grand-tourer"))
 RATE = float(os.environ.get("RAIN", 900)); WIPE = float(os.environ.get("WIPE", 1.6))
 cfg = json.load(open(os.path.join(car, "car.json")))
 wip = cfg["wipers"]; S, OX, OY = 1.125, 120, 119            # composite.sh: plate scaled 1.125, cropped at (120, 119)
