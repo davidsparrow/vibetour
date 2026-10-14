@@ -14,7 +14,7 @@ there; a car beside us has passed, and what we'd see is its back.
 Works on the composite's 1280x720 frame: composite.sh crops the 1200x896 cockpit to 1200x675 and scales by 16/15."""
 import json, os, sys, cv2, numpy as np
 src, out = sys.argv[1], sys.argv[2]
-car = sys.argv[3] if len(sys.argv) > 3 and sys.argv[3] else os.environ.get("CAR", os.path.join(os.path.dirname(__file__), "../../cars/touring-sedan"))
+car = sys.argv[3] if len(sys.argv) > 3 and sys.argv[3] else os.environ.get("CAR", os.path.join(os.path.dirname(__file__), "../../cars/grand-tourer"))
 WET, NIGHT = os.environ.get("WET") == "1", os.environ.get("NIGHT") == "1"
 cfg = json.load(open(os.path.join(car, "car.json")))
 W, H, K = 1280, 720, 16 / 15

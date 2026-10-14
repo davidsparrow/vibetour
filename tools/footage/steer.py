@@ -40,6 +40,6 @@ with open(out + ".cmd", "w") as f, open(out + ".csv", "w") as c:
     c.write("t,dx,angle\n")
     for i, (d, a_) in enumerate(zip(ema, ang)):
         t = (i+1)/fps
-        f.write(f"{t:.4f} rotate a {a_*np.pi/180:.5f};\n")
+        f.write(f"{t:.4f} rotate@wheel a {a_*np.pi/180:.5f};\n")
         c.write(f"{t:.3f},{d:.3f},{a_:.2f}\n")
 print(f"frames {len(dx)} fps {fps:.0f} dx range {dx.min():.2f}..{dx.max():.2f} px  angle range {ang.min():.1f}..{ang.max():.1f} deg")
