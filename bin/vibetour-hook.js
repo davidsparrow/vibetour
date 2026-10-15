@@ -6,9 +6,9 @@
  *
  * Claude Code runs this as a hook command with the hook JSON on stdin; Codex's
  * `notify` passes the JSON as the last argument (use `--provider codex`). Only
- * metadata — event, session, tool and sub-agent names — is forwarded to the
- * local VibeTour Companion server. Prompts, tool inputs and outputs never
- * leave this process.
+ * metadata — event, session, tool and sub-agent names, and the kind of API
+ * error that ended a turn — is forwarded to the local VibeTour Companion
+ * server. Prompts, tool inputs and outputs never leave this process.
  *
  * It always exits 0 and never prints anything: hook output can be injected
  * into the agent's context, and a failing hook must not disturb the agent.
@@ -109,6 +109,8 @@ function sanitize(raw, provider) {
   const subagent = typeof raw.subagent_type === 'string' ? raw.subagent_type : input.subagent_type;
   if (typeof subagent === 'string') out.subagent_type = subagent.slice(0, 60);
   if (typeof provider === 'string' && provider) out.provider = provider.slice(0, 30);
+  // StopFailure: the error's kind (rate_limit, overloaded…), never its details or message.
+  if (typeof raw.error === 'string' && /^[a-z][a-z_]{0,39}$/.test(raw.error)) out.error = raw.error;
   return out;
 }
 

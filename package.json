@@ -121,6 +121,11 @@
         "category": "VibeTour"
       },
       {
+        "command": "vibetour.connectGitHub",
+        "title": "Show Pull Requests",
+        "category": "VibeTour"
+      },
+      {
         "command": "vibetour.copyClaudeHooks",
         "title": "Copy Claude Code Hook Configuration",
         "category": "VibeTour"
@@ -190,6 +195,11 @@
           "minimum": 5,
           "maximum": 3600,
           "markdownDescription": "Quiet seconds after an agent finishes its turn before the car pulls over, with `#vibetour.yourTurn.pullOver#` on. Typing restarts the count; replying to the agent drives on."
+        },
+        "vibetour.pullRequests.enabled": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Show this repository's open pull requests in the PRs tab, with alerts for yours that need you. Uses your GitHub sign-in in VS Code and asks GitHub for PR numbers, titles, branches and CI, review and merge status (no code). Turned on by **VibeTour: Show Pull Requests**."
         }
       }
     }

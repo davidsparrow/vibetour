@@ -76,6 +76,7 @@ export class GitPoller {
       staged: status.staged,
       ahead: status.ahead,
       behind: status.behind,
+      files: status.files,
     };
     const key = JSON.stringify(state);
     if (key !== this.lastState) {
@@ -96,6 +97,20 @@ export class GitPoller {
       if (!this.stopped) this.emit({ type: 'git.commit', message: commitSubject(subject) });
     }
   }
+}
+
+/** The `origin` remote's URL, if there is one. */
+export async function originUrl(dir: string): Promise<string | undefined> {
+  return (await git(dir, ['remote', 'get-url', 'origin']).catch(() => '')).trim() || undefined;
+}
+
+/** A GitHub token for the CLI: GITHUB_TOKEN or GH_TOKEN, else the GitHub CLI's own sign-in. */
+export function githubCliToken(env: NodeJS.ProcessEnv = process.env): Promise<string | undefined> {
+  const fromEnv = env.GITHUB_TOKEN?.trim() || env.GH_TOKEN?.trim();
+  if (fromEnv) return Promise.resolve(fromEnv);
+  return new Promise((done) => {
+    execFile('gh', ['auth', 'token'], { timeout: 5_000, windowsHide: true }, (err, stdout) => done(err ? undefined : stdout.trim() || undefined));
+  });
 }
 
 function firstLine(err: unknown): string {

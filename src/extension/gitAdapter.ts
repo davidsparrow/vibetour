@@ -2,6 +2,7 @@ import { isAbsolute, relative } from 'node:path';
 import * as vscode from 'vscode';
 import type { DevEventBody } from '../core/events';
 import { CommitTracker, commitSubject } from '../host/git';
+import { parseGitHubRemote, type GitHubRepo } from '../host/github';
 import { Debouncer } from '../host/throttle';
 
 /**
@@ -29,13 +30,19 @@ interface Repository {
   getCommit(ref: string): Promise<{ hash: string; message: string }>;
 }
 
+interface Change {
+  readonly uri: vscode.Uri;
+  readonly renameUri?: vscode.Uri;
+}
+
 interface RepositoryState {
   readonly HEAD: Branch | undefined;
-  readonly workingTreeChanges: readonly unknown[];
-  readonly indexChanges: readonly unknown[];
-  readonly mergeChanges: readonly unknown[];
+  readonly workingTreeChanges: readonly Change[];
+  readonly indexChanges: readonly Change[];
+  readonly mergeChanges: readonly Change[];
   /** Only populated when `git.untrackedChanges` is "separate". */
-  readonly untrackedChanges?: readonly unknown[];
+  readonly untrackedChanges?: readonly Change[];
+  readonly remotes: readonly { readonly name: string; readonly fetchUrl?: string; readonly pushUrl?: string }[];
   readonly onDidChange: vscode.Event<void>;
 }
 
@@ -48,6 +55,20 @@ interface Branch {
 }
 
 const DEBOUNCE_MS = 300;
+const MAX_FILES = 50;
+
+/** Every changed file once, staged or not, relative to the repository root. */
+function changedFiles(repo: Repository): string[] {
+  const s = repo.state;
+  const root = repo.rootUri.fsPath;
+  const out = new Set<string>();
+  for (const c of [...s.mergeChanges, ...s.indexChanges, ...s.workingTreeChanges, ...(s.untrackedChanges ?? [])]) {
+    if (out.size >= MAX_FILES) break;
+    const rel = relative(root, (c.renameUri ?? c.uri).fsPath).replace(/\\/g, '/');
+    if (rel && !rel.startsWith('..')) out.add(rel);
+  }
+  return [...out];
+}
 
 export class GitAdapter implements vscode.Disposable {
   private readonly disposables: vscode.Disposable[] = [];
@@ -117,6 +138,17 @@ export class GitAdapter implements vscode.Disposable {
     this.debouncer.trigger();
   }
 
+  /** The GitHub repository behind the primary repo's `origin` (else its first GitHub remote). */
+  githubRepo(): GitHubRepo | undefined {
+    const remotes = this.primary()?.state.remotes ?? [];
+    const ordered = [...remotes.filter((r) => r.name === 'origin'), ...remotes.filter((r) => r.name !== 'origin')];
+    for (const r of ordered) {
+      const repo = parseGitHubRemote(r.fetchUrl ?? r.pushUrl);
+      if (repo) return repo;
+    }
+    return undefined;
+  }
+
   /** The repository for the first workspace folder, else the first one opened. */
   private primary(): Repository | undefined {
     const repos = [...this.repos.keys()];
@@ -147,6 +179,7 @@ export class GitAdapter implements vscode.Disposable {
       staged: s.indexChanges.length,
       ahead,
       behind: head?.behind ?? 0,
+      files: changedFiles(repo),
     };
     const key = JSON.stringify(state);
     if (key !== this.lastState) {
