@@ -111,7 +111,7 @@ describe('Claude Code hooks snippet', () => {
     const command = hookCommand('/Users/me/.vibetour/bin/vibetour-hook.js');
     expect(command).toBe('node "/Users/me/.vibetour/bin/vibetour-hook.js"');
     const { hooks } = claudeHooksConfig(command);
-    expect(Object.keys(hooks)).toEqual(['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Notification', 'Stop', 'SubagentStop', 'SessionEnd']);
+    expect(Object.keys(hooks)).toEqual(['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Notification', 'Stop', 'StopFailure', 'SubagentStop', 'SessionEnd']);
     expect(hooks.PreToolUse).toEqual([{ matcher: '*', hooks: [{ type: 'command', command, timeout: 5 }] }]);
     expect(hooks.Stop).toEqual([{ hooks: [{ type: 'command', command, timeout: 5 }] }]);
     expect(hooks.Notification[0].matcher).toBeUndefined();

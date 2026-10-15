@@ -1,6 +1,8 @@
+import { waitingFor } from '../../core/attention';
 import { APPROACH_CAP } from '../../core/journey';
 import type { JourneyPack } from '../../core/packs';
 import type { AgentSnapshot, TourSnapshot } from '../../core/protocol';
+import { HudAlerts } from './alerts';
 import type { AppContext } from './context';
 import { CUES, cueTable, litCues, type Cue } from './cues';
 import { clear, formatDuration, formatElapsed, h, renderKeyed, text, timeAgo, toggle } from './dom';
@@ -52,9 +54,10 @@ function light(name: string, label: string): HTMLElement {
 export class Cockpit {
   readonly root: HTMLElement;
   private readonly mirrorList = h('ul', { class: 'mirror-list' });
-  private readonly hudLocation = h('div', { class: 'hud-location' });
-  private readonly hudCaption = h('div', { class: 'hud-caption' });
-  private readonly hudChips = h('div', { class: 'hud-chips' });
+  private readonly hudLocation = h('div', { class: 'hud-location', 'aria-hidden': 'true' });
+  private readonly hudCaption = h('div', { class: 'hud-caption', 'aria-hidden': 'true' });
+  private readonly hudChips = h('div', { class: 'hud-chips', 'aria-hidden': 'true' });
+  private readonly hudAlerts: HudAlerts;
   private readonly stopCard = h('div', { class: 'stop-card', role: 'status' });
   private readonly sideLeft = h('div', { class: 'side-mirror left', 'aria-label': 'Side mirror: background agents' });
   private readonly sideRight = h('div', { class: 'side-mirror right', 'aria-label': 'Side mirror: background agents' });
@@ -98,6 +101,7 @@ export class Cockpit {
   private stripPack = '';
 
   constructor(private readonly ctx: AppContext) {
+    this.hudAlerts = new HudAlerts(ctx);
     for (const t of ['nav', 'radio', 'trip', 'console'] as Tab[]) {
       const label = { nav: 'Nav', radio: 'Radio', trip: 'Trip', console: 'Console' }[t];
       const tabEl = h('button', { class: 'tab', role: 'tab', 'aria-selected': t === 'nav' ? 'true' : 'false', onclick: () => this.setTab(t) }, label);
@@ -148,7 +152,8 @@ export class Cockpit {
       { class: 'cockpit' },
       h('div', { class: 'frame', 'aria-hidden': 'true' }, h('div', { class: 'roof' }), h('div', { class: 'pillar left' }), h('div', { class: 'pillar right' })),
       h('div', { class: 'mirror', 'aria-label': 'Rear-view mirror: recent activity' }, h('div', { class: 'mirror-glass' }, h('div', { class: 'mirror-title' }, 'Rear view'), this.mirrorList)),
-      h('div', { class: 'hud', 'aria-hidden': 'true' }, this.hudLocation, this.hudCaption, this.hudChips),
+      // The alerts are for everyone; the rest of the HUD repeats what the screen reader already hears.
+      h('div', { class: 'hud' }, this.hudAlerts.el, this.hudLocation, this.hudCaption, this.hudChips),
       this.stopCard,
       this.sideLeft,
       this.sideRight,
@@ -211,6 +216,7 @@ export class Cockpit {
     const running = snap.ide.processes.find((p) => p.kind === 'test' || p.kind === 'build' || p.kind === 'lint');
     if (running) this.hudChips.append(h('span', { class: 'chip chip-verify' }, `${running.label} · running`));
 
+    this.hudAlerts.update(snap.attention);
     this.updateStopCard(snap, pack);
     this.updateSideMirrors(snap.ide.agents);
 
@@ -286,15 +292,21 @@ export class Cockpit {
     const parked = j!.phase === 'parked';
     let title = '';
     let line = '';
+    let detail = '';
     if (parked) {
       title = 'Parked';
       line = `Your journey to ${pack?.route.to ?? 'your destination'} is saved. Pick it up whenever you like.`;
     } else if (m.behavior === 'pull-over') {
       title = 'Pulled over safely';
       line = snap.activity.blockedReason ?? 'Something needs your attention.';
+      // Why, in the agent's words: "Stopped: rate limit".
+      if (snap.activity.blockedDetail) detail = snap.activity.blockedDetail;
     } else if (m.stopReason === 'waiting') {
+      // Say why the car stopped: a question, a plan to approve, or a tool to allow.
+      const a = snap.activity;
       title = `Scenic stop · ${m.stopName ?? ''}`;
-      line = `${snap.activity.waitingAgent ?? 'Your agent'} is waiting for you. The journey resumes when you reply.`;
+      const why = waitingFor(a.waitingAgent ?? 'Your agent', a.waitingAsk) + (a.waitingAsk === 'approval' && a.waitingTool ? ` to use ${a.waitingTool}` : '');
+      line = `${why}. The journey resumes when you ${a.waitingAsk === 'question' ? 'answer' : 'reply'}.`;
     } else if (m.stopReason === 'your-turn') {
       title = `Scenic stop · ${m.stopName ?? ''}`;
       line = `${snap.activity.yourTurnAgent ?? 'Your agent'} finished its turn. The drive resumes when you reply or get back to work.`;
@@ -305,8 +317,9 @@ export class Cockpit {
       title = `Scenic stop · ${m.stopName ?? ''}`;
       line = 'Taking a breather. Start working again to continue the drive.';
     }
-    renderKeyed(this.stopCard, `${title}\n${line}`, () => {
+    renderKeyed(this.stopCard, `${title}\n${line}\n${detail}`, () => {
       this.stopCard.append(h('div', { class: 'stop-title' }, title), h('div', { class: 'stop-line' }, line));
+      if (detail) this.stopCard.append(h('div', { class: 'stop-detail' }, detail));
       if (parked) this.stopCard.append(h('button', { class: 'btn btn-primary', onclick: () => this.ctx.send({ type: 'resume' }) }, 'Resume journey'));
     });
   }

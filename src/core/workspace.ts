@@ -1,5 +1,5 @@
 import { isVerification } from './classify';
-import type { AgentRole, AgentStatus, DevEvent, DiagnosticRef, FileRef, ProcessKind } from './events';
+import type { AgentAsk, AgentRole, AgentStatus, DevEvent, DiagnosticRef, FileRef, ProcessKind, PullRequestFeedState, PullRequestRef } from './events';
 
 /**
  * Aggregates raw development events into the workspace picture shown on the
@@ -13,6 +13,10 @@ export interface AgentInfo {
   role: AgentRole;
   status: AgentStatus;
   detail?: string;
+  /** While waiting: what for. */
+  ask?: AgentAsk;
+  /** While waiting for approval: the tool it wants to use. */
+  tool?: string;
   since: number;
   lastActivityAt: number;
   parentId?: string;
@@ -43,7 +47,16 @@ export interface GitInfo {
   lastCommit?: { message?: string; at: number };
 }
 
-export type HistoryKind = 'save' | 'test' | 'build' | 'lint' | 'commit' | 'branch' | 'agent' | 'process' | 'journey' | 'external';
+export type HistoryKind = 'save' | 'test' | 'build' | 'lint' | 'commit' | 'branch' | 'agent' | 'process' | 'journey' | 'external' | 'pr';
+
+export interface PullRequestFeed {
+  state: PullRequestFeedState;
+  repo?: string;
+  /** Who is signed in to GitHub: their pull requests are "mine". */
+  viewer?: string;
+  items: PullRequestRef[];
+  fetchedAt?: number;
+}
 
 export interface HistoryItem {
   at: number;
@@ -81,6 +94,7 @@ export class WorkspaceTracker {
   readonly agents = new Map<string, AgentInfo>();
   readonly results: Partial<Record<'test' | 'build' | 'lint', ResultInfo>> = {};
   readonly history: HistoryItem[] = [];
+  pullRequests: PullRequestFeed = { state: 'off', items: [] };
   counters: SessionCounters = emptyCounters();
   /** Paths touched (edited or saved) since the tracker was created/reset. */
   readonly touched = new Set<string>();
@@ -199,19 +213,26 @@ export class WorkspaceTracker {
           role: e.role ?? prev?.role ?? (e.parentId ? 'crew' : 'copilot'),
           status: e.status,
           detail: e.detail,
+          ask: e.status === 'waiting' ? e.ask : undefined,
+          tool: e.status === 'waiting' ? e.tool : undefined,
           since: changed ? e.at : prev!.since,
           lastActivityAt: e.status === 'working' || e.status === 'tool' ? e.at : prev?.lastActivityAt ?? e.at,
           parentId: e.parentId ?? prev?.parentId,
           context: e.context ?? prev?.context,
         });
         if (changed && (e.status === 'waiting' || e.status === 'done' || e.status === 'error')) {
-          const verb = e.status === 'waiting' ? `${e.name} needs you` : e.status === 'done' ? `${e.name} finished` : `${e.name} hit a problem`;
-          this.push({ at: e.at, kind: 'agent', verb, subject: e.detail, tone: e.status === 'error' ? 'bad' : 'agent' });
+          const verb = e.status === 'waiting' ? waitingVerb(e.name, e.ask) : e.status === 'done' ? `${e.name} finished` : `${e.name} hit a problem`;
+          // A question or a plan says it all; an approval names its tool.
+          const subject = e.status !== 'waiting' || !e.ask ? e.detail : e.tool ? `for ${e.tool}` : undefined;
+          this.push({ at: e.at, kind: 'agent', verb, subject, tone: e.status === 'error' ? 'bad' : 'agent' });
         }
         break;
       }
       case 'agent.remove':
         this.agents.delete(e.agentId);
+        break;
+      case 'github.prs':
+        this.updatePullRequests(e);
         break;
       case 'agent.context': {
         const a = this.agents.get(e.agentId);
@@ -241,6 +262,23 @@ export class WorkspaceTracker {
       if ((a.status === 'done' || a.status === 'idle') && silentFor > maxSilenceMs) this.agents.delete(id);
       else if (silentFor > maxSilenceMs * 4) this.agents.delete(id);
     }
+  }
+
+  private updatePullRequests(e: Extract<DevEvent, { type: 'github.prs' }>): void {
+    const prev = this.pullRequests;
+    if (e.state !== 'ok') {
+      // A failed fetch keeps the last list; signing out or losing the remote clears it.
+      this.pullRequests = e.state === 'error' && prev.repo === e.repo ? { ...prev, state: 'error' } : { state: e.state, repo: e.repo, items: [] };
+      return;
+    }
+    if (prev.state === 'ok' && prev.repo === e.repo) {
+      // Numbers only grow: a PR above the highest we knew is new, not one scrolling into the list.
+      const highest = Math.max(0, ...prev.items.map((pr) => pr.number));
+      for (const pr of e.items) {
+        if (pr.number > highest) this.push({ at: e.at, kind: 'pr', verb: `PR #${pr.number} opened`, subject: pr.title, tone: 'good' });
+      }
+    }
+    this.pullRequests = { state: 'ok', repo: e.repo, viewer: e.viewer, items: e.items, fetchedAt: e.at };
   }
 
   private bump(key: keyof SessionCounters): void {
@@ -282,6 +320,13 @@ export class WorkspaceTracker {
   }
 
   private externalBatch?: Set<string>;
+}
+
+function waitingVerb(name: string, ask?: AgentAsk): string {
+  if (ask === 'question') return `${name} has a question`;
+  if (ask === 'plan') return `${name} has a plan to approve`;
+  if (ask === 'approval') return `${name} needs approval`;
+  return `${name} needs you`;
 }
 
 function verbFor(kind: ProcessKind, phase: 'start' | 'pass' | 'fail'): string {

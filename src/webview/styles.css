@@ -336,6 +336,11 @@ body {
   margin-top: 4px;
   color: var(--ink);
 }
+.stop-detail {
+  margin-top: 4px;
+  font-size: 0.86em;
+  color: var(--ink-dim);
+}
 .stop-card .btn {
   margin-top: 12px;
 }

@@ -1,11 +1,12 @@
 import { ActivityEngine, DEFAULT_ACTIVITY_CONFIG, type ActivityConfig, type ActivityReading } from './activity';
+import { attentionOf, waitingFor } from './attention';
 import type { DevEvent, ProcessKind } from './events';
 import { JourneyEngine, SCOPES, scopeInfo, type JourneyRecord, type ScopeId } from './journey';
 import { momentsOf } from './moments';
 import { DEFAULT_MOTION_CONFIG, MotionController, type MotionConfig, type MotionReading } from './motion';
 import { findVariant, freshSeed, planPath, refuelStop, rng, variantForHour, type JourneyPack, type ScenicStop } from './packs';
 import { makeStamp, passportStats, updateLibrary, type LibraryEntry, type Stamp, type TravelMemory } from './passport';
-import type { Catalog, ClientCommand, Gear, JourneySnapshot, TourSnapshot } from './protocol';
+import type { Catalog, ClientCommand, Gear, JourneySnapshot, PullRequestSnapshot, TourSnapshot } from './protocol';
 import { WorkspaceTracker, type HistoryItem } from './workspace';
 
 /**
@@ -324,6 +325,11 @@ export class VibeTourSession {
     }
   }
 
+  /** The link to an open pull request, for a display that asks to open it by number. */
+  pullRequestUrl(n: number): string | undefined {
+    return this.tracker.pullRequests.items.find((pr) => pr.number === n)?.url;
+  }
+
   /** Called when the host shuts down: the journey parks in the garage (PRD §10). */
   shutdown(): void {
     if (this.journey && this.journey.moving) this.park('close');
@@ -511,7 +517,7 @@ export class VibeTourSession {
       case 'checkpoint':
         return j.scene().env.tunnel ? 'Through the tunnel — verification running' : 'Checkpoint — verification running';
       case 'scenic-stop':
-        if (motion.stopReason === 'waiting') return `Scenic stop at ${stopName} — ${a.waitingAgent ?? 'your agent'} is waiting for you`;
+        if (motion.stopReason === 'waiting') return `Scenic stop at ${stopName} — ${waitingFor(a.waitingAgent ?? 'your agent', a.waitingAsk)}`;
         if (motion.stopReason === 'your-turn') return `Scenic stop at ${stopName} — ${a.yourTurn?.agent ?? 'your agent'} finished, your turn`;
         if (motion.stopReason === 'refuel') return `Refuelling at ${stopName} — then ${j.pack.route.from} to ${to} again`;
         return `Parked at ${stopName} — resume whenever you're ready`;
@@ -592,6 +598,33 @@ export class VibeTourSession {
       this.lastCaption = caption;
     }
     const kindLabel = (kind: ProcessKind, label: string) => (s ? KIND_LABEL[kind] : label);
+    const feed = ws.pullRequests;
+    const branch = ws.git?.branch;
+    const pullRequests: PullRequestSnapshot[] = feed.items.map((pr) => ({
+      number: pr.number,
+      title: s ? undefined : pr.title,
+      branch: s ? undefined : pr.branch,
+      author: s ? undefined : pr.author,
+      draft: pr.draft,
+      createdAt: pr.createdAt,
+      ahead: pr.ahead,
+      behind: pr.behind,
+      ci: pr.ci,
+      review: pr.review,
+      conflict: pr.conflict,
+      onBranch: !pr.crossRepo && !!branch && pr.branch === branch,
+      mine: !!feed.viewer && pr.author === feed.viewer,
+    }));
+    const cfg = this.opts.activityConfig ?? DEFAULT_ACTIVITY_CONFIG;
+    const attention = attentionOf({
+      now,
+      agents: [...ws.agents.values()],
+      yourTurn: a.yourTurn,
+      pullRequests,
+      waitingExpiryMs: cfg.waitingExpiryMs,
+      errorExpiryMs: cfg.agentStaleMs,
+      streaming: s,
+    });
     const results: TourSnapshot['ide']['results'] = {};
     for (const key of ['test', 'build', 'lint'] as const) {
       const r = ws.results[key];
@@ -624,10 +657,14 @@ export class VibeTourSession {
         reviewing: a.reviewing,
         context: a.context,
         waitingAgent: a.waitingAgent,
+        waitingAsk: a.waitingAsk,
+        waitingTool: s ? undefined : a.waitingTool,
         blockedReason: a.blockedReason,
+        blockedDetail: s ? undefined : a.blockedDetail,
         yourTurnAgent: a.yourTurn?.agent,
       },
       moments: momentsOf(this.journey?.phase, a, motion, ws.diagnostics),
+      attention,
       ide: {
         project: s ? undefined : this.opts.project,
         activeFile: ws.activeFile
@@ -658,10 +695,13 @@ export class VibeTourSession {
           role: ag.role,
           status: ag.status,
           detail: s ? undefined : ag.detail,
+          ask: ag.ask,
+          tool: s ? undefined : ag.tool,
           since: ag.since,
           parentId: ag.parentId,
           context: ag.context,
         })),
+        pullRequests: { state: feed.state, items: pullRequests, fetchedAt: feed.fetchedAt },
         history: ws.history.slice(0, 12).map((h) => ({ at: h.at, kind: h.kind, label: this.historyLabel(h), tone: h.tone })),
         session: { ...ws.counters, filesChanged: ws.touched.size, startedAt: this.sessionStartedAt },
       },
