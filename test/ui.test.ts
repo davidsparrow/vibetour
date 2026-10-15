@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { MOMENTS, type Moment } from '../src/core/moments';
 import type { Attention } from '../src/core/attention';
 import { DEFAULT_PREFS, mergePrefs } from '../src/core/protocol';
-import { alertClickable, MAX_ALERTS, shownAlerts } from '../src/webview/ui/alerts';
+import { alertClickable, alertLevel, shownAlerts } from '../src/webview/ui/alerts';
 import { batteryHiddenReason, batteryStatus } from '../src/webview/ui/battery';
 import { CUES, cueTable, litCues } from '../src/webview/ui/cues';
 import { formatDuration, formatElapsed } from '../src/webview/ui/dom';
@@ -67,13 +67,21 @@ describe('HUD alerts', () => {
     target: kind === 'pr' ? { type: 'pr', number: 1 } : { type: 'agent', agentId: id },
   });
 
-  it('shows the kinds this display switched on, at most a few, and folds the rest', () => {
+  it('lists the kinds this display switched on', () => {
     const list = [alert('q', 'question'), alert('p', 'pr'), alert('t', 'turn'), alert('a', 'approval'), alert('x', 'problem'), alert('y', 'plan')];
-    expect(shownAlerts(list, DEFAULT_PREFS).shown).toHaveLength(MAX_ALERTS);
-    expect(shownAlerts(list, DEFAULT_PREFS).more.map((a) => a.id)).toEqual(['x', 'y']);
+    expect(shownAlerts(list, DEFAULT_PREFS)).toHaveLength(6);
     const prefs = mergePrefs({ hudAlerts: { pr: false, turn: false } as never });
-    expect(prefs.hudAlerts).toMatchObject({ question: true, pr: false, turn: false });
-    expect(shownAlerts(list, prefs).shown.map((a) => a.id)).toEqual(['q', 'a', 'x', 'y']);
+    expect(prefs.hudAlerts).toMatchObject({ question: true, pr: false, turn: false, build: true });
+    expect(shownAlerts(list, prefs).map((a) => a.id)).toEqual(['q', 'a', 'x', 'y']);
+  });
+
+  it('lights the bell red for a stop, orange for something that needs you, blue for changed files', () => {
+    const ide = (changes: number) => ({ git: { changes, staged: 0, ahead: 0, behind: 0 } }) as never;
+    expect(alertLevel({ attention: [alert('t', 'turn'), alert('q', 'question')], ide: ide(3) }, DEFAULT_PREFS)).toBe('blocking');
+    expect(alertLevel({ attention: [alert('p', 'pr')], ide: ide(3) }, DEFAULT_PREFS)).toBe('moderate');
+    expect(alertLevel({ attention: [], ide: ide(3) }, DEFAULT_PREFS)).toBe('general');
+    expect(alertLevel({ attention: [], ide: ide(3) }, mergePrefs({ alertOnChanges: false }))).toBeUndefined();
+    expect(alertLevel({ attention: [alert('q', 'question')], ide: ide(0) }, mergePrefs({ hudAlerts: { question: false } as never }))).toBeUndefined();
   });
 
   it('makes a chip a button only where the host can act on it', () => {
@@ -83,5 +91,6 @@ describe('HUD alerts', () => {
     expect(alertClickable(alert('q', 'question'), host({ openLinks: true }))).toBe(false);
     expect(alertClickable(alert('p', 'pr'), host({ openLinks: true }))).toBe(true);
     expect(alertClickable(alert('p', 'pr'), undefined)).toBe(false);
+    expect(alertClickable({ ...alert('b', 'build'), target: { type: 'problems' } }, host({ openFiles: true }))).toBe(true);
   });
 });

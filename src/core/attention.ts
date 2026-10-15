@@ -2,14 +2,36 @@ import type { AgentAsk } from './events';
 
 /**
  * What needs you right now: an agent's question, a plan to approve, a
- * permission prompt, an agent that stopped on an error, your turn after an
- * agent finished, and a pull request of yours that needs action. The host
- * works the list out once per snapshot; each display shows the kinds its
- * driver switched on, as alerts on the windshield HUD.
+ * permission prompt, an agent that stopped on an error, a build left failing,
+ * your turn after an agent finished, and a pull request of yours that needs
+ * action. The host works the list out once per snapshot. Each display lists
+ * the kinds its driver switched on in its Alerts tab; the one that stopped
+ * the car also rides on the stop card.
  */
 
-export const ALERT_KINDS = ['problem', 'question', 'plan', 'approval', 'turn', 'pr'] as const;
+export const ALERT_KINDS = ['problem', 'build', 'question', 'plan', 'approval', 'turn', 'pr'] as const;
 export type AlertKind = (typeof ALERT_KINDS)[number];
+
+/**
+ * How loud an alert is. Blocking: it stopped the car (red). Moderate: it
+ * needs you but the car may drive on (orange). General: worth a look, no
+ * stop (blue), such as uncommitted files.
+ */
+export type AlertSeverity = 'blocking' | 'moderate' | 'general';
+
+export function severityOf(kind: AlertKind): AlertSeverity {
+  return kind === 'turn' || kind === 'pr' ? 'moderate' : 'blocking';
+}
+
+/** The loudest of several, or undefined for none. */
+export function loudest(severities: Iterable<AlertSeverity>): AlertSeverity | undefined {
+  let best: AlertSeverity | undefined;
+  for (const s of severities) {
+    if (s === 'blocking') return s;
+    if (s === 'moderate' || !best) best = s;
+  }
+  return best;
+}
 
 export interface Attention {
   /** Stable per thing, so a display can keep its chip. */
@@ -19,7 +41,7 @@ export interface Attention {
   text: string;
   since: number;
   /** What a click opens. */
-  target: { type: 'agent'; agentId: string } | { type: 'pr'; number: number };
+  target: { type: 'agent'; agentId: string } | { type: 'pr'; number: number } | { type: 'problems' };
 }
 
 /** The car's reason for stopping, e.g. "Claude has a question for you". */
@@ -61,6 +83,8 @@ export interface AttentionInput {
   agents: readonly AttentionAgent[];
   /** The agent whose finished turn makes it your move. */
   yourTurn?: { agentId: string; agent: string; since: number };
+  /** A failed build left alone: the car pulled over for it. */
+  buildFailing?: { since: number };
   pullRequests: readonly AttentionPullRequest[];
   /** A wait older than this is a lost hook event, not a question. */
   waitingExpiryMs: number;
@@ -99,6 +123,7 @@ export function attentionOf(input: AttentionInput): Attention[] {
       out.push({ id: `agent:${ag.id}`, kind: 'problem', text: stopped ? `${ag.name} stopped · ${stopped}` : `${ag.name} hit a problem`, since: ag.since, target });
     }
   }
+  if (input.buildFailing) out.push({ id: 'build', kind: 'build', text: 'Build failing', since: input.buildFailing.since, target: { type: 'problems' } });
   const turn = input.yourTurn;
   if (turn) out.push({ id: `turn:${turn.agentId}`, kind: 'turn', text: `${turn.agent} finished · your turn`, since: turn.since, target: { type: 'agent', agentId: turn.agentId } });
   // The PR on your branch first, then yours, oldest first.

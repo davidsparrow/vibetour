@@ -20,6 +20,11 @@ export function branchIcon(): SVGSVGElement {
   );
 }
 
+/** A bell, for alerts. */
+export function bellIcon(): SVGSVGElement {
+  return icon('icon-bell', s('path', { d: 'M4 11.5V7.2a4 4 0 0 1 8 0v4.3l1.2 1.3H2.8zM6.6 14.2a1.5 1.5 0 0 0 2.8 0' }));
+}
+
 /** A branch's head flowing back into its base. */
 export function pullRequestIcon(): SVGSVGElement {
   return icon(

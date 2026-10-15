@@ -88,6 +88,8 @@ describe('AgentHookMapper', () => {
     expect(snap().activity.waitingAsk).toBe('question');
     expect(snap().motion.caption).toMatch(/Claude has a question for you$/);
     expect(snap().attention).toEqual([expect.objectContaining({ kind: 'question', text: 'Claude has a question', target: { type: 'agent', agentId: 'claude:f00dcafe' } })]);
+    // The stop card shows the alert that stopped the car.
+    expect(snap().motion.stopAlert).toBe(snap().attention[0].id);
     expect(snap().ide.history[0].label).toBe('Claude has a question');
 
     hook({ hook_event_name: 'PostToolUse', tool_name: 'AskUserQuestion' });
@@ -143,6 +145,7 @@ describe('AgentHookMapper', () => {
     expect(snap.motion.behavior).toBe('pull-over');
     expect(snap.activity.blockedDetail).toBe('Stopped: rate limit');
     expect(snap.attention).toEqual([expect.objectContaining({ kind: 'problem', text: 'Claude stopped · rate limit' })]);
+    expect(snap.motion.stopAlert).toBe('agent:claude:f00dcafe');
 
     // Unknown kinds are read out plainly; prototype names are just names.
     expect(mapper.map(sanitizeHookPayload({ session_id: SESSION, hook_event_name: 'StopFailure', error: 'new_kind' }))).toMatchObject([{ detail: 'Stopped: new kind' }]);

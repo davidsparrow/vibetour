@@ -75,6 +75,8 @@ export type DevEventBody =
       staged: number;
       ahead: number;
       behind: number;
+      /** The changed files (staged, unstaged, untracked), repository-relative; at most 50. */
+      files?: string[];
     }
   | { type: 'git.commit'; message?: string }
   | { type: 'git.branch'; branch: string }

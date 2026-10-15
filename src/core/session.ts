@@ -74,6 +74,15 @@ const KIND_LABEL: Record<ProcessKind, string> = {
   other: 'Command',
 };
 
+/** The alert that stopped the car, by its attention id, for the stop card. */
+function stopAlertOf(motion: MotionReading, a: ActivityReading): string | undefined {
+  if (!motion.stopped) return undefined;
+  if (motion.behavior === 'pull-over') return a.blockedBy === 'build' ? 'build' : a.blockedAgentId ? `agent:${a.blockedAgentId}` : undefined;
+  if (motion.stopReason === 'waiting') return a.waitingAgentId ? `agent:${a.waitingAgentId}` : undefined;
+  if (motion.stopReason === 'your-turn') return a.yourTurn ? `turn:${a.yourTurn.agentId}` : undefined;
+  return undefined;
+}
+
 function defaultId(): string {
   return `${Date.now().toString(36)}-${Math.floor(Math.random() * 1e9).toString(36)}`;
 }
@@ -620,6 +629,7 @@ export class VibeTourSession {
       now,
       agents: [...ws.agents.values()],
       yourTurn: a.yourTurn,
+      buildFailing: a.blockedBy === 'build' ? { since: ws.results.build?.at ?? now } : undefined,
       pullRequests,
       waitingExpiryMs: cfg.waitingExpiryMs,
       errorExpiryMs: cfg.agentStaleMs,
@@ -643,6 +653,7 @@ export class VibeTourSession {
         caption,
         since: motion.since,
         hazard: motion.behavior === 'pull-over',
+        stopAlert: stopAlertOf(motion, a),
       },
       activity: {
         state: a.state,
@@ -678,6 +689,7 @@ export class VibeTourSession {
               branch: s ? undefined : ws.git.branch,
               repo: s ? undefined : ws.git.repo,
               lastCommit: ws.git.lastCommit ? { at: ws.git.lastCommit.at, message: s ? undefined : ws.git.lastCommit.message } : undefined,
+              files: s ? undefined : ws.git.files,
             }
           : undefined,
         diagnostics: {

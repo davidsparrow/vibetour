@@ -316,6 +316,9 @@ class VibeTourHost implements CommandHost {
       case 'openSourceControl':
         await vscode.commands.executeCommand('workbench.view.scm');
         return;
+      case 'openProblems':
+        await vscode.commands.executeCommand('workbench.actions.view.problems');
+        return;
       case 'openPullRequest': {
         const url = this.session.pullRequestUrl(cmd.number);
         if (url && /^https:\/\/github\.com\//.test(url)) await vscode.env.openExternal(vscode.Uri.parse(url));

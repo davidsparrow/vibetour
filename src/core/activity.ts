@@ -70,12 +70,14 @@ export interface ActivityReading {
   /** Context-window usage reported by an agent, if any. */
   context: number | null;
   waitingAgent?: string;
+  waitingAgentId?: string;
   /** What the waiting agent waits for, and the tool it wants approved. */
   waitingAsk?: AgentAsk;
   waitingTool?: string;
   blockedReason?: string;
   /** The agent's own words for an error that blocks, e.g. "Stopped: rate limit". */
   blockedDetail?: string;
+  blockedAgentId?: string;
   /** What BLOCKED is about. */
   blockedBy?: 'agent' | 'build';
   /**
@@ -233,10 +235,12 @@ export class ActivityEngine {
       reviewing: now - ws.lastReviewAt < cfg.reviewWindowMs,
       context: contexts.length ? Math.max(...contexts) : null,
       waitingAgent: basis === 'WAITING_FOR_USER' ? waiting?.name : undefined,
+      waitingAgentId: basis === 'WAITING_FOR_USER' ? waiting?.id : undefined,
       waitingAsk: basis === 'WAITING_FOR_USER' ? waiting?.ask : undefined,
       waitingTool: basis === 'WAITING_FOR_USER' ? waiting?.tool : undefined,
       blockedReason,
       blockedDetail: basis === 'BLOCKED' ? errored?.detail : undefined,
+      blockedAgentId: basis === 'BLOCKED' ? errored?.id : undefined,
       blockedBy: basis === 'BLOCKED' ? (errored ? 'agent' : 'build') : undefined,
       yourTurn,
     };

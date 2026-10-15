@@ -84,11 +84,16 @@ export class SettingsPanel {
         h(
           'section',
           {},
-          h('h2', {}, 'HUD alerts'),
-          h('p', { class: 'small muted' }, 'Chips on the windshield for what needs you, shown only while it does. Click one to go where you act. Choose which kinds this screen shows.'),
+          h('h2', {}, 'Alerts'),
+          h(
+            'p',
+            { class: 'small muted' },
+            'What the Alerts tab lists and what lights its bells, on this screen: red when something stopped the car, orange when something needs you, blue for uncommitted files. The alert that stopped the car always shows on the stop card.',
+          ),
           ...ALERT_KINDS.map((kind) =>
             toggleRow(ALERT_LABELS[kind].label, ALERT_LABELS[kind].hint, p.hudAlerts[kind], (pr, v) => (pr.hudAlerts = { ...pr.hudAlerts, [kind]: v })),
           ),
+          toggleRow('Changed files', 'Uncommitted files light the bells blue', p.alertOnChanges, (pr, v) => (pr.alertOnChanges = v)),
         ),
         h(
           'section',

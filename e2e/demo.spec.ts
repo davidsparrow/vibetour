@@ -28,7 +28,7 @@ test('departs on a journey and renders the drive', async ({ page }) => {
   await page.goto('/?fresh&autopilot=0');
   await bookFirstJourney(page);
   await expect(page.locator('.hud-location')).toHaveText(/Monterey/);
-  await expect(page.locator('.chip-task')).toHaveText('Onboarding flow');
+  await expect(page.locator('.nav-objective')).toContainText('Onboarding flow');
   await expect.poll(() => page.evaluate(() => (window as any).vibetour.renderer.renderer.info.render.frame), { timeout: 20_000 }).toBeGreaterThan(3);
   await expect(page.locator('.nav-route')).toContainText('California Coast');
 });
@@ -53,20 +53,24 @@ test('the demo story drives the cockpit: agent work, tests and a scenic stop', a
   await bookFirstJourney(page);
   await page.locator('.demo-panel summary').click();
   await page.getByRole('button', { name: 'Agent edits' }).click();
-  await expect(page.locator('.mirror-list')).toContainText('Agent edited');
+  await expect(page.locator('.recent-list')).toContainText('Agent edited');
   await page.getByRole('button', { name: 'Tests pass' }).click();
-  await expect(page.locator('.hud-chips')).toContainText('npm test · running');
+  await expect(page.locator('.console')).toContainText('npm test');
   await page.getByRole('button', { name: 'Agent asks' }).click();
-  // The HUD says what needs you at once; the stop card says why the car stopped.
-  const alert = page.getByRole('region', { name: 'Needs you' }).getByRole('button', { name: /Claude has a question/ });
-  await expect(alert).toBeVisible();
+  // The card says why the car stopped, with the alert that stopped it on its top edge, in red.
   await expect(page.locator('.stop-card.show')).toContainText('Claude has a question for you. The journey resumes when you answer.', { timeout: 20_000 });
+  const pill = page.locator('.stop-pill').getByRole('button', { name: 'Claude has a question' });
+  await expect(pill).toHaveClass(/alert-blocking/);
+  await expect(page.locator('.alert-bell')).toHaveClass(/lit-blocking/);
   await expect(page.locator('.light-agent')).toHaveClass(/on/);
-  await alert.click();
+  await pill.click();
   await expect(page.locator('.toast')).toContainText('In VS Code this takes you to Claude.');
+  // The top bell opens the Alerts tab, which lists it too.
+  await page.locator('.alert-bell').click();
+  await expect(page.getByRole('region', { name: 'Needs you' }).getByRole('button', { name: 'Claude has a question' })).toBeVisible();
   await page.getByRole('button', { name: 'Answer' }).click();
   await expect(page.locator('.stop-card')).not.toHaveClass(/show/, { timeout: 20_000 });
-  await expect(alert).toBeHidden();
+  await expect(page.getByRole('region', { name: 'Needs you' })).not.toContainText('Claude has a question');
 });
 
 test('the Changes gauge counts uncommitted files and opens Source Control', async ({ page }) => {
@@ -82,6 +86,11 @@ test('the Changes gauge counts uncommitted files and opens Source Control', asyn
   await expect(page.locator('.gauge-digital .gauge-readout')).toHaveText('1');
   await gauge.click();
   await expect(page.locator('.toast')).toContainText('In VS Code this opens Source Control.');
+  // Changed files light the bells blue and are listed in the Alerts tab.
+  await expect(page.locator('.alert-bell')).toHaveClass(/lit-general/);
+  await page.locator('.tab-alerts').click();
+  await expect(page.locator('.alerts-files')).toContainText('Changed · 1');
+  await expect(page.locator('.alerts-files .file-pill:not(.file-active)')).toHaveText(['OnboardingFlow.tsx']);
   await page.keyboard.press('s');
   await page.getByLabel(/Changes gauge/).uncheck();
   await page.getByRole('button', { name: 'Done' }).click();
@@ -104,16 +113,23 @@ test('the PRs tab lists open pull requests, lights the ones on this branch and r
   await expect(page.locator('.tab-badge')).toHaveText('3');
   await expect(page.locator('.tab-badge')).toHaveClass(/hot/);
 
-  const alert = page.getByRole('region', { name: 'Needs you' }).getByRole('button', { name: 'PR #42 · CI failing' });
-  await expect(alert).toBeVisible();
+  await expect(rows.first().locator('.pr-num')).toHaveText('#42');
+  await expect(rows.first()).toContainText('@you');
   await rows.first().click();
   await expect(page.locator('.toast')).toContainText('opens PR #42 on GitHub');
+
+  // A PR that needs you lights the bells orange and is listed in the Alerts tab.
+  await expect(page.locator('.alert-bell')).toHaveClass(/lit-moderate/);
+  await page.locator('.tab-alerts').click();
+  const alert = page.getByRole('region', { name: 'Needs you' }).getByRole('button', { name: 'PR #42 · CI failing' });
+  await expect(alert).toHaveClass(/alert-moderate/);
 
   // Each kind of alert has its own switch on each screen.
   await page.keyboard.press('s');
   await page.getByLabel(/Pull requests/).uncheck();
   await page.getByRole('button', { name: 'Done' }).click();
   await expect(alert).toBeHidden();
+  await expect(page.locator('.alert-bell')).not.toHaveClass(/lit-/);
   await page.evaluate(() => localStorage.removeItem('vibetour.prefs.demo'));
 });
 
@@ -160,10 +176,10 @@ test('a test run started before "Go idle" still finishes', async ({ page }) => {
   await bookFirstJourney(page);
   await page.locator('.demo-panel summary').click();
   await page.getByRole('button', { name: 'Tests pass' }).click();
-  await expect(page.locator('.hud-chips')).toContainText('npm test · running');
+  await expect(page.locator('.console .proc.running')).toContainText('npm test');
   await page.getByRole('button', { name: 'Go idle' }).click();
-  await expect(page.locator('.mirror-list')).toContainText('Tests passed', { timeout: 10_000 });
-  await expect(page.locator('.hud-chips')).not.toContainText('running');
+  await expect(page.locator('.recent-list')).toContainText('Tests passed', { timeout: 10_000 });
+  await expect(page.locator('.console .proc.running')).toHaveCount(0);
 });
 
 test('an agent finishing its turn can pull over and light this display\'s your-turn cue', async ({ page }) => {
@@ -181,6 +197,8 @@ test('an agent finishing its turn can pull over and light this display\'s your-t
   await page.getByRole('button', { name: 'Go idle' }).click();
   await expect(page.locator('.light-turn')).toHaveClass(/\bon\b/);
   await expect(page.locator('.stop-card.show')).toContainText('Claude finished its turn', { timeout: 15_000 });
+  await expect(page.locator('.stop-pill .alert')).toHaveText('↩Claude finished · your turn');
+  await expect(page.locator('.stop-pill .alert')).toHaveClass(/alert-moderate/);
   await expect(page.locator('.hud-caption')).toContainText('Claude finished, your turn');
 
   await page.getByRole('button', { name: 'Answer' }).click();
@@ -213,7 +231,7 @@ test('refuelling after arriving stops for fuel, then drives the same route again
   await expect(card).toBeVisible({ timeout: 40_000 });
   await card.getByRole('button', { name: 'Refuel and drive again' }).click();
   await expect(card).toHaveCount(0);
-  await expect(page.locator('.stop-card.show')).toContainText('Refuelling · a Carmel Highlands gas station');
+  await expect(page.locator('.stop-card.show')).toContainText('Refuelling at a Carmel Highlands gas station');
   // Keep coding through the stop: at 8× the 20 s that counts as coding is 2.5 s, so
   // without it the car could drive off already in "thinking" and say so instead.
   await page.locator('.demo-panel summary').click();

@@ -41,13 +41,13 @@ How hook events map onto the journey:
 | `PreToolUse` | co-pilot *using a tool* (e.g. "Using Edit") | Cruise |
 | `PreToolUse` with `Task`/`Agent` | a crew agent appears in a side mirror | — |
 | `PostToolUse` with `Task`/`Agent` | that crew agent leaves | — |
-| `PreToolUse` with `AskUserQuestion` | co-pilot *has a question for you* | Scenic stop until you answer; HUD alert |
-| `PreToolUse` with `ExitPlanMode` | co-pilot *has a plan for you to approve* | Scenic stop until you reply; HUD alert |
-| `Notification` (`permission_prompt`) | co-pilot *needs your approval to use* the tool it was about to run | Scenic stop until you reply; HUD alert |
-| `Notification` (MCP input requests: `elicitation_dialog`, `elicitation_url_dialog`, `agent_needs_input`) | co-pilot *needs your input* | Scenic stop until you reply; HUD alert |
+| `PreToolUse` with `AskUserQuestion` | co-pilot *has a question for you* | Scenic stop until you answer; alert on the stop card and in the Alerts tab |
+| `PreToolUse` with `ExitPlanMode` | co-pilot *has a plan for you to approve* | Scenic stop until you reply; alert on the stop card and in the Alerts tab |
+| `Notification` (`permission_prompt`) | co-pilot *needs your approval to use* the tool it was about to run | Scenic stop until you reply; alert on the stop card and in the Alerts tab |
+| `Notification` (MCP input requests: `elicitation_dialog`, `elicitation_url_dialog`, `agent_needs_input`) | co-pilot *needs your input* | Scenic stop until you reply; alert on the stop card and in the Alerts tab |
 | `Notification` (`idle_prompt`, `auth_success` and other notices that ask nothing) | ignored: the co-pilot is still *finished* | — |
-| `Stop` | co-pilot *finished — your turn*; crew whose task never reported back leave | Normal travel while you review, with a *your turn* HUD alert. Optionally pulls over after N quiet seconds (`vibetour.yourTurn.pullOver`) and lights a blue your-turn cue |
-| `StopFailure` | the turn ended on an API error: co-pilot *stopped: rate limit* (or *API overloaded*, *billing problem*…). Only the error's kind is forwarded, never its details | Pulls onto the shoulder with hazards; HUD alert |
+| `Stop` | co-pilot *finished — your turn*; crew whose task never reported back leave | Normal travel while you review, with a *your turn* alert. Optionally pulls over after N quiet seconds (`vibetour.yourTurn.pullOver`) and lights a blue your-turn cue |
+| `StopFailure` | the turn ended on an API error: co-pilot *stopped: rate limit* (or *API overloaded*, *billing problem*…). Only the error's kind is forwarded, never its details | Pulls onto the shoulder with hazards; alert on the stop card and in the Alerts tab |
 | `SessionEnd` | co-pilot leaves the cockpit | — |
 
 Interrupting Claude (Esc) fires no hook, so the co-pilot reads as working until your next prompt. Hook configurations copied before `StopFailure` was added still work; copy the configuration again to get API-error stops.
@@ -105,7 +105,7 @@ curl -s -X POST "http://127.0.0.1:47477/api/agent-event" \
 ```
 
 - `status` is one of `working`, `tool`, `waiting`, `idle`, `done`, `error`.
-- With `waiting`, `ask` says why: `question`, `plan` or `approval`, and with `approval`, `tool` names the tool (e.g. `"tool":"shell"`). The stop card and the HUD alert say so.
+- With `waiting`, `ask` says why: `question`, `plan` or `approval`, and with `approval`, `tool` names the tool (e.g. `"tool":"shell"`). The stop card and its alert pill say so.
 - `role` is optional: `copilot`, `nav`, `eng`, `qa`, `comms`, `ops` or `crew`.
 - Set `parentId` to show an agent as crew under another agent.
 - `context` (0–1) is how full the agent's context window is. It feeds the Context gauge, which shows the fullest agent's window as how much is left.

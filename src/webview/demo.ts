@@ -147,6 +147,10 @@ export class DemoHost {
       this.listener?.({ type: 'toast', text: 'In VS Code this opens Source Control.' });
       return;
     }
+    if (cmd.type === 'openProblems') {
+      this.listener?.({ type: 'toast', text: 'In VS Code this opens Problems.' });
+      return;
+    }
     if (cmd.type === 'openPullRequest') {
       this.listener?.({ type: 'toast', text: `In VS Code this opens PR #${cmd.number} on GitHub.` });
       return;
@@ -205,7 +209,9 @@ export class DemoHost {
   }
 
   private gitStatus(): void {
-    this.ev({ type: 'git', branch: 'feature/onboarding', repo: 'atlas', changes: this.changes, staged: this.staged, ahead: 1, behind: 0 });
+    // The files the session has touched, as many as there are changes.
+    const files = FILES.slice(0, Math.min(FILES.length, this.changes + this.staged));
+    this.ev({ type: 'git', branch: 'feature/onboarding', repo: 'atlas', changes: this.changes, staged: this.staged, ahead: 1, behind: 0, files });
   }
 
   /** Runs one scripted action; also used by the interactive demo controls. */

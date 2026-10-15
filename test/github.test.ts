@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { attentionOf, type AttentionInput } from '../src/core/attention';
+import { attentionOf, loudest, severityOf, type AttentionInput } from '../src/core/attention';
 import type { DevEventBody, PullRequestRef } from '../src/core/events';
 import { isClientCommand } from '../src/core/protocol';
 import { applyComparisons, compareQuery, fetchPullRequests, GitHubError, parseGitHubRemote, parsePullRequests, type FetchLike } from '../src/host/github';
@@ -177,10 +177,12 @@ describe('what needs you', () => {
         { id: 'e', name: 'Busy', status: 'working', since: 0 },
       ],
       yourTurn: { agentId: 'f', agent: 'Gemini', since: 50_000 },
+      buildFailing: { since: 10_000 },
       pullRequests: [prState(12, { onBranch: true, ci: 'failing', conflict: true }), prState(11, { ci: 'failing' }), prState(10, { mine: true, review: 'changes-requested' })],
     });
     expect(list.map((a) => a.text)).toEqual([
       'Aider stopped · rate limit',
+      'Build failing',
       'Codex has a question',
       'Claude needs approval · Bash',
       'Gemini finished · your turn',
@@ -189,6 +191,15 @@ describe('what needs you', () => {
     ]);
     expect(list[0].target).toEqual({ type: 'agent', agentId: 'c' });
     expect(list.at(-1)?.target).toEqual({ type: 'pr', number: 10 });
+  });
+
+  it('rates each kind: stops are blocking, your turn and PRs moderate', () => {
+    expect(['problem', 'build', 'question', 'plan', 'approval'].map((k) => severityOf(k as never))).toEqual(Array(5).fill('blocking'));
+    expect(severityOf('turn')).toBe('moderate');
+    expect(severityOf('pr')).toBe('moderate');
+    expect(loudest(['general', 'moderate'])).toBe('moderate');
+    expect(loudest(['general', 'blocking', 'moderate'])).toBe('blocking');
+    expect(loudest([])).toBeUndefined();
   });
 
   it('keeps tool names and error details off the glass in streaming mode', () => {
@@ -239,7 +250,7 @@ describe('pull requests in the session', () => {
 
 describe('display commands', () => {
   it('accepts the new clicks and nothing malformed', () => {
-    for (const cmd of [{ type: 'focusAgent' }, { type: 'focusAgent', agentId: 'claude:1' }, { type: 'openSourceControl' }, { type: 'openPullRequest', number: 9 }, { type: 'connectGitHub' }]) {
+    for (const cmd of [{ type: 'focusAgent' }, { type: 'focusAgent', agentId: 'claude:1' }, { type: 'openSourceControl' }, { type: 'openProblems' }, { type: 'openPullRequest', number: 9 }, { type: 'connectGitHub' }]) {
       expect(isClientCommand(cmd), JSON.stringify(cmd)).toBe(true);
     }
     for (const cmd of [{ type: 'openPullRequest', number: '9' }, { type: 'openPullRequest', number: 0 }, { type: 'openPullRequest', number: 1.5 }, { type: 'focusAgent', agentId: 7 }]) {

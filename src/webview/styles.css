@@ -123,8 +123,7 @@ body {
 .cockpit .stop-card,
 .cockpit .work,
 .cockpit .tour-strip,
-.cockpit .side-mirror,
-.cockpit .mirror {
+.cockpit .side-mirror {
   pointer-events: auto;
 }
 .frame .roof {
@@ -161,38 +160,88 @@ body {
   display: none;
 }
 
-/* ----------------------------------------------------------------- mirror */
+/* ------------------------------------------------------------------ bells */
 
-.mirror {
+/* The Alerts icon at the top of the windshield, where the rear-view mirror's corner was. */
+.alert-bell {
   position: absolute;
-  top: 10px;
+  top: 12px;
+  left: calc(50% + 150px);
   z-index: 5;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(340px, 60vw);
-  transition: opacity 0.4s;
-}
-.mirror-glass {
-  padding: 8px 14px 9px;
-  border-radius: 22px;
-  background: linear-gradient(180deg, rgba(22, 26, 35, 0.86), rgba(8, 10, 14, 0.9));
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--ink-faint);
+  background: var(--glass);
   border: 1px solid var(--line);
-  box-shadow:
-    0 8px 30px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+  transition:
+    color 0.3s,
+    box-shadow 0.3s,
+    opacity 0.4s;
 }
-.mirror-title {
+.alert-bell .icon,
+.tab-alerts .icon {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+.mode-work .alert-bell,
+.overlay-open .alert-bell {
+  opacity: 0;
+  pointer-events: none;
+}
+/* Lit by the loudest alert: red stopped the car, orange needs you, blue is worth a look. */
+.lit-blocking {
+  --lit: 255, 107, 91;
+}
+.lit-moderate {
+  --lit: 255, 179, 92;
+}
+.lit-general {
+  --lit: 111, 151, 255;
+}
+.alert-bell:is(.lit-blocking, .lit-moderate, .lit-general) {
+  color: rgb(var(--lit));
+  border-color: rgba(var(--lit), 0.7);
+  box-shadow:
+    0 0 18px rgba(var(--lit), 0.45),
+    inset 0 0 10px rgba(var(--lit), 0.18);
+}
+.alert-bell.lit-blocking {
+  animation: bell-pulse 1.6s ease-in-out infinite;
+}
+@keyframes bell-pulse {
+  50% {
+    box-shadow:
+      0 0 26px rgba(var(--lit), 0.7),
+      inset 0 0 12px rgba(var(--lit), 0.3);
+  }
+}
+.alert-bell:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* Recent: what just happened, in the Console tab. */
+.recent-title {
+  margin: 10px 0 2px;
   font-size: 0.68em;
-  letter-spacing: 0.22em;
+  font-weight: 600;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
-.mirror-list {
+.recent-list {
   list-style: none;
-  margin: 2px 0 0;
+  margin: 0;
   padding: 0;
 }
-.mirror-list li {
+.recent-list li {
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -200,17 +249,17 @@ body {
   white-space: nowrap;
   padding: 1px 0;
 }
-.mirror-list li span {
+.recent-list li span {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.mirror-list time {
+.recent-list time {
   color: var(--ink-faint);
   font-variant-numeric: tabular-nums;
 }
-.mirror-list .tone-good span::before,
-.mirror-list .tone-bad span::before,
-.mirror-list .tone-agent span::before {
+.recent-list .tone-good span::before,
+.recent-list .tone-bad span::before,
+.recent-list .tone-agent span::before {
   content: '';
   display: inline-block;
   width: 6px;
@@ -219,25 +268,14 @@ body {
   margin-right: 7px;
   vertical-align: 1px;
 }
-.mirror-list .tone-good span::before {
+.recent-list .tone-good span::before {
   background: var(--green);
 }
-.mirror-list .tone-bad span::before {
+.recent-list .tone-bad span::before {
   background: var(--red);
 }
-.mirror-list .tone-agent span::before {
+.recent-list .tone-agent span::before {
   background: var(--cyan);
-}
-.mode-tour .mirror-list li:nth-child(n + 3) {
-  display: none;
-}
-.mode-tour .mirror {
-  opacity: 0.82;
-}
-.mode-work .mirror,
-.overlay-open .mirror {
-  opacity: 0;
-  pointer-events: none;
 }
 
 /* -------------------------------------------------------------------- HUD */
@@ -266,44 +304,7 @@ body {
   font-weight: 500;
   margin-top: 2px;
 }
-.hud-chips {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-top: 8px;
-}
-.chip {
-  font-size: 0.82em;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: rgba(10, 12, 18, 0.5);
-  border: 1px solid var(--line);
-  backdrop-filter: blur(8px);
-  text-shadow: none;
-}
-.chip-file::before {
-  content: '◇ ';
-  color: var(--amber);
-}
-.chip-task::before {
-  content: '⚑ ';
-  color: var(--green);
-}
-.chip-verify {
-  color: var(--cyan);
-}
-/* Alerts: one glowing chip per thing that needs you, only while it does. */
-.hud-alerts {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
-.hud-alerts:empty {
-  display: none;
-}
+/* Alert pills: one glowing pill per thing that needs you, coloured by how loud it is. */
 .alert {
   --tone: 111, 211, 255;
   display: inline-flex;
@@ -324,25 +325,14 @@ body {
   text-shadow: none;
   animation: alert-in 0.45s ease-out;
 }
-.alert-question,
-.alert-plan,
-.alert-approval {
-  --tone: 111, 211, 255;
-}
-.alert-problem {
+.alert-blocking {
   --tone: 255, 107, 91;
 }
-.alert-turn {
-  --tone: 111, 151, 255;
-}
-.alert-pr {
+.alert-moderate {
   --tone: 255, 179, 92;
 }
-.alert-more {
-  --tone: 255, 255, 255;
-  padding: 5px 12px;
-  color: var(--ink-dim);
-  box-shadow: none;
+.alert-general {
+  --tone: 111, 151, 255;
 }
 .alert-glyph {
   display: grid;
@@ -389,10 +379,7 @@ button.alert:focus-visible {
 .overlay-open .hud {
   opacity: 0;
 }
-.mode-work .hud-alerts,
-.overlay-open .hud-alerts {
-  visibility: hidden;
-}
+
 .stopped .hud-caption {
   opacity: 0;
 }
@@ -422,14 +409,24 @@ button.alert:focus-visible {
   transform: translate(-50%, 0);
   pointer-events: auto !important;
 }
-.stop-title {
-  font-size: 0.8em;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--amber);
+/* The alert that stopped the car, straddling the card's top edge. */
+.stop-pill {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+}
+.stop-pill:empty {
+  display: none;
+}
+.stop-card.has-pill {
+  padding-top: 24px;
+}
+.stop-pill .alert {
+  background: rgba(10, 12, 18, 0.82);
 }
 .stop-line {
-  margin-top: 4px;
   color: var(--ink);
 }
 .stop-detail {
@@ -857,6 +854,80 @@ button.alert:focus-visible {
   color: var(--cyan);
   box-shadow: inset 0 -2px 0 var(--cyan);
 }
+/* Alerts is a bell, not a word: a narrow tab at the far right, lit like the top bell. */
+.tab.tab-alerts {
+  flex: 0 0 46px;
+}
+.tab-alerts:is(.lit-blocking, .lit-moderate, .lit-general) {
+  color: rgb(var(--lit));
+  filter: drop-shadow(0 0 6px rgba(var(--lit), 0.8));
+}
+
+/* Alerts tab: what needs you on the left; the file you're in and the files changed on the right. */
+.alerts-pane {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+}
+@media (max-width: 520px) {
+  .alerts-pane {
+    grid-template-columns: 1fr;
+  }
+}
+.alerts-list,
+.alerts-files {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+.alerts-pane h4 {
+  margin: 4px 0 0;
+  font-size: 0.68em;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.alerts-pane .alert {
+  max-width: 100%;
+  animation: none;
+  text-align: left;
+}
+.file-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.file-pill {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: inherit;
+  font-size: 0.82em;
+  padding: 3px 10px;
+  border-radius: 999px;
+  color: var(--ink);
+  background: rgba(111, 151, 255, 0.1);
+  border: 1px solid rgba(111, 151, 255, 0.35);
+}
+button.file-pill {
+  cursor: pointer;
+}
+button.file-pill:hover {
+  border-color: rgba(111, 151, 255, 0.8);
+}
+.file-pill.file-active {
+  background: rgba(255, 179, 92, 0.1);
+  border-color: rgba(255, 179, 92, 0.4);
+}
+.file-pill.file-active::before {
+  content: '◇ ';
+  color: var(--amber);
+}
+
 .tab-badge:not(:empty) {
   margin-left: 0.5em;
   padding: 0 0.5em;
@@ -878,7 +949,7 @@ button.alert:focus-visible {
   display: grid;
   grid-template-columns: 18px auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
   padding: 6px 4px;
   border: 0;
@@ -904,8 +975,10 @@ button.pr-row:hover {
   filter: drop-shadow(0 0 4px rgba(111, 151, 255, 0.8));
 }
 .pr-num {
-  font: 600 0.82em var(--mono);
-  color: var(--ink-dim);
+  min-width: 2.4em;
+  text-align: center;
+  font: 700 1.45em/1 var(--mono);
+  color: var(--ink);
 }
 .pr-body {
   display: flex;
@@ -2215,7 +2288,7 @@ button.problem:hover {
   stroke-width: 8;
 }
 .high-contrast .hud,
-.high-contrast .mirror-glass,
+.high-contrast .alert-bell,
 .high-contrast .screen {
   background: #000;
 }
@@ -2246,11 +2319,11 @@ button.problem:hover {
 /* ------------------------------------------------------------- responsive */
 
 @media (max-width: 1060px) {
-  .mirror {
-    top: 62px;
-  }
-  .mode-tour .mirror {
-    display: none;
+  /* The top bar fills the top on narrow screens: the bell drops below it, at the right. */
+  .alert-bell {
+    top: 64px;
+    left: auto;
+    right: 16px;
   }
 }
 
@@ -2336,9 +2409,6 @@ button.problem:hover {
   }
   .ticket-stub {
     min-height: 140px;
-  }
-  .mirror {
-    display: none;
   }
   .pane-nav.active {
     grid-template-columns: 1fr;

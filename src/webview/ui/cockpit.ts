@@ -2,7 +2,7 @@ import { waitingFor } from '../../core/attention';
 import { APPROACH_CAP } from '../../core/journey';
 import type { JourneyPack } from '../../core/packs';
 import type { AgentSnapshot, PullRequestSnapshot, TourSnapshot } from '../../core/protocol';
-import { HudAlerts } from './alerts';
+import { alertLevel, alertPill, AlertsPane, bell, lightBell, shownAlerts } from './alerts';
 import type { AppContext } from './context';
 import { CUES, cueTable, litCues, type Cue } from './cues';
 import { clear, formatDuration, formatElapsed, h, renderKeyed, text, timeAgo, toggle } from './dom';
@@ -46,9 +46,9 @@ const STATE_LABEL: Record<string, string> = {
   COMPLETE: 'Arrived',
 };
 
-type Tab = 'nav' | 'radio' | 'prs' | 'trip' | 'console';
-const TABS: Tab[] = ['nav', 'radio', 'prs', 'trip', 'console'];
-const TAB_LABEL: Record<Tab, string> = { nav: 'Nav', radio: 'Radio', prs: 'PRs', trip: 'Trip', console: 'Console' };
+type Tab = 'nav' | 'radio' | 'prs' | 'trip' | 'console' | 'alerts';
+const TABS: Tab[] = ['nav', 'radio', 'prs', 'trip', 'console', 'alerts'];
+const TAB_LABEL: Record<Tab, string> = { nav: 'Nav', radio: 'Radio', prs: 'PRs', trip: 'Trip', console: 'Console', alerts: 'Alerts' };
 
 function light(name: string, label: string): HTMLElement {
   return h('span', { class: `light light-${name}`, title: label, 'aria-label': label, role: 'img' }, h('i'), h('b', {}, label));
@@ -56,12 +56,17 @@ function light(name: string, label: string): HTMLElement {
 
 export class Cockpit {
   readonly root: HTMLElement;
-  private readonly mirrorList = h('ul', { class: 'mirror-list' });
+  /** What just happened, newest first: in the Console tab now the rear-view mirror is gone. */
+  private readonly recent = h('ul', { class: 'recent-list', 'aria-label': 'Recent' });
   private readonly hudLocation = h('div', { class: 'hud-location', 'aria-hidden': 'true' });
   private readonly hudCaption = h('div', { class: 'hud-caption', 'aria-hidden': 'true' });
-  private readonly hudChips = h('div', { class: 'hud-chips', 'aria-hidden': 'true' });
-  private readonly hudAlerts: HudAlerts;
   private readonly stopCard = h('div', { class: 'stop-card', role: 'status' });
+  /** The alert that stopped the car, riding on the stop card's top edge. */
+  private readonly stopPill = h('div', { class: 'stop-pill' });
+  private readonly stopBody = h('div', { class: 'stop-body' });
+  /** The Alerts icon at the top of the windshield: lit by the loudest alert, opens the Alerts tab. */
+  private readonly topBell = h('button', { class: 'alert-bell' }, bell());
+  private readonly alertsPane: AlertsPane;
   private readonly sideLeft = h('div', { class: 'side-mirror left', 'aria-label': 'Side mirror: background agents' });
   private readonly sideRight = h('div', { class: 'side-mirror right', 'aria-label': 'Side mirror: background agents' });
   private readonly speedo = new Gauge({ label: 'Activity', tone: 'amber', ariaLabel: 'Speedometer: development activity' });
@@ -109,16 +114,21 @@ export class Cockpit {
   private stripPack = '';
 
   constructor(private readonly ctx: AppContext) {
-    this.hudAlerts = new HudAlerts(ctx);
+    this.alertsPane = new AlertsPane(ctx);
+    this.stopCard.append(this.stopPill, this.stopBody);
+    this.topBell.addEventListener('click', () => this.showAlerts());
     for (const t of TABS) {
-      const tabEl = h('button', { class: 'tab', role: 'tab', 'aria-selected': t === 'nav' ? 'true' : 'false', onclick: () => this.setTab(t) }, TAB_LABEL[t], t === 'prs' ? this.prsBadge : null);
+      // Alerts is a bell, lit by the loudest alert; the other tabs are words.
+      const content = t === 'alerts' ? [bell()] : [TAB_LABEL[t], t === 'prs' ? this.prsBadge : null];
+      const tabEl = h('button', { class: `tab tab-${t}`, role: 'tab', 'aria-selected': t === 'nav' ? 'true' : 'false', onclick: () => this.setTab(t) }, ...content);
       this.tabs.set(t, tabEl);
     }
     this.panes.set('nav', h('div', { class: 'pane pane-nav' }, this.map.el, this.navInfo));
     this.panes.set('radio', h('div', { class: 'pane' }, this.radio));
     this.panes.set('prs', h('div', { class: 'pane' }, this.prs));
     this.panes.set('trip', h('div', { class: 'pane' }, this.trip));
-    this.panes.set('console', h('div', { class: 'pane' }, this.console));
+    this.panes.set('console', h('div', { class: 'pane' }, this.console, h('h4', { class: 'recent-title' }, 'Recent'), this.recent));
+    this.panes.set('alerts', h('div', { class: 'pane' }, this.alertsPane.el));
 
     this.arriveButton = h(
       'button',
@@ -159,9 +169,10 @@ export class Cockpit {
       'div',
       { class: 'cockpit' },
       h('div', { class: 'frame', 'aria-hidden': 'true' }, h('div', { class: 'roof' }), h('div', { class: 'pillar left' }), h('div', { class: 'pillar right' })),
-      h('div', { class: 'mirror', 'aria-label': 'Rear-view mirror: recent activity' }, h('div', { class: 'mirror-glass' }, h('div', { class: 'mirror-title' }, 'Rear view'), this.mirrorList)),
+      this.topBell,
       // The alerts are for everyone; the rest of the HUD repeats what the screen reader already hears.
-      h('div', { class: 'hud' }, this.hudAlerts.el, this.hudLocation, this.hudCaption, this.hudChips),
+      // The HUD keeps only where you are and what the car is doing; alerts live in the Alerts tab.
+      h('div', { class: 'hud', 'aria-hidden': 'true' }, this.hudLocation, this.hudCaption),
       this.stopCard,
       this.sideLeft,
       this.sideRight,
@@ -170,6 +181,12 @@ export class Cockpit {
       this.work,
     );
     this.setTab('nav');
+  }
+
+  /** The top bell: bring up the dash, open on Alerts. */
+  private showAlerts(): void {
+    if (this.ctx.prefs.mode !== 'dashboard') this.ctx.setMode('dashboard');
+    this.setTab('alerts');
   }
 
   private setTab(t: Tab): void {
@@ -208,23 +225,18 @@ export class Cockpit {
     const a = snap.activity;
     const now = snap.at;
 
-    // Rear-view mirror: recent activity / Git timeline.
-    clear(this.mirrorList);
-    for (const item of snap.ide.history.slice(0, 4)) {
-      this.mirrorList.append(h('li', { class: `tone-${item.tone}` }, h('span', {}, item.label), h('time', {}, timeAgo(item.at, now))));
+    // Recent activity / Git timeline, in the Console tab.
+    clear(this.recent);
+    for (const item of snap.ide.history.slice(0, 8)) {
+      this.recent.append(h('li', { class: `tone-${item.tone}` }, h('span', {}, item.label), h('time', {}, timeAgo(item.at, now))));
     }
-    if (!snap.ide.history.length) this.mirrorList.append(h('li', { class: 'empty' }, 'Open road behind you'));
+    if (!snap.ide.history.length) this.recent.append(h('li', { class: 'empty' }, 'Open road behind you'));
 
     // HUD: where we are, what is happening, current file and task.
     text(this.hudLocation, j ? j.location.label : 'Where do you want to go today?');
     text(this.hudCaption, snap.motion.caption);
-    clear(this.hudChips);
-    if (snap.ide.activeFile) this.hudChips.append(h('span', { class: 'chip chip-file' }, snap.ide.activeFile.name));
-    if (j?.objective) this.hudChips.append(h('span', { class: 'chip chip-task' }, j.objective));
-    const running = snap.ide.processes.find((p) => p.kind === 'test' || p.kind === 'build' || p.kind === 'lint');
-    if (running) this.hudChips.append(h('span', { class: 'chip chip-verify' }, `${running.label} · running`));
 
-    this.hudAlerts.update(snap.attention);
+    this.updateAlerts(snap);
     this.updateStopCard(snap, pack);
     this.updateSideMirrors(snap.ide.agents);
 
@@ -364,13 +376,16 @@ export class Cockpit {
   private pullRequestRow(pr: PullRequestSnapshot, now: number, needsYou: boolean, openable: boolean): HTMLElement {
     const ci = { passing: 'CI passing', failing: 'CI failing', pending: 'CI running', none: 'No CI' }[pr.ci];
     const tags = [pr.draft ? 'draft' : '', pr.conflict ? 'conflict' : '', pr.review === 'changes-requested' ? 'changes requested' : pr.review === 'approved' ? 'approved' : ''].filter(Boolean);
-    // Ahead/behind when GitHub could compare the branch; otherwise how long it has been open.
-    const where = pr.ahead !== undefined && pr.behind !== undefined ? `↑${pr.ahead} ↓${pr.behind} · ${age(now - pr.createdAt)}` : `opened ${age(now - pr.createdAt)} ago`;
-    const label = `Pull request #${pr.number}${pr.title ? `: ${pr.title}` : ''}. ${ci}${tags.length ? `, ${tags.join(', ')}` : ''}. ${pr.onBranch ? 'On your branch. ' : ''}${where.replace('↑', 'ahead ').replace('↓', 'behind ')}`;
+    // Ahead/behind when GitHub could compare the branch, when it was opened, and by whom.
+    const opened = openedAt(pr.createdAt, now);
+    const meta = [pr.ahead !== undefined && pr.behind !== undefined ? `↑${pr.ahead} ↓${pr.behind}` : '', opened, pr.author ? `@${pr.author}` : '', ...tags].filter(Boolean);
+    const label = `Pull request ${pr.number}${pr.title ? `: ${pr.title}` : ''}. ${ci}${tags.length ? `, ${tags.join(', ')}` : ''}. ${pr.onBranch ? 'On your branch. ' : ''}${
+      pr.ahead !== undefined ? `${pr.ahead} ahead, ${pr.behind} behind. ` : ''
+    }Opened ${opened}${pr.author ? ` by ${pr.author}` : ''}.`;
     const children = [
       h('span', { class: 'pr-branch', title: pr.onBranch ? 'On your current branch' : '' }, pr.onBranch ? branchIcon() : null),
       h('span', { class: 'pr-num' }, `#${pr.number}`),
-      h('span', { class: 'pr-body' }, h('strong', {}, pr.title ?? 'Pull request'), h('em', {}, [where, ...tags].join(' · '))),
+      h('span', { class: 'pr-body' }, h('strong', {}, pr.title ?? 'Pull request'), h('em', {}, meta.join(' · '))),
       h('i', { class: `pr-ci ci-${pr.ci}`, title: ci }),
     ];
     const cls = `pr-row${pr.onBranch ? ' on-branch' : ''}${needsYou ? ' needs-you' : ''}`;
@@ -385,38 +400,47 @@ export class Cockpit {
     toggle(this.stopCard, 'show', show);
     if (!show) return;
     const parked = j!.phase === 'parked';
-    let title = '';
     let line = '';
     let detail = '';
     if (parked) {
-      title = 'Parked';
-      line = `Your journey to ${pack?.route.to ?? 'your destination'} is saved. Pick it up whenever you like.`;
+      line = `Parked. Your journey to ${pack?.route.to ?? 'your destination'} is saved; pick it up whenever you like.`;
     } else if (m.behavior === 'pull-over') {
-      title = 'Pulled over safely';
-      line = snap.activity.blockedReason ?? 'Something needs your attention.';
+      line = `Pulled over safely: ${snap.activity.blockedReason ?? 'something needs your attention'}.`;
       // Why, in the agent's words: "Stopped: rate limit".
       if (snap.activity.blockedDetail) detail = snap.activity.blockedDetail;
     } else if (m.stopReason === 'waiting') {
       // Say why the car stopped: a question, a plan to approve, or a tool to allow.
       const a = snap.activity;
-      title = `Scenic stop · ${m.stopName ?? ''}`;
       const why = waitingFor(a.waitingAgent ?? 'Your agent', a.waitingAsk) + (a.waitingAsk === 'approval' && a.waitingTool ? ` to use ${a.waitingTool}` : '');
       line = `${why}. The journey resumes when you ${a.waitingAsk === 'question' ? 'answer' : 'reply'}.`;
     } else if (m.stopReason === 'your-turn') {
-      title = `Scenic stop · ${m.stopName ?? ''}`;
       line = `${snap.activity.yourTurnAgent ?? 'Your agent'} finished its turn. The drive resumes when you reply or get back to work.`;
     } else if (m.stopReason === 'refuel') {
-      title = `Refuelling · ${m.stopName ?? ''}`;
-      line = `Filling up for ${pack?.route.from ?? 'the start'} to ${pack?.route.to ?? 'your destination'} again, by a different way where the road allows.`;
+      line = `Refuelling at ${m.stopName ?? 'the gas station'}, then ${pack?.route.from ?? 'the start'} to ${pack?.route.to ?? 'your destination'} again, by a different way where the road allows.`;
     } else {
-      title = `Scenic stop · ${m.stopName ?? ''}`;
       line = 'Taking a breather. Start working again to continue the drive.';
     }
-    renderKeyed(this.stopCard, `${title}\n${line}\n${detail}`, () => {
-      this.stopCard.append(h('div', { class: 'stop-title' }, title), h('div', { class: 'stop-line' }, line));
-      if (detail) this.stopCard.append(h('div', { class: 'stop-detail' }, detail));
-      if (parked) this.stopCard.append(h('button', { class: 'btn btn-primary', onclick: () => this.ctx.send({ type: 'resume' }) }, 'Resume journey'));
+    // The alert that stopped the car rides on the card's top edge, whatever this display's switches say.
+    const trigger = m.stopAlert ? snap.attention.find((a) => a.id === m.stopAlert) : undefined;
+    toggle(this.stopCard, 'has-pill', !!trigger);
+    renderKeyed(this.stopPill, JSON.stringify(trigger ? [trigger.id, trigger.text] : null), () => {
+      if (trigger) this.stopPill.append(alertPill(trigger, this.ctx));
     });
+    renderKeyed(this.stopBody, `${line}\n${detail}\n${parked}`, () => {
+      this.stopBody.append(h('div', { class: 'stop-line' }, line));
+      if (detail) this.stopBody.append(h('div', { class: 'stop-detail' }, detail));
+      if (parked) this.stopBody.append(h('button', { class: 'btn btn-primary', onclick: () => this.ctx.send({ type: 'resume' }) }, 'Resume journey'));
+    });
+  }
+
+  /** The Alerts tab and both bells. */
+  private updateAlerts(snap: TourSnapshot): void {
+    this.alertsPane.update(snap);
+    const level = alertLevel(snap, this.ctx.prefs);
+    const g = snap.ide.git;
+    const count = shownAlerts(snap.attention, this.ctx.prefs).length + (this.ctx.prefs.alertOnChanges && g && g.changes + g.staged > 0 ? 1 : 0);
+    lightBell(this.topBell, level, count);
+    lightBell(this.tabs.get('alerts')!, level, count);
   }
 
   private updateSideMirrors(agents: AgentSnapshot[]): void {
@@ -618,10 +642,11 @@ export class Cockpit {
   }
 }
 
-/** How long ago, briefly: 12m, 5h, 3d. */
-function age(ms: number): string {
-  const m = Math.max(0, Math.floor(ms / 60_000));
-  if (m < 60) return `${m}m`;
-  const hours = Math.floor(m / 60);
-  return hours < 24 ? `${hours}h` : `${Math.floor(hours / 24)}d`;
+/** When a PR was opened, exactly: "Oct 14, 3:12 PM", with the year when it isn't this one. */
+export function openedAt(at: number, now: number): string {
+  const d = new Date(at);
+  const sameYear = d.getFullYear() === new Date(now).getFullYear();
+  const day = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', ...(sameYear ? {} : { year: 'numeric' }) });
+  const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  return `${day}, ${time}`;
 }

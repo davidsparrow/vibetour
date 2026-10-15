@@ -87,6 +87,8 @@ export interface TourSnapshot {
     caption: string;
     since: number;
     hazard: boolean;
+    /** The attention id of the alert that stopped the car, if one did: it rides on the stop card. */
+    stopAlert?: string;
   };
   activity: {
     state: ActivityState;
@@ -126,6 +128,8 @@ export interface TourSnapshot {
       ahead: number;
       behind: number;
       lastCommit?: { message?: string; at: number };
+      /** The changed files, repository-relative. Hidden in streaming mode. */
+      files?: string[];
     };
     diagnostics: {
       errors: number;
@@ -220,8 +224,10 @@ export interface ClientPrefs {
   changesGauge: boolean;
   /** Dashboard cue for the your-turn moment on this display. */
   yourTurnCue: 'none' | 'light';
-  /** Which kinds of HUD alert this display shows. */
+  /** Which kinds of alert this display lists in its Alerts tab and lights its bells for. */
   hudAlerts: Record<AlertKind, boolean>;
+  /** Uncommitted files light the bells blue. */
+  alertOnChanges: boolean;
   captureIncludeProject: boolean;
   audio: AudioPrefs;
 }
@@ -242,6 +248,7 @@ export const DEFAULT_PREFS: ClientPrefs = {
   changesGauge: true,
   yourTurnCue: 'none',
   hudAlerts: Object.fromEntries(ALERT_KINDS.map((k) => [k, true])) as Record<AlertKind, boolean>,
+  alertOnChanges: true,
   captureIncludeProject: false,
   audio: { enabled: false, master: 0.6, engine: 0.5, road: 0.5, wind: 0.4, weather: 0.6, ambience: 0.6, music: 0.35 },
 };
@@ -281,6 +288,7 @@ export type ClientCommand =
   | { type: 'focusIde' }
   | { type: 'focusAgent'; agentId?: string }
   | { type: 'openSourceControl' }
+  | { type: 'openProblems' }
   | { type: 'openPullRequest'; number: number }
   | { type: 'connectGitHub' }
   | { type: 'savePrefs'; prefs: ClientPrefs }
@@ -316,6 +324,7 @@ export function isClientCommand(raw: unknown): raw is ClientCommand {
     case 'openDocs':
     case 'focusIde':
     case 'openSourceControl':
+    case 'openProblems':
     case 'connectGitHub':
       return true;
     case 'focusAgent':

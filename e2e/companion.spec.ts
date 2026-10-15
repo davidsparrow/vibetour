@@ -54,7 +54,7 @@ test('a browser companion follows a project and its coding agent', async ({ page
   await expect(page.locator('.hud-location')).toHaveText(/Shibuya/);
 
   writeFileSync(join(project, 'feature.ts'), 'export const answer = 42;\n');
-  await expect(page.locator('.mirror-list')).toContainText('feature.ts', { timeout: 15_000 });
+  await expect(page.locator('.recent-list')).toContainText('feature.ts', { timeout: 15_000 });
 
   // A Claude Code hook reports the agent waiting for approval; the forwarder strips content.
   const hook = spawnSync(process.execPath, [join(root, 'bin/vibetour-hook.js')], {

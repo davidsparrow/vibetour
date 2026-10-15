@@ -76,6 +76,7 @@ export class GitPoller {
       staged: status.staged,
       ahead: status.ahead,
       behind: status.behind,
+      files: status.files,
     };
     const key = JSON.stringify(state);
     if (key !== this.lastState) {

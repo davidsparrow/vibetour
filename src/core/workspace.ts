@@ -45,6 +45,7 @@ export interface GitInfo {
   ahead: number;
   behind: number;
   lastCommit?: { message?: string; at: number };
+  files?: string[];
 }
 
 export type HistoryKind = 'save' | 'test' | 'build' | 'lint' | 'commit' | 'branch' | 'agent' | 'process' | 'journey' | 'external' | 'pr';
@@ -191,6 +192,7 @@ export class WorkspaceTracker {
           staged: e.staged,
           ahead: e.ahead,
           behind: e.behind,
+          files: e.files?.slice(0, 50),
           lastCommit: prev?.lastCommit,
         };
         break;

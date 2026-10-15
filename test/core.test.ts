@@ -457,6 +457,9 @@ describe('moments', () => {
     clock.advance(MIN);
     expect(session.latestSnapshot!.motion.behavior).toBe('pull-over');
     expect(moments()).toEqual(['build-failing', 'problems', 'checks-failing', 'your-turn']);
+    // The card carries the reason it pulled over: the failing build.
+    expect(session.latestSnapshot!.attention.map((a) => a.id)).toContain('build');
+    expect(session.latestSnapshot!.motion.stopAlert).toBe('build');
 
     // Parked, the car is no longer pulled over for the build.
     session.park();

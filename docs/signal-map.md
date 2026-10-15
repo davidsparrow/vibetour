@@ -44,8 +44,8 @@ This split decides where any new setting can live.
 
 **Each display draws its own**: a VS Code tab, a companion browser. A dashboard cue can differ per screen, like today's display settings. Each display decides:
 
-- lights, gauges, gear, stop card, mirrors and HUD
-- which HUD alerts show: questions, plans, approvals, an agent that stopped, your turn, pull requests
+- lights, gauges, gear, stop card, side mirrors and HUD
+- which alerts its Alerts tab lists and its bells light for: questions, plans, approvals, an agent that stopped, a build left failing, your turn, pull requests, changed files
 - render settings: reduced motion, weather, frame rate, contrast
 - sound, and which gauges show (Context, Battery)
 - which moments light which cue, such as the blue your-turn light
@@ -79,16 +79,16 @@ Top to bottom is the engine's priority order for the car: the first row that mat
 | --- | --- | --- | --- |
 | **Arrived** | *"Arrived in Big Sur"*. Arrival card with the stamp, *Refuel and drive again* and *Choose next destination*. Refuelling: *"Refuelling at a Carmel Highlands gas station — then Monterey to Big Sur again"*, with a stop card. | Gear **P**. | Fuel reads 100%. Status bar: *Arrived*. Soft music. |
 | **Final approach** | *"Final approach to Big Sur"*. Arrival scenery. | Gear **D**. | Sound follows speed. |
-| **Agent hit a problem** | *"Pulled over safely — Claude needs help"*. Stop card: *Pulled over safely*, with the reason (*Stopped: rate limit*). | **Hazard** on. Gear **P**. | HUD alert: *Claude stopped · rate limit*. Rear view: *Claude hit a problem*. Radio: *Needs help*. Soft music. |
-| **Build left failing** | *"Pulled over safely — Build is failing"*. Stop card. | **Hazard** and **check engine** on. Gear **P**. | Temperature up. Rear view: *Build failed*. Strip: ⚠. |
-| **Agent needs you** | Says why: *"Scenic stop at Bixby Creek Overlook — Claude has a question for you"*, *"… has a plan for you to approve"* or *"… needs your approval"*. The stop card names the tool (*to use Bash*) and says it resumes when you reply. Agents that don't say why: *"… is waiting for you"*. | **Agent waiting** light on. Gear **P**. | HUD alert: *Claude has a question*, *Claude has a plan to approve* or *Claude needs approval · Bash*. Rear view: the same. Radio: *Waiting for you*. Soft music. |
-| **Verifying** | *"Through the tunnel — verification running"*. | Gear **D**. Check engine updates when it ends. | HUD chip *npm test · running*. Strip: *Verifying*. Console spinner. Rear view: *Tests running*, then *passed* or *failed*. |
-| **Agent at work** | *"Steady autopilot cruise — agent at work"*. | Gear **D**. | Tachometer up. Side mirrors show crew agents. Radio shows status. Strip: *1 agent*. Rear view: *Agent edited 3 files*. Bright music. |
-| **You're coding** | *"Cruising"*, *"Departing Monterey"*, or *"Easy pace — reviewing changes"*. | Gear **D**, or **R** within 60 s of opening a diff. | Speedometer up. HUD chip with the active file. Bright music. |
+| **Agent hit a problem** | *"Pulled over safely — Claude needs help"*. Stop card: *Pulled over safely: Claude needs help*, with the reason (*Stopped: rate limit*); red pill on its edge: *Claude stopped · rate limit*. | **Hazard** on. Gear **P**. Bells red. | Alerts tab: the same pill. Recent: *Claude hit a problem*. Radio: *Needs help*. Soft music. |
+| **Build left failing** | *"Pulled over safely — Build is failing"*. Stop card, with a red *Build failing* pill that opens Problems. | **Hazard** and **check engine** on. Gear **P**. Bells red. | Temperature up. Recent: *Build failed*. Strip: ⚠. |
+| **Agent needs you** | Says why: *"Scenic stop at Bixby Creek Overlook — Claude has a question for you"*, *"… has a plan for you to approve"* or *"… needs your approval"*. The stop card names the tool (*to use Bash*) and says it resumes when you reply, with a red pill on its edge: *Claude has a question*, *Claude has a plan to approve* or *Claude needs approval · Bash*. Agents that don't say why: *"… is waiting for you"*. | **Agent waiting** light on. Gear **P**. Bells red. | Alerts tab: the same pill. Recent: the same. Radio: *Waiting for you*. Soft music. |
+| **Verifying** | *"Through the tunnel — verification running"*. | Gear **D**. Check engine updates when it ends. | Console: *npm test* with a spinner. Strip: *Verifying*. Recent: *Tests running*, then *passed* or *failed*. |
+| **Agent at work** | *"Steady autopilot cruise — agent at work"*. | Gear **D**. | Tachometer up. Side mirrors show crew agents. Radio shows status. Strip: *1 agent*. Recent: *Agent edited 3 files*. Bright music. |
+| **You're coding** | *"Cruising"*, *"Departing Monterey"*, or *"Easy pace — reviewing changes"*. | Gear **D**, or **R** within 60 s of opening a diff. | Speedometer up. Alerts tab: the file you're in. Bright music. |
 | **Thinking** | *"Gentle cruising — thinking time"*. | Gear **N** (**R** after a diff). | Medium music. |
 | **Idle** | *"Slowing down — taking a breather"*, then *"Parked at Bixby Creek Overlook — resume whenever you're ready"* with a stop card. | Gear **N**, then **P**. | Soft music once stopped. |
 | **Heads-up** | No change. | **Warnings** light (any errors or warnings). **Check engine** (a failed test, build or lint). | Temperature gauge. Strip: ⚠ and *2 errors*. |
-| **Your turn** | When pulled over: *"Scenic stop at Bixby Creek Overlook — Claude finished, your turn"*. Stop card: *Claude finished its turn*. | **Blue your-turn light**, if this display's Your-turn cue is on (off by default). Gear **P** when pulled over. | HUD alert: *Claude finished · your turn*. Rear view: *Claude finished*. Radio: *Finished*. |
+| **Your turn** | When pulled over: *"Scenic stop at Bixby Creek Overlook — Claude finished, your turn"*. Stop card: *Claude finished its turn*, with an orange *Claude finished · your turn* pill. | **Blue your-turn light**, if this display's Your-turn cue is on (off by default). Gear **P** when pulled over. Bells orange. | Alerts tab: the same pill. Recent: *Claude finished*. Radio: *Finished*. |
 | **Parked** | *"Parked — your journey is saved"*. Stop card with *Resume journey*. | Gear **P**. | Status bar: *Parked*. |
 | **No journey** | *"Where do you want to go today?"* The destination board opens. | — | — |
 
@@ -115,15 +115,16 @@ The same wiring, read the other way: pick an object and see which signals reach 
 | Temperature | Errors, warnings (a fifth as much) and failed checks. | Heads-up, Build left failing |
 | Gear P · R · N · D | P when stopped. R within 60 s of a diff while coding or thinking. D while coding, agent at work, verifying or on final approach. N otherwise. | Every moment |
 | **Windshield and mirrors** | | |
-| Stop card | The car stopped (scenic stop, pull over, refuelling) or the journey is parked. | Agent needs you, Your turn, Idle, Blocked, Parked |
-| HUD | Location and caption, plus chips for the active file, the objective and a running test, build or lint. | Every moment |
-| HUD alerts | What needs you right now, one glowing chip each, only while it does: an agent's question, a plan to approve, an approval (with the tool), an agent that stopped on an error, your turn, and a pull request on your branch or opened by you with a merge conflict, failing CI or requested changes. Most urgent first, four at most. Clicking one goes where you act: the terminal running the agent (else the editor), or the PR on GitHub. Each kind has a switch in Settings › HUD alerts on each screen; all on by default. | Agent needs you, Agent hit a problem, Your turn |
-| Rear-view mirror | The last four events: saves, test/build/check results, commits, branch switches, agent has a question / a plan / needs approval / finished / hit a problem, agent edits, PR opened. | Most moments |
+| Stop card | Why the car stopped, in one line (no title): a question, a plan, an approval, an API error, a failing build, your turn, a breather, refuelling, or parked (with *Resume journey*). When an alert stopped it, that alert's pill straddles the card's top edge, coloured like the bells; clicking it goes where you act. | Agent needs you, Your turn, Idle, Blocked, Parked |
+| HUD | The location and, while moving, the caption. | Every moment |
+| Alerts bell (top of the windshield) | Lit by the loudest alert: **red** when something stopped the car (a question, a plan, an approval, an agent that stopped, a build left failing), **orange** when something needs you but the car may drive on (your turn, a PR of yours that needs you), **blue** for files changed and not committed. Dark when there is nothing. Clicking it opens the dash on the Alerts tab. | Any alert |
+| Rear-view mirror | Removed: its events are the Console tab's *Recent* log. | — |
 | Side mirrors | Crew agents (each Claude Code `Task`/`Agent` call until it reports back), and any agent after the first. | Agent at work |
 | **Center screen and strip** | | |
 | Radio tab | Every agent with its status: Working, Using tools, Waiting for you, Standing by, Finished, Needs help. | Any agent signal |
-| PRs tab | The repository's open pull requests, once you connect GitHub: number, title, CI dot, how far the branch is ahead of and behind its base (else how long it has been open), draft, conflict and review. A lit branch marks the ones on your current branch, listed first. The tab's count turns amber when one needs you. Click a row to open it on GitHub. | Pull requests |
-| Console tab | Running commands with elapsed time, and the last test, build and lint results. | Verifying |
+| Alerts tab (bell) | Left, *Needs you*: a pill per alert, most urgent first, coloured red, orange or blue like the bells, only while it holds; clicking one goes where you act (the agent's terminal, else the editor; the PR on GitHub; Problems). Right: the file you're in, and the changed files (names hidden in Streaming Mode). The tab's bell lights like the top bell. Each kind of alert, and changed files, has a switch in Settings › Alerts on each screen; all on by default. | Agent needs you, Agent hit a problem, Build left failing, Your turn, Pull requests, changes |
+| PRs tab | The repository's open pull requests, once you connect GitHub: a large number, title, CI dot, how far the branch is ahead of and behind its base, when it was opened (*Oct 14, 3:12 PM*) and by whom, draft, conflict and review. A lit branch marks the ones on your current branch, listed first. The tab's count turns amber when one needs you. Click a row to open it on GitHub. | Pull requests |
+| Console tab | Running commands with elapsed time, the last test, build and lint results, and *Recent*: the last eight events (saves, test/build/check results, commits, branch switches, an agent's question / plan / approval / finish / problem, agent edits, PR opened). | Verifying, most moments |
 | Tour strip lights | *Verifying*, ⚠ (check engine), *N errors*, *N agents* working, and the gear. | Verifying, Heads-up, Agent at work |
 | Arrival card | The journey arrived. | Arrived |
 | **Outside the dashboard** | | |
@@ -174,13 +175,13 @@ What each source sends, and the moment it feeds.
 | A terminal command (shell integration) | `process`, classed as test, build, lint, install, run, agent or git | Verifying |
 | A task runs | `process`; background tasks count as running apps | Verifying |
 | Debugging | `process` (run) | — |
-| Git status, commits, branch switches | `git`, `git.commit`, `git.branch` | Rear view, Changes gauge |
+| Git status, commits, branch switches | `git` (counts and changed file names), `git.commit`, `git.branch` | Recent, Changes gauge, Alerts tab |
 | **GitHub** (after you connect it) | | |
-| Open pull requests, every 2 min, sooner after a push or a branch switch | `github.prs`: numbers, titles, branches, authors, CI, review and merge state, ahead/behind. No code. | PRs tab, HUD alerts, rear view |
+| Open pull requests, every 2 min, sooner after a push or a branch switch | `github.prs`: numbers, titles, branches, authors, CI, review and merge state, ahead/behind. No code. | PRs tab, Alerts tab, Recent |
 | **vibetour CLI** | | |
 | A file changes | A save by you, or an outside edit while an agent reports working | You're coding / Agent at work |
-| Git polling | `git`, `git.commit`, `git.branch` | Rear view, Changes gauge |
-| `--prs`: GitHub, with `GITHUB_TOKEN` or the `gh` CLI's sign-in | `github.prs` | PRs tab, HUD alerts |
+| Git polling | `git`, `git.commit`, `git.branch` | Recent, Changes gauge, Alerts tab |
+| `--prs`: GitHub, with `GITHUB_TOKEN` or the `gh` CLI's sign-in | `github.prs` | PRs tab, Alerts tab |
 
 ## The clock behind it
 

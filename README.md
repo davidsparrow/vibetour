@@ -80,12 +80,11 @@ Not in the standard yet:
   | Battery | Laptop battery, where the browser reports it (off by default) |
   | Temperature | Warnings and errors |
   | Check-engine light | Failing builds or tests |
-  | Rear-view mirror | Recent activity and your Git timeline |
   | Side mirrors | Background (crew) agents |
-  | HUD alerts | What needs you now, on the windshield: a question, a plan, an approval, an agent that stopped, your turn, a PR of yours with failing CI, a conflict or requested changes. One click goes there |
+  | Alerts (bell) | What needs you now: a question, a plan, an approval, an agent that stopped, a failing build, your turn, a PR of yours with failing CI, a conflict or requested changes, and changed files. The bells light red, orange or blue; the Alerts tab lists them, and the alert that stopped the car rides on the stop card. One click goes there |
   | Radio | Your AI agents |
   | PRs | The repository's open pull requests, with a lit branch on the ones on your branch (after you connect GitHub) |
-  | Console | Running commands |
+  | Console | Running commands, and recent activity and your Git timeline |
   | Glovebox | Project docs |
   | Gear selector | P / R / N / D |
 
@@ -155,7 +154,7 @@ Each display also has its own settings for these:
 - the **Context** gauge: on by default
 - the **Battery** gauge: off by default
 - the **Changes** gauge: on by default
-- **HUD alerts**: a switch for each kind (questions, plans, approvals, agent stopped, your turn, pull requests), all on by default
+- **Alerts**: a switch for each kind (questions, plans, approvals, agent stopped, build failing, your turn, pull requests, changed files), all on by default
 
 ### Companion Display (second screen)
 

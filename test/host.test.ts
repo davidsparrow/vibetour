@@ -104,8 +104,16 @@ describe('paths', () => {
 
 describe('git helpers', () => {
   it('parses porcelain v1 status with branch info', () => {
-    const out = ['## feature/login...origin/feature/login [ahead 2, behind 1]', 'M  staged.ts', ' M changed.ts', 'MM both.ts', '?? new.ts', 'R  old.ts -> renamed.ts', ''].join('\n');
-    expect(parsePorcelainStatus(out)).toEqual({ branch: 'feature/login', hasUpstream: true, changes: 3, staged: 3, ahead: 2, behind: 1 });
+    const out = ['## feature/login...origin/feature/login [ahead 2, behind 1]', 'M  staged.ts', ' M changed.ts', 'MM both.ts', '?? new.ts', 'R  old.ts -> renamed.ts', '?? "docs/a b.md"', ''].join('\n');
+    expect(parsePorcelainStatus(out)).toEqual({
+      branch: 'feature/login',
+      hasUpstream: true,
+      changes: 4,
+      staged: 3,
+      ahead: 2,
+      behind: 1,
+      files: ['staged.ts', 'changed.ts', 'both.ts', 'new.ts', 'renamed.ts', 'docs/a b.md'],
+    });
     expect(parsePorcelainStatus('## No commits yet on main\n?? a\n')).toMatchObject({ branch: 'main', changes: 1, hasUpstream: false });
     expect(parsePorcelainStatus('## HEAD (no branch)\n').branch).toBeUndefined();
     expect(parsePorcelainStatus('## main\n')).toMatchObject({ branch: 'main', hasUpstream: false, ahead: 0 });
@@ -269,13 +277,13 @@ describe.skipIf(!hasGit)('GitPoller', () => {
       const events: DevEventBody[] = [];
       const poller = new GitPoller(dir, (e) => events.push(e), () => undefined, 60_000);
       await poller.poll();
-      expect(events).toEqual([{ type: 'git', branch: 'main', repo: dir.split(/[\\/]/).pop(), changes: 1, staged: 0, ahead: 0, behind: 0 }]);
+      expect(events).toEqual([{ type: 'git', branch: 'main', repo: dir.split(/[\\/]/).pop(), changes: 1, staged: 0, ahead: 0, behind: 0, files: ['b.txt'] }]);
 
       git('add', '.');
       git('commit', '-qm', 'Add b\n\nWith a body');
       await poller.poll();
       expect(events.slice(1)).toEqual([
-        { type: 'git', branch: 'main', repo: dir.split(/[\\/]/).pop(), changes: 0, staged: 0, ahead: 0, behind: 0 },
+        { type: 'git', branch: 'main', repo: dir.split(/[\\/]/).pop(), changes: 0, staged: 0, ahead: 0, behind: 0, files: [] },
         { type: 'git.commit', message: 'Add b' },
       ]);
 
