@@ -24,6 +24,8 @@ export interface CommandHost {
   enableCompanion(): Promise<void>;
   /** Path of the hook forwarder that agent configs should run. */
   hookScriptPath(): string;
+  /** Sign in to GitHub and show the repository's open pull requests. */
+  readonly prs: { connect(): Promise<void> };
 }
 
 type MoodChoice = Mood | 'anywhere' | 'surprise';
@@ -57,6 +59,7 @@ export function registerCommands(host: CommandHost): vscode.Disposable[] {
     reg('vibetour.capture', () => host.show('capture')),
     reg('vibetour.toggleStreamingMode', () => toggleStreamingMode()),
     reg('vibetour.copyClaudeHooks', () => copyClaudeHooks(host)),
+    reg('vibetour.connectGitHub', () => host.prs.connect()),
   ];
 }
 

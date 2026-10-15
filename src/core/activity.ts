@@ -1,4 +1,4 @@
-import type { DevEvent } from './events';
+import type { AgentAsk, DevEvent } from './events';
 import type { AgentInfo, WorkspaceTracker } from './workspace';
 
 /**
@@ -70,14 +70,21 @@ export interface ActivityReading {
   /** Context-window usage reported by an agent, if any. */
   context: number | null;
   waitingAgent?: string;
+  waitingAgentId?: string;
+  /** What the waiting agent waits for, and the tool it wants approved. */
+  waitingAsk?: AgentAsk;
+  waitingTool?: string;
   blockedReason?: string;
+  /** The agent's own words for an error that blocks, e.g. "Stopped: rate limit". */
+  blockedDetail?: string;
+  blockedAgentId?: string;
   /** What BLOCKED is about. */
   blockedBy?: 'agent' | 'build';
   /**
    * An agent finished its turn and no agent is working or waiting: your move.
    * `quietSince` is the later of the agent finishing and your last input.
    */
-  yourTurn?: { agent: string; since: number; quietSince: number };
+  yourTurn?: { agent: string; agentId: string; since: number; quietSince: number };
 }
 
 class Decay {
@@ -168,7 +175,7 @@ export class ActivityEngine {
       .reduce<AgentInfo | undefined>((latest, a) => (!latest || a.since > latest.since ? a : latest), undefined);
     const yourTurn =
       finished && !working.length && !waiting && !errored
-        ? { agent: finished.name, since: finished.since, quietSince: Math.max(finished.since, ws.lastUserInputAt) }
+        ? { agent: finished.name, agentId: finished.id, since: finished.since, quietSince: Math.max(finished.since, ws.lastUserInputAt) }
         : undefined;
     const verifying = ws.runningVerification().some((p) => now - p.startedAt < cfg.verificationMaxMs);
     const agentProcess = [...ws.processes.values()].some((p) => p.kind === 'agent');
@@ -228,7 +235,12 @@ export class ActivityEngine {
       reviewing: now - ws.lastReviewAt < cfg.reviewWindowMs,
       context: contexts.length ? Math.max(...contexts) : null,
       waitingAgent: basis === 'WAITING_FOR_USER' ? waiting?.name : undefined,
+      waitingAgentId: basis === 'WAITING_FOR_USER' ? waiting?.id : undefined,
+      waitingAsk: basis === 'WAITING_FOR_USER' ? waiting?.ask : undefined,
+      waitingTool: basis === 'WAITING_FOR_USER' ? waiting?.tool : undefined,
       blockedReason,
+      blockedDetail: basis === 'BLOCKED' ? errored?.detail : undefined,
+      blockedAgentId: basis === 'BLOCKED' ? errored?.id : undefined,
       blockedBy: basis === 'BLOCKED' ? (errored ? 'agent' : 'build') : undefined,
       yourTurn,
     };

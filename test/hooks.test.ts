@@ -69,6 +69,90 @@ describe('AgentHookMapper', () => {
     expect(map({ hook_event_name: 'Notification' })).toMatchObject([{ status: 'waiting' }]);
   });
 
+  it('stops for a question or a plan and says which, even when a permission prompt follows', () => {
+    const { session, clock, emit } = makeSession();
+    session.startJourney('california-coast', 'day-trip');
+    const mapper = new AgentHookMapper();
+    const hook = (payload: Record<string, unknown>) => {
+      for (const e of mapper.map(sanitizeHookPayload({ session_id: SESSION, ...payload }))) emit(e);
+      clock.advance(250);
+    };
+    const snap = () => session.latestSnapshot!;
+    const claude = () => snap().ide.agents.find((a) => a.id === 'claude:f00dcafe');
+
+    hook({ hook_event_name: 'UserPromptSubmit' });
+    hook({ hook_event_name: 'PreToolUse', tool_name: 'AskUserQuestion', tool_input: { questions: [{ question: 'hunter2?' }] } });
+    expect(claude()).toMatchObject({ status: 'waiting', ask: 'question', detail: 'Has a question for you' });
+    clock.advance(5_000);
+    expect(snap().motion).toMatchObject({ stopped: true, stopReason: 'waiting' });
+    expect(snap().activity.waitingAsk).toBe('question');
+    expect(snap().motion.caption).toMatch(/Claude has a question for you$/);
+    expect(snap().attention).toEqual([expect.objectContaining({ kind: 'question', text: 'Claude has a question', target: { type: 'agent', agentId: 'claude:f00dcafe' } })]);
+    // The stop card shows the alert that stopped the car.
+    expect(snap().motion.stopAlert).toBe(snap().attention[0].id);
+    expect(snap().ide.history[0].label).toBe('Claude has a question');
+
+    hook({ hook_event_name: 'PostToolUse', tool_name: 'AskUserQuestion' });
+    expect(claude()?.status).toBe('working');
+    expect(snap().attention).toEqual([]);
+
+    hook({ hook_event_name: 'PreToolUse', tool_name: 'ExitPlanMode' });
+    hook({ hook_event_name: 'Notification', notification_type: 'permission_prompt' });
+    expect(claude()).toMatchObject({ status: 'waiting', ask: 'plan' });
+    expect(snap().attention[0]).toMatchObject({ kind: 'plan', text: 'Claude has a plan to approve' });
+  });
+
+  it('names the tool a permission prompt is for', () => {
+    const mapper = new AgentHookMapper();
+    const map = (payload: Record<string, unknown>) => mapper.map(sanitizeHookPayload({ session_id: SESSION, ...payload }));
+    expect(map({ hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: 'rm -rf hunter2' } })).toMatchObject([{ status: 'tool', detail: 'Using Bash' }]);
+    expect(map({ hook_event_name: 'Notification', notification_type: 'permission_prompt' })).toEqual([
+      { type: 'agent', agentId: 'claude:f00dcafe', name: 'Claude', role: 'copilot', status: 'waiting', ask: 'approval', tool: 'Bash', detail: 'Needs your approval to use Bash' },
+    ]);
+    // Once the tool has run, a later prompt can't be pinned on it.
+    map({ hook_event_name: 'PostToolUse', tool_name: 'Bash' });
+    expect(map({ hook_event_name: 'Notification', notification_type: 'permission_prompt' })).toMatchObject([{ ask: 'approval', detail: 'Needs your approval' }]);
+  });
+
+  it('waits for MCP input requests and ignores notices that ask nothing', () => {
+    const mapper = new AgentHookMapper();
+    const map = (payload: Record<string, unknown>) => mapper.map(sanitizeHookPayload({ session_id: SESSION, ...payload }));
+    expect(map({ hook_event_name: 'Notification', notification_type: 'elicitation_dialog' })).toMatchObject([{ status: 'waiting', ask: 'question', detail: 'Needs your input' }]);
+    for (const notification_type of ['elicitation_complete', 'elicitation_response', 'agent_completed', 'quota_auto_resume_fired', 'something_new']) {
+      expect(map({ hook_event_name: 'Notification', notification_type }), notification_type).toEqual([]);
+    }
+  });
+
+  it('pulls over when a turn ends on an API error, and says which', () => {
+    const { session, clock, emit } = makeSession();
+    session.startJourney('california-coast', 'day-trip');
+    const mapper = new AgentHookMapper();
+    const hook = (payload: Record<string, unknown>) => {
+      const events = mapper.map(sanitizeHookPayload({ session_id: SESSION, ...payload }));
+      for (const e of events) emit(e);
+      clock.advance(250);
+      return events;
+    };
+    hook({ hook_event_name: 'UserPromptSubmit' });
+    const crew = hook({ hook_event_name: 'PreToolUse', tool_name: 'Task', tool_use_id: 'toolu_x', subagent_type: 'Explore' })[1] as Extract<DevEventBody, { type: 'agent' }>;
+    const events = hook({ hook_event_name: 'StopFailure', error: 'rate_limit', error_details: '429 hunter2', last_assistant_message: 'API Error: hunter2' });
+    expect(events).toEqual([
+      { type: 'agent.remove', agentId: crew.agentId },
+      { type: 'agent', agentId: 'claude:f00dcafe', name: 'Claude', role: 'copilot', status: 'error', detail: 'Stopped: rate limit' },
+    ]);
+    clock.advance(5_000);
+    const snap = session.latestSnapshot!;
+    expect(snap.motion.behavior).toBe('pull-over');
+    expect(snap.activity.blockedDetail).toBe('Stopped: rate limit');
+    expect(snap.attention).toEqual([expect.objectContaining({ kind: 'problem', text: 'Claude stopped · rate limit' })]);
+    expect(snap.motion.stopAlert).toBe('agent:claude:f00dcafe');
+
+    // Unknown kinds are read out plainly; prototype names are just names.
+    expect(mapper.map(sanitizeHookPayload({ session_id: SESSION, hook_event_name: 'StopFailure', error: 'new_kind' }))).toMatchObject([{ detail: 'Stopped: new kind' }]);
+    expect(mapper.map(sanitizeHookPayload({ session_id: SESSION, hook_event_name: 'StopFailure', error: 'constructor' }))).toMatchObject([{ detail: 'Stopped: constructor' }]);
+    expect(mapper.map(sanitizeHookPayload({ session_id: SESSION, hook_event_name: 'StopFailure' }))).toMatchObject([{ detail: 'Stopped: API error' }]);
+  });
+
   it('retires crew agents whose delegating call never reported back when the turn ends', () => {
     const mapper = new AgentHookMapper();
     const map = (payload: Record<string, unknown>) => mapper.map({ session_id: SESSION, ...payload });
@@ -159,6 +243,14 @@ describe('sanitizeHookPayload', () => {
     expect(JSON.stringify(clean)).not.toMatch(/hunter2|sk-123|acme|\.env/);
   });
 
+  it("keeps a StopFailure's error kind, never its details", () => {
+    expect(sanitizeHookPayload({ hook_event_name: 'StopFailure', error: 'rate_limit', error_details: '429', last_assistant_message: 'API Error' })).toEqual({
+      hook_event_name: 'StopFailure',
+      error: 'rate_limit',
+    });
+    for (const error of ['Rate limit', 'rate-limit; rm -rf', 'x'.repeat(41), 42]) expect(sanitizeHookPayload({ error })).not.toHaveProperty('error');
+  });
+
   it('copes with junk', () => {
     expect(sanitizeHookPayload(null)).toEqual({});
     expect(sanitizeHookPayload('PreToolUse')).toEqual({});
@@ -176,5 +268,9 @@ describe('parseNeutralAgentEvent', () => {
     expect(parseNeutralAgentEvent({ type: 'agent', agentId: 'a', name: 'Aider', status: 'dancing' })).toBeUndefined();
     expect(parseNeutralAgentEvent({ type: 'agent', agentId: 'a', name: 'A', status: 'idle', context: 7 })).toMatchObject({ context: undefined });
     expect(parseNeutralAgentEvent({ type: 'agent.remove', agentId: 'a' })).toEqual({ type: 'agent.remove', agentId: 'a' });
+    // What a waiting agent waits for, and the tool it wants approved.
+    expect(parseNeutralAgentEvent({ type: 'agent', agentId: 'a', name: 'Aider', status: 'waiting', ask: 'approval', tool: 'shell' })).toMatchObject({ ask: 'approval', tool: 'shell' });
+    expect(parseNeutralAgentEvent({ type: 'agent', agentId: 'a', name: 'Aider', status: 'waiting', ask: 'bribe' })).not.toHaveProperty('ask');
+    expect(parseNeutralAgentEvent({ type: 'agent', agentId: 'a', name: 'Aider', status: 'working', ask: 'question' })).not.toHaveProperty('ask');
   });
 });

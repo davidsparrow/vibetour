@@ -86,6 +86,20 @@ describe('bin/vibetour-hook.js', () => {
     expect(JSON.stringify(received)).not.toContain(SECRET);
   });
 
+  it('forwards the kind of API error that ended a turn, never its details', async () => {
+    const payload = {
+      session_id: '0123456789abcdef',
+      hook_event_name: 'StopFailure',
+      error: 'rate_limit',
+      error_details: `429 Too Many Requests ${SECRET}`,
+      last_assistant_message: `API Error: ${SECRET}`,
+    };
+    const run = await runHook(home, { stdin: JSON.stringify(payload) });
+    expect(run).toMatchObject({ code: 0, stdout: '', stderr: '' });
+    expect(received).toEqual([[{ type: 'agent', agentId: 'claude:01234567', name: 'Claude', role: 'copilot', status: 'error', detail: 'Stopped: rate limit' }]]);
+    expect(JSON.stringify(received)).not.toContain(SECRET);
+  });
+
   it('accepts Codex notify payloads as the last argument', async () => {
     const notify = { type: 'agent-turn-complete', 'turn-id': '1', 'last-assistant-message': SECRET, 'input-messages': ['secret'] };
     const run = await runHook(home, { args: ['--provider', 'codex', JSON.stringify(notify)] });

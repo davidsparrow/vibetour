@@ -1,11 +1,14 @@
+import { waitingFor } from '../../core/attention';
 import { APPROACH_CAP } from '../../core/journey';
 import type { JourneyPack } from '../../core/packs';
-import type { AgentSnapshot, TourSnapshot } from '../../core/protocol';
+import type { AgentSnapshot, PullRequestSnapshot, TourSnapshot } from '../../core/protocol';
 import { ROLE_LABEL, STATUS_LABEL } from './agents';
+import { alertLevel, alertPill, AlertsPane, bell, lightBell, shownAlerts } from './alerts';
 import type { AppContext } from './context';
 import { CUES, cueTable, litCues, type Cue } from './cues';
 import { clear, formatDuration, formatElapsed, h, renderKeyed, text, timeAgo, toggle } from './dom';
 import { Gauge } from './gauges';
+import { branchIcon } from './icons';
 import { RouteMap } from './map';
 import type { RadioDeck } from './radioDeck';
 
@@ -26,7 +29,9 @@ const STATE_LABEL: Record<string, string> = {
   COMPLETE: 'Arrived',
 };
 
-export type Tab = 'nav' | 'radio' | 'trip' | 'console';
+export type Tab = 'nav' | 'radio' | 'prs' | 'trip' | 'console' | 'alerts';
+const TABS: Tab[] = ['nav', 'radio', 'prs', 'trip', 'console', 'alerts'];
+const TAB_LABEL: Record<Tab, string> = { nav: 'Nav', radio: 'Radio', prs: 'PRs', trip: 'Trip', console: 'Console', alerts: 'Alerts' };
 
 function light(name: string, label: string): HTMLElement {
   return h('span', { class: `light light-${name}`, title: label, 'aria-label': label, role: 'img' }, h('i'), h('b', {}, label));
@@ -34,11 +39,17 @@ function light(name: string, label: string): HTMLElement {
 
 export class Cockpit {
   readonly root: HTMLElement;
-  private readonly mirrorList = h('ul', { class: 'mirror-list' });
-  private readonly hudLocation = h('div', { class: 'hud-location' });
-  private readonly hudCaption = h('div', { class: 'hud-caption' });
-  private readonly hudChips = h('div', { class: 'hud-chips' });
+  /** What just happened, newest first: in the Console tab now the rear-view mirror is gone. */
+  private readonly recent = h('ul', { class: 'recent-list', 'aria-label': 'Recent' });
+  private readonly hudLocation = h('div', { class: 'hud-location', 'aria-hidden': 'true' });
+  private readonly hudCaption = h('div', { class: 'hud-caption', 'aria-hidden': 'true' });
   private readonly stopCard = h('div', { class: 'stop-card', role: 'status' });
+  /** The alert that stopped the car, riding on the stop card's top edge. */
+  private readonly stopPill = h('div', { class: 'stop-pill' });
+  private readonly stopBody = h('div', { class: 'stop-body' });
+  /** The Alerts icon on the rear-view mirror's top-right corner: lit by the loudest alert, opens the Alerts tab. */
+  private readonly topBell = h('button', { class: 'alert-bell' }, bell());
+  private readonly alertsPane: AlertsPane;
   private readonly sideLeft = h('div', { class: 'side-mirror left', 'aria-label': 'Side mirror: background agents' });
   private readonly sideRight = h('div', { class: 'side-mirror right', 'aria-label': 'Side mirror: background agents' });
   private readonly speedo = new Gauge({ label: 'Activity', tone: 'amber', ariaLabel: 'Speedometer: development activity' });
@@ -47,7 +58,10 @@ export class Cockpit {
   private readonly contextGauge = new Gauge({ label: 'Context', size: 'small', tone: 'cyan', ends: ['E', 'F'], ticks: 5, ariaLabel: 'Agent context window left' });
   private readonly batteryGauge = new Gauge({ label: 'Battery', size: 'small', tone: 'green', ends: ['E', 'F'], ticks: 5, ariaLabel: 'Battery' });
   private readonly temp = new Gauge({ label: 'Issues', size: 'small', tone: 'red', ends: ['C', 'H'], ticks: 5, ariaLabel: 'Temperature: warnings and errors' });
-  private readonly miniGauges = h('div', { class: 'mini-gauges' }, this.fuel.el, this.contextGauge.el, this.batteryGauge.el, this.temp.el);
+  /** Files changed and not committed, like the editor's Source Control badge; clicking opens it. */
+  private readonly changesGauge = new Gauge({ label: 'Changes', size: 'small', tone: 'blue', ticks: 5, needle: false, icon: branchIcon(), ariaLabel: 'Uncommitted changes' });
+  private readonly changesButton = h('button', { class: 'gauge-btn', onclick: () => this.openSourceControl() }, this.changesGauge.el);
+  private readonly miniGauges = h('div', { class: 'mini-gauges' }, this.fuel.el, this.contextGauge.el, this.batteryGauge.el, this.changesButton, this.temp.el);
   private readonly lights = h(
     'div',
     { class: 'lights' },
@@ -65,6 +79,8 @@ export class Cockpit {
   private readonly map = new RouteMap();
   private readonly navInfo = h('div', { class: 'nav-info' });
   private readonly radio = h('div', { class: 'radio' });
+  private readonly prs = h('div', { class: 'prs' });
+  private readonly prsBadge = h('span', { class: 'tab-badge' });
   private readonly trip = h('div', { class: 'trip' });
   private readonly console = h('div', { class: 'console' });
   private readonly strip = h('div', { class: 'tour-strip' });
@@ -85,16 +101,22 @@ export class Cockpit {
     private readonly ctx: AppContext,
     private readonly deck: RadioDeck,
   ) {
-    for (const t of ['nav', 'radio', 'trip', 'console'] as Tab[]) {
-      const label = { nav: 'Nav', radio: 'Radio', trip: 'Trip', console: 'Console' }[t];
-      const tabEl = h('button', { class: 'tab', role: 'tab', 'aria-selected': t === 'nav' ? 'true' : 'false', onclick: () => this.setTab(t) }, label);
+    this.alertsPane = new AlertsPane(ctx);
+    this.stopCard.append(this.stopPill, this.stopBody);
+    this.topBell.addEventListener('click', () => this.showAlerts());
+    for (const t of TABS) {
+      // Alerts is a bell, lit by the loudest alert; the other tabs are words.
+      const content = t === 'alerts' ? [bell()] : [TAB_LABEL[t], t === 'prs' ? this.prsBadge : null];
+      const tabEl = h('button', { class: `tab tab-${t}`, role: 'tab', 'aria-selected': t === 'nav' ? 'true' : 'false', onclick: () => this.setTab(t) }, ...content);
       this.tabs.set(t, tabEl);
     }
     this.panes.set('nav', h('div', { class: 'pane pane-nav' }, this.map.el, this.navInfo));
     this.radio.append(deck.el);
     this.panes.set('radio', h('div', { class: 'pane pane-radio' }, this.radio));
+    this.panes.set('prs', h('div', { class: 'pane' }, this.prs));
     this.panes.set('trip', h('div', { class: 'pane' }, this.trip));
-    this.panes.set('console', h('div', { class: 'pane' }, this.console));
+    this.panes.set('console', h('div', { class: 'pane' }, this.console, h('h4', { class: 'recent-title' }, 'Recent'), this.recent));
+    this.panes.set('alerts', h('div', { class: 'pane' }, this.alertsPane.el));
 
     this.arriveButton = h(
       'button',
@@ -135,8 +157,11 @@ export class Cockpit {
       'div',
       { class: 'cockpit' },
       h('div', { class: 'frame', 'aria-hidden': 'true' }, h('div', { class: 'roof' }), h('div', { class: 'pillar left' }), h('div', { class: 'pillar right' })),
-      h('div', { class: 'mirror', 'aria-label': 'Rear-view mirror: recent activity' }, h('div', { class: 'mirror-glass' }, h('div', { class: 'mirror-title' }, 'Rear view'), this.mirrorList)),
-      h('div', { class: 'hud', 'aria-hidden': 'true' }, this.hudLocation, this.hudCaption, this.hudChips),
+      // The rear-view mirror is just a mirror now; its only display is the Alerts bell on its corner.
+      h('div', { class: 'mirror-wrap' }, h('div', { class: 'mirror', 'aria-hidden': 'true' }, h('div', { class: 'mirror-glass' })), this.topBell),
+      // The alerts are for everyone; the rest of the HUD repeats what the screen reader already hears.
+      // The HUD keeps only where you are and what the car is doing; alerts live in the Alerts tab.
+      h('div', { class: 'hud', 'aria-hidden': 'true' }, this.hudLocation, this.hudCaption),
       this.stopCard,
       this.sideLeft,
       this.sideRight,
@@ -149,6 +174,12 @@ export class Cockpit {
 
   showTab(t: Tab): void {
     this.setTab(t);
+  }
+
+  /** The top bell: bring up the dash, open on Alerts. */
+  private showAlerts(): void {
+    if (this.ctx.prefs.mode !== 'dashboard') this.ctx.setMode('dashboard');
+    this.setTab('alerts');
   }
 
   private setTab(t: Tab): void {
@@ -194,22 +225,18 @@ export class Cockpit {
     const a = snap.activity;
     const now = snap.at;
 
-    // Rear-view mirror: recent activity / Git timeline.
-    clear(this.mirrorList);
-    for (const item of snap.ide.history.slice(0, 4)) {
-      this.mirrorList.append(h('li', { class: `tone-${item.tone}` }, h('span', {}, item.label), h('time', {}, timeAgo(item.at, now))));
+    // Recent activity / Git timeline, in the Console tab.
+    clear(this.recent);
+    for (const item of snap.ide.history.slice(0, 8)) {
+      this.recent.append(h('li', { class: `tone-${item.tone}` }, h('span', {}, item.label), h('time', {}, timeAgo(item.at, now))));
     }
-    if (!snap.ide.history.length) this.mirrorList.append(h('li', { class: 'empty' }, 'Open road behind you'));
+    if (!snap.ide.history.length) this.recent.append(h('li', { class: 'empty' }, 'Open road behind you'));
 
     // HUD: where we are, what is happening, current file and task.
     text(this.hudLocation, j ? j.location.label : 'Where do you want to go today?');
     text(this.hudCaption, snap.motion.caption);
-    clear(this.hudChips);
-    if (snap.ide.activeFile) this.hudChips.append(h('span', { class: 'chip chip-file' }, snap.ide.activeFile.name));
-    if (j?.objective) this.hudChips.append(h('span', { class: 'chip chip-task' }, j.objective));
-    const running = snap.ide.processes.find((p) => p.kind === 'test' || p.kind === 'build' || p.kind === 'lint');
-    if (running) this.hudChips.append(h('span', { class: 'chip chip-verify' }, `${running.label} · running`));
 
+    this.updateAlerts(snap);
     this.updateStopCard(snap, pack);
     this.updateSideMirrors(snap.ide.agents);
 
@@ -220,6 +247,7 @@ export class Cockpit {
     this.updateFuel(snap);
     this.updateContextGauge(snap);
     this.updateBatteryGauge();
+    this.updateChangesGauge(snap);
     this.miniGauges.dataset.count = String([...this.miniGauges.children].filter((g) => !(g as HTMLElement).hidden).length);
     const issues = snap.ide.diagnostics.errors;
     this.temp.set(a.errorIntensity, String(issues), `${issues} errors, ${snap.ide.diagnostics.warnings} warnings`);
@@ -249,6 +277,7 @@ export class Cockpit {
     this.updateNav(snap, pack);
     this.deck.updateAgents(snap.ide.agents);
     this.deck.setPack(j?.packId);
+    this.updatePullRequests(snap);
     this.updateTrip(snap);
     this.updateConsole(snap);
     this.updateStrip(snap, pack);
@@ -277,6 +306,94 @@ export class Cockpit {
     this.batteryGauge.set(b.level, `${pct}%`, `Battery ${pct} percent${b.charging ? ', charging' : ''}`);
   }
 
+  private updateChangesGauge(snap: TourSnapshot): void {
+    const g = snap.ide.git;
+    this.changesButton.hidden = !this.ctx.prefs.changesGauge || !g;
+    if (!g) return;
+    const files = g.changes + g.staged;
+    const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+    const said = [
+      files ? `${plural(files, 'file', 'files')} changed, not committed` : 'Nothing to commit',
+      g.staged ? `${g.staged} staged` : '',
+      g.ahead ? `${plural(g.ahead, 'commit', 'commits')} to push` : '',
+    ]
+      .filter(Boolean)
+      .join(', ');
+    // The ring fills toward twenty files; the number is the count.
+    this.changesGauge.set(Math.min(1, files / 20), String(files), said);
+    this.changesGauge.setNote(g.ahead ? `↑${g.ahead}` : '');
+    toggle(this.changesGauge.el, 'gauge-lit', files > 0);
+    const canOpen = !!this.ctx.host?.capabilities.openScm;
+    this.changesButton.disabled = !canOpen;
+    this.changesButton.title = canOpen ? `${said}. Open Source Control` : said;
+    this.changesButton.setAttribute('aria-label', this.changesButton.title);
+  }
+
+  private openSourceControl(): void {
+    if (this.ctx.host?.capabilities.openScm) this.ctx.send({ type: 'openSourceControl' });
+  }
+
+  private updatePullRequests(snap: TourSnapshot): void {
+    const feed = snap.ide.pullRequests;
+    const caps = this.ctx.host?.capabilities;
+    const needYou = snap.attention.filter((a) => a.kind === 'pr').length;
+    text(this.prsBadge, feed.items.length ? String(feed.items.length) : '');
+    toggle(this.prsBadge, 'hot', needYou > 0);
+    const minutes = Math.floor(snap.at / 60_000);
+    const key = JSON.stringify([feed.state, feed.items, !!caps?.openLinks, !!caps?.connectGitHub, this.ctx.host?.kind, minutes]);
+    renderKeyed(this.prs, key, () => this.renderPullRequests(snap, feed.items));
+  }
+
+  private renderPullRequests(snap: TourSnapshot, items: PullRequestSnapshot[]): void {
+    const feed = snap.ide.pullRequests;
+    const caps = this.ctx.host?.capabilities;
+    const connect = (label: string) =>
+      caps?.connectGitHub
+        ? h('button', { class: 'btn btn-primary', onclick: () => this.ctx.send({ type: 'connectGitHub' }) }, label)
+        : h('p', { class: 'small muted' }, this.ctx.host?.kind === 'cli' ? 'Start the companion with --prs to show them (it uses GITHUB_TOKEN or the gh CLI’s sign-in).' : 'Shown in VS Code once you connect GitHub.');
+    if (feed.state === 'off') {
+      this.prs.append(h('p', { class: 'muted' }, "See this repository's open pull requests here, and get an alert when one of yours needs you."), connect('Connect GitHub'));
+      return;
+    }
+    if (feed.state === 'signed-out') {
+      this.prs.append(h('p', { class: 'muted' }, 'Signed out of GitHub.'), connect('Sign in to GitHub'));
+      return;
+    }
+    if (feed.state === 'no-remote') {
+      this.prs.append(h('p', { class: 'muted' }, 'This repository has no GitHub remote.'));
+      return;
+    }
+    if (!items.length) {
+      this.prs.append(h('p', { class: 'muted' }, feed.state === 'error' ? "GitHub didn't answer. Trying again in a few minutes." : 'No open pull requests.'));
+      return;
+    }
+    // Yours on this branch first, then yours, then the newest.
+    const ordered = [...items].sort((a, b) => Number(b.onBranch) - Number(a.onBranch) || Number(b.mine) - Number(a.mine) || b.createdAt - a.createdAt);
+    const trouble = new Set(snap.attention.filter((a) => a.kind === 'pr' && a.target.type === 'pr').map((a) => (a.target as { number: number }).number));
+    for (const pr of ordered) this.prs.append(this.pullRequestRow(pr, snap.at, trouble.has(pr.number), !!caps?.openLinks));
+    if (feed.state === 'error') this.prs.append(h('p', { class: 'small muted' }, "GitHub didn't answer the last check; this list may be out of date."));
+  }
+
+  private pullRequestRow(pr: PullRequestSnapshot, now: number, needsYou: boolean, openable: boolean): HTMLElement {
+    const ci = { passing: 'CI passing', failing: 'CI failing', pending: 'CI running', none: 'No CI' }[pr.ci];
+    const tags = [pr.draft ? 'draft' : '', pr.conflict ? 'conflict' : '', pr.review === 'changes-requested' ? 'changes requested' : pr.review === 'approved' ? 'approved' : ''].filter(Boolean);
+    // Ahead/behind when GitHub could compare the branch, when it was opened, and by whom.
+    const opened = openedAt(pr.createdAt, now);
+    const meta = [pr.ahead !== undefined && pr.behind !== undefined ? `↑${pr.ahead} ↓${pr.behind}` : '', opened, pr.author ? `@${pr.author}` : '', ...tags].filter(Boolean);
+    const label = `Pull request ${pr.number}${pr.title ? `: ${pr.title}` : ''}. ${ci}${tags.length ? `, ${tags.join(', ')}` : ''}. ${pr.onBranch ? 'On your branch. ' : ''}${
+      pr.ahead !== undefined ? `${pr.ahead} ahead, ${pr.behind} behind. ` : ''
+    }Opened ${opened}${pr.author ? ` by ${pr.author}` : ''}.`;
+    const children = [
+      h('span', { class: 'pr-branch', title: pr.onBranch ? 'On your current branch' : '' }, pr.onBranch ? branchIcon() : null),
+      h('span', { class: 'pr-num' }, `#${pr.number}`),
+      h('span', { class: 'pr-body' }, h('strong', {}, pr.title ?? 'Pull request'), h('em', {}, meta.join(' · '))),
+      h('i', { class: `pr-ci ci-${pr.ci}`, title: ci }),
+    ];
+    const cls = `pr-row${pr.onBranch ? ' on-branch' : ''}${needsYou ? ' needs-you' : ''}`;
+    if (!openable) return h('div', { class: cls, 'aria-label': label }, ...children);
+    return h('button', { class: cls, title: 'Open on GitHub', 'aria-label': label, onclick: () => this.ctx.send({ type: 'openPullRequest', number: pr.number }) }, ...children);
+  }
+
   private updateStopCard(snap: TourSnapshot, pack?: JourneyPack): void {
     const m = snap.motion;
     const j = snap.journey;
@@ -284,31 +401,47 @@ export class Cockpit {
     toggle(this.stopCard, 'show', show);
     if (!show) return;
     const parked = j!.phase === 'parked';
-    let title = '';
     let line = '';
+    let detail = '';
     if (parked) {
-      title = 'Parked';
-      line = `Your journey to ${pack?.route.to ?? 'your destination'} is saved. Pick it up whenever you like.`;
+      line = `Parked. Your journey to ${pack?.route.to ?? 'your destination'} is saved; pick it up whenever you like.`;
     } else if (m.behavior === 'pull-over') {
-      title = 'Pulled over safely';
-      line = snap.activity.blockedReason ?? 'Something needs your attention.';
+      line = `Pulled over safely: ${snap.activity.blockedReason ?? 'something needs your attention'}.`;
+      // Why, in the agent's words: "Stopped: rate limit".
+      if (snap.activity.blockedDetail) detail = snap.activity.blockedDetail;
     } else if (m.stopReason === 'waiting') {
-      title = `Scenic stop · ${m.stopName ?? ''}`;
-      line = `${snap.activity.waitingAgent ?? 'Your agent'} is waiting for you. The journey resumes when you reply.`;
+      // Say why the car stopped: a question, a plan to approve, or a tool to allow.
+      const a = snap.activity;
+      const why = waitingFor(a.waitingAgent ?? 'Your agent', a.waitingAsk) + (a.waitingAsk === 'approval' && a.waitingTool ? ` to use ${a.waitingTool}` : '');
+      line = `${why}. The journey resumes when you ${a.waitingAsk === 'question' ? 'answer' : 'reply'}.`;
     } else if (m.stopReason === 'your-turn') {
-      title = `Scenic stop · ${m.stopName ?? ''}`;
       line = `${snap.activity.yourTurnAgent ?? 'Your agent'} finished its turn. The drive resumes when you reply or get back to work.`;
     } else if (m.stopReason === 'refuel') {
-      title = `Refuelling · ${m.stopName ?? ''}`;
-      line = `Filling up for ${pack?.route.from ?? 'the start'} to ${pack?.route.to ?? 'your destination'} again, by a different way where the road allows.`;
+      line = `Refuelling at ${m.stopName ?? 'the gas station'}, then ${pack?.route.from ?? 'the start'} to ${pack?.route.to ?? 'your destination'} again, by a different way where the road allows.`;
     } else {
-      title = `Scenic stop · ${m.stopName ?? ''}`;
       line = 'Taking a breather. Start working again to continue the drive.';
     }
-    renderKeyed(this.stopCard, `${title}\n${line}`, () => {
-      this.stopCard.append(h('div', { class: 'stop-title' }, title), h('div', { class: 'stop-line' }, line));
-      if (parked) this.stopCard.append(h('button', { class: 'btn btn-primary', onclick: () => this.ctx.send({ type: 'resume' }) }, 'Resume journey'));
+    // The alert that stopped the car rides on the card's top edge, whatever this display's switches say.
+    const trigger = m.stopAlert ? snap.attention.find((a) => a.id === m.stopAlert) : undefined;
+    toggle(this.stopCard, 'has-pill', !!trigger);
+    renderKeyed(this.stopPill, JSON.stringify(trigger ? [trigger.id, trigger.text] : null), () => {
+      if (trigger) this.stopPill.append(alertPill(trigger, this.ctx));
     });
+    renderKeyed(this.stopBody, `${line}\n${detail}\n${parked}`, () => {
+      this.stopBody.append(h('div', { class: 'stop-line' }, line));
+      if (detail) this.stopBody.append(h('div', { class: 'stop-detail' }, detail));
+      if (parked) this.stopBody.append(h('button', { class: 'btn btn-primary', onclick: () => this.ctx.send({ type: 'resume' }) }, 'Resume journey'));
+    });
+  }
+
+  /** The Alerts tab and both bells. */
+  private updateAlerts(snap: TourSnapshot): void {
+    this.alertsPane.update(snap);
+    const level = alertLevel(snap, this.ctx.prefs);
+    const g = snap.ide.git;
+    const count = shownAlerts(snap.attention, this.ctx.prefs).length + (this.ctx.prefs.alertOnChanges && g && g.changes + g.staged > 0 ? 1 : 0);
+    lightBell(this.topBell, level, count);
+    lightBell(this.tabs.get('alerts')!, level, count);
   }
 
   private updateSideMirrors(agents: AgentSnapshot[]): void {
@@ -485,4 +618,13 @@ export class Cockpit {
       jp.append(h('p', { class: 'muted' }, 'No journey in progress.'));
     }
   }
+}
+
+/** When a PR was opened, exactly: "Oct 14, 3:12 PM", with the year when it isn't this one. */
+export function openedAt(at: number, now: number): string {
+  const d = new Date(at);
+  const sameYear = d.getFullYear() === new Date(now).getFullYear();
+  const day = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', ...(sameYear ? {} : { year: 'numeric' }) });
+  const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  return `${day}, ${time}`;
 }

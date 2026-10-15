@@ -1,5 +1,6 @@
 import type { ActivityState } from './activity';
-import type { AgentStatus, AgentRole, ProcessKind } from './events';
+import { ALERT_KINDS, type AlertKind, type Attention } from './attention';
+import type { AgentAsk, AgentStatus, AgentRole, ProcessKind, PullRequestFeedState } from './events';
 import type { LocationInfo, ScopeId, ScopeInfo } from './journey';
 import type { Moment } from './moments';
 import { isStationId, normalizeDeck, type DeckPrefs, type MusicState, type RadioStation } from './music';
@@ -46,9 +47,32 @@ export interface AgentSnapshot {
   role: AgentRole;
   status: AgentStatus;
   detail?: string;
+  /** While waiting: what for. */
+  ask?: AgentAsk;
+  /** While waiting for approval: the tool. Hidden in streaming mode. */
+  tool?: string;
   since: number;
   parentId?: string;
   context?: number;
+}
+
+export interface PullRequestSnapshot {
+  number: number;
+  /** Hidden in streaming mode, like the branch and the author. */
+  title?: string;
+  branch?: string;
+  author?: string;
+  draft: boolean;
+  createdAt: number;
+  ahead?: number;
+  behind?: number;
+  ci: 'passing' | 'failing' | 'pending' | 'none';
+  review: 'approved' | 'changes-requested' | 'review-required' | 'none';
+  conflict: boolean;
+  /** Its branch is the one checked out here. */
+  onBranch: boolean;
+  /** The signed-in GitHub user opened it. */
+  mine: boolean;
 }
 
 export interface TourSnapshot {
@@ -64,6 +88,8 @@ export interface TourSnapshot {
     caption: string;
     since: number;
     hazard: boolean;
+    /** The attention id of the alert that stopped the car, if one did: it rides on the stop card. */
+    stopAlert?: string;
   };
   activity: {
     state: ActivityState;
@@ -78,12 +104,20 @@ export interface TourSnapshot {
     reviewing: boolean;
     context: number | null;
     waitingAgent?: string;
+    /** Why the car stopped for the waiting agent: a question, a plan or an approval. */
+    waitingAsk?: AgentAsk;
+    /** The tool the waiting agent wants approved. Hidden in streaming mode. */
+    waitingTool?: string;
     blockedReason?: string;
+    /** The blocking agent's own words, e.g. "Stopped: rate limit". Hidden in streaming mode. */
+    blockedDetail?: string;
     /** The agent whose finished turn makes it your move. */
     yourTurnAgent?: string;
   };
   /** Every moment that holds right now, in signal-map order. Displays map them to cues. */
   moments: Moment[];
+  /** What needs you right now, most urgent first. Displays show the kinds their driver switched on. */
+  attention: Attention[];
   ide: {
     project?: string;
     activeFile?: { name: string; path?: string; language?: string };
@@ -95,6 +129,8 @@ export interface TourSnapshot {
       ahead: number;
       behind: number;
       lastCommit?: { message?: string; at: number };
+      /** The changed files, repository-relative. Hidden in streaming mode. */
+      files?: string[];
     };
     diagnostics: {
       errors: number;
@@ -104,6 +140,8 @@ export interface TourSnapshot {
     processes: Array<{ id: string; kind: ProcessKind; label: string; startedAt: number }>;
     results: Partial<Record<'test' | 'build' | 'lint', ResultInfo>>;
     agents: AgentSnapshot[];
+    /** The repository's open pull requests, once the user connects GitHub. */
+    pullRequests: { state: PullRequestFeedState; items: PullRequestSnapshot[]; fetchedAt?: number };
     history: Array<{ at: number; kind: HistoryKind; label: string; tone: 'good' | 'bad' | 'neutral' | 'agent' }>;
     session: SessionCounters & { filesChanged: number; startedAt: number };
   };
@@ -141,7 +179,22 @@ export interface HostInfo {
   version: string;
   projectName?: string;
   companionUrl?: string;
-  capabilities: { openFiles: boolean; openDocs: boolean; saveFiles: boolean; focusIde: boolean; radio: boolean };
+  capabilities: {
+    openFiles: boolean;
+    openDocs: boolean;
+    saveFiles: boolean;
+    focusIde: boolean;
+    /** Bring up the agent that needs you: its terminal, else the editor. */
+    focusAgent?: boolean;
+    /** Open the editor's Source Control view. */
+    openScm?: boolean;
+    /** Open a pull request in the browser. */
+    openLinks?: boolean;
+    /** Ask the user to connect GitHub for the PR list. */
+    connectGitHub?: boolean;
+    /** Internet radio on the FM band. */
+    radio: boolean;
+  };
   /** Where this display loads radio streams: `<base>&station=<id>`. Absent without radio. */
   radioStreamBase?: string;
   /** Why there is no radio on this display, in a sentence. */
@@ -174,8 +227,14 @@ export interface ClientPrefs {
   contextGauge: boolean;
   /** Show a gauge for this computer's battery, where the browser reports one. */
   batteryGauge: boolean;
+  /** Show a gauge for the files changed and not yet committed. */
+  changesGauge: boolean;
   /** Dashboard cue for the your-turn moment on this display. */
   yourTurnCue: 'none' | 'light';
+  /** Which kinds of alert this display lists in its Alerts tab and lights its bells for. */
+  hudAlerts: Record<AlertKind, boolean>;
+  /** Uncommitted files light the bells blue. */
+  alertOnChanges: boolean;
   captureIncludeProject: boolean;
   audio: AudioPrefs;
   /** The car radio's band, station, tone controls and presets. */
@@ -195,7 +254,10 @@ export const DEFAULT_PREFS: ClientPrefs = {
   autoThrottle: true,
   contextGauge: true,
   batteryGauge: false,
+  changesGauge: true,
   yourTurnCue: 'none',
+  hudAlerts: Object.fromEntries(ALERT_KINDS.map((k) => [k, true])) as Record<AlertKind, boolean>,
+  alertOnChanges: true,
   captureIncludeProject: false,
   audio: { enabled: false, master: 0.6, engine: 0.5, road: 0.5, wind: 0.4, weather: 0.6, ambience: 0.6, music: 0.35 },
   deck: normalizeDeck(undefined),
@@ -206,6 +268,7 @@ export function mergePrefs(saved: Partial<ClientPrefs> | undefined): ClientPrefs
     ...DEFAULT_PREFS,
     ...(saved ?? {}),
     audio: { ...DEFAULT_PREFS.audio, ...(saved?.audio ?? {}) },
+    hudAlerts: { ...DEFAULT_PREFS.hudAlerts, ...(saved?.hudAlerts ?? {}) },
     deck: normalizeDeck({ ...DEFAULT_PREFS.deck, ...(saved?.deck ?? {}) }),
   };
 }
@@ -237,6 +300,11 @@ export type ClientCommand =
   | { type: 'openDocs' }
   | { type: 'openFile'; path: string; line?: number }
   | { type: 'focusIde' }
+  | { type: 'focusAgent'; agentId?: string }
+  | { type: 'openSourceControl' }
+  | { type: 'openProblems' }
+  | { type: 'openPullRequest'; number: number }
+  | { type: 'connectGitHub' }
   | { type: 'savePrefs'; prefs: ClientPrefs }
   | { type: 'saveCapture'; dataUrl: string; fileName: string }
   /** No query, country or tag: the curated presets. */
@@ -276,7 +344,14 @@ export function isClientCommand(raw: unknown): raw is ClientCommand {
     case 'refuel':
     case 'openDocs':
     case 'focusIde':
+    case 'openSourceControl':
+    case 'openProblems':
+    case 'connectGitHub':
       return true;
+    case 'focusAgent':
+      return c.agentId === undefined || isStr(c.agentId, 120);
+    case 'openPullRequest':
+      return Number.isInteger(c.number) && (c.number as number) > 0;
     case 'startJourney':
       return (
         isStr(c.packId, 64) &&

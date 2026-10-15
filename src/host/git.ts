@@ -14,10 +14,14 @@ export interface GitStatusSummary {
   staged: number;
   ahead: number;
   behind: number;
+  /** The changed files, each once (a rename's new name); at most 50. */
+  files: string[];
 }
 
+const MAX_FILES = 50;
+
 export function parsePorcelainStatus(output: string): GitStatusSummary {
-  const summary: GitStatusSummary = { hasUpstream: false, changes: 0, staged: 0, ahead: 0, behind: 0 };
+  const summary: GitStatusSummary = { hasUpstream: false, changes: 0, staged: 0, ahead: 0, behind: 0, files: [] };
   for (const line of output.split('\n')) {
     if (line.startsWith('## ')) {
       parseBranchLine(line.slice(3), summary);
@@ -27,6 +31,8 @@ export function parsePorcelainStatus(output: string): GitStatusSummary {
     const x = line[0];
     const y = line[1];
     if (x === '!' && y === '!') continue;
+    const path = unquote(line.slice(3).split(' -> ').pop() ?? '');
+    if (path && summary.files.length < MAX_FILES && !summary.files.includes(path)) summary.files.push(path);
     if (x === '?' && y === '?') {
       summary.changes++;
       continue;
@@ -35,6 +41,17 @@ export function parsePorcelainStatus(output: string): GitStatusSummary {
     if (y !== ' ') summary.changes++;
   }
   return summary;
+}
+
+/** Git quotes paths with unusual characters: "dir/a b.ts". */
+function unquote(path: string): string {
+  const p = path.trim();
+  if (!p.startsWith('"') || !p.endsWith('"')) return p;
+  try {
+    return JSON.parse(p) as string;
+  } catch {
+    return p.slice(1, -1);
+  }
 }
 
 function parseBranchLine(rest: string, out: GitStatusSummary): void {

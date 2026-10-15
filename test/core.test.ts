@@ -77,7 +77,7 @@ describe('ActivityEngine', () => {
     feed({ type: 'agent', agentId: 'c', name: 'Claude', status: 'working', at: 1_000 });
     expect(engine.evaluate(2_000).yourTurn).toBeUndefined();
     feed({ type: 'agent', agentId: 'c', name: 'Claude', status: 'done', at: 3_000 });
-    expect(engine.evaluate(4_000).yourTurn).toEqual({ agent: 'Claude', since: 3_000, quietSince: 3_000 });
+    expect(engine.evaluate(4_000).yourTurn).toEqual({ agent: 'Claude', agentId: 'c', since: 3_000, quietSince: 3_000 });
     // Your input restarts the quiet time; the turn is still yours.
     feed({ type: 'editor.edit', file: fileRef('a.ts'), origin: 'user', magnitude: 5, at: 5_000 });
     expect(engine.evaluate(6_000).yourTurn?.quietSince).toBe(5_000);
@@ -457,6 +457,9 @@ describe('moments', () => {
     clock.advance(MIN);
     expect(session.latestSnapshot!.motion.behavior).toBe('pull-over');
     expect(moments()).toEqual(['build-failing', 'problems', 'checks-failing', 'your-turn']);
+    // The card carries the reason it pulled over: the failing build.
+    expect(session.latestSnapshot!.attention.map((a) => a.id)).toContain('build');
+    expect(session.latestSnapshot!.motion.stopAlert).toBe('build');
 
     // Parked, the car is no longer pulled over for the build.
     session.park();

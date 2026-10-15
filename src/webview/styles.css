@@ -123,8 +123,7 @@ body {
 .cockpit .stop-card,
 .cockpit .work,
 .cockpit .tour-strip,
-.cockpit .side-mirror,
-.cockpit .mirror {
+.cockpit .side-mirror {
   pointer-events: auto;
 }
 .frame .roof {
@@ -161,38 +160,137 @@ body {
   display: none;
 }
 
-/* ----------------------------------------------------------------- mirror */
+/* ------------------------------------------------------------------ bells */
 
-.mirror {
+/* The rear-view mirror: glass that catches the sky and the road behind, nothing written on it. */
+.mirror-wrap {
   position: absolute;
   top: 10px;
-  z-index: 5;
   left: 50%;
+  z-index: 5;
+  width: min(300px, 52vw);
   transform: translateX(-50%);
-  width: min(340px, 60vw);
   transition: opacity 0.4s;
 }
-.mirror-glass {
-  padding: 8px 14px 9px;
-  border-radius: 22px;
-  background: linear-gradient(180deg, rgba(22, 26, 35, 0.86), rgba(8, 10, 14, 0.9));
-  border: 1px solid var(--line);
+.mirror {
+  position: relative;
+  padding: 4px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, #1b1e25, #08090c);
   box-shadow:
-    0 8px 30px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    0 8px 26px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
-.mirror-title {
+/* The stem it hangs from. */
+.mirror::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: 22px;
+  height: 12px;
+  transform: translateX(-50%);
+  border-radius: 4px 4px 2px 2px;
+  background: #0b0c10;
+}
+.mirror-glass {
+  position: relative;
+  height: 46px;
+  overflow: hidden;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(168, 190, 214, 0.55) 0%, rgba(120, 138, 160, 0.45) 46%, rgba(58, 60, 64, 0.7) 54%, rgba(28, 29, 32, 0.85) 100%);
+}
+/* A sheen across the glass. */
+.mirror-glass::after {
+  content: '';
+  position: absolute;
+  inset: -40% auto -40% 18%;
+  width: 22%;
+  transform: rotate(18deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent);
+}
+.mode-tour .mirror-wrap .mirror {
+  opacity: 0.82;
+}
+.mode-work .mirror-wrap,
+.overlay-open .mirror-wrap {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The Alerts bell, on the mirror's top-right corner. */
+.alert-bell {
+  position: absolute;
+  top: -10px;
+  right: -14px;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--ink-faint);
+  background: rgba(11, 13, 19, 0.86);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+  transition:
+    color 0.3s,
+    box-shadow 0.3s;
+}
+.alert-bell .icon,
+.tab-alerts .icon {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+/* Lit by the loudest alert: red stopped the car, orange needs you, blue is worth a look. */
+.lit-blocking {
+  --lit: 255, 107, 91;
+}
+.lit-moderate {
+  --lit: 255, 179, 92;
+}
+.lit-general {
+  --lit: 111, 151, 255;
+}
+.alert-bell:is(.lit-blocking, .lit-moderate, .lit-general) {
+  color: rgb(var(--lit));
+  border-color: rgba(var(--lit), 0.7);
+  box-shadow:
+    0 0 18px rgba(var(--lit), 0.45),
+    inset 0 0 10px rgba(var(--lit), 0.18);
+}
+.alert-bell.lit-blocking {
+  animation: bell-pulse 1.6s ease-in-out infinite;
+}
+@keyframes bell-pulse {
+  50% {
+    box-shadow:
+      0 0 26px rgba(var(--lit), 0.7),
+      inset 0 0 12px rgba(var(--lit), 0.3);
+  }
+}
+.alert-bell:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* Recent: what just happened, in the Console tab. */
+.recent-title {
+  margin: 10px 0 2px;
   font-size: 0.68em;
-  letter-spacing: 0.22em;
+  font-weight: 600;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
-.mirror-list {
+.recent-list {
   list-style: none;
-  margin: 2px 0 0;
+  margin: 0;
   padding: 0;
 }
-.mirror-list li {
+.recent-list li {
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -200,17 +298,17 @@ body {
   white-space: nowrap;
   padding: 1px 0;
 }
-.mirror-list li span {
+.recent-list li span {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.mirror-list time {
+.recent-list time {
   color: var(--ink-faint);
   font-variant-numeric: tabular-nums;
 }
-.mirror-list .tone-good span::before,
-.mirror-list .tone-bad span::before,
-.mirror-list .tone-agent span::before {
+.recent-list .tone-good span::before,
+.recent-list .tone-bad span::before,
+.recent-list .tone-agent span::before {
   content: '';
   display: inline-block;
   width: 6px;
@@ -219,25 +317,14 @@ body {
   margin-right: 7px;
   vertical-align: 1px;
 }
-.mirror-list .tone-good span::before {
+.recent-list .tone-good span::before {
   background: var(--green);
 }
-.mirror-list .tone-bad span::before {
+.recent-list .tone-bad span::before {
   background: var(--red);
 }
-.mirror-list .tone-agent span::before {
+.recent-list .tone-agent span::before {
   background: var(--cyan);
-}
-.mode-tour .mirror-list li:nth-child(n + 3) {
-  display: none;
-}
-.mode-tour .mirror {
-  opacity: 0.82;
-}
-.mode-work .mirror,
-.overlay-open .mirror {
-  opacity: 0;
-  pointer-events: none;
 }
 
 /* -------------------------------------------------------------------- HUD */
@@ -266,37 +353,82 @@ body {
   font-weight: 500;
   margin-top: 2px;
 }
-.hud-chips {
-  display: flex;
+/* Alert pills: one glowing pill per thing that needs you, coloured by how loud it is. */
+.alert {
+  --tone: 111, 211, 255;
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-top: 8px;
-}
-.chip {
-  font-size: 0.82em;
-  padding: 3px 10px;
+  padding: 5px 14px 5px 6px;
   border-radius: 999px;
-  background: rgba(10, 12, 18, 0.5);
-  border: 1px solid var(--line);
-  backdrop-filter: blur(8px);
+  font: inherit;
+  font-size: 0.92em;
+  font-weight: 500;
+  color: var(--ink);
+  background: rgba(10, 12, 18, 0.44);
+  border: 1px solid rgba(var(--tone), 0.62);
+  box-shadow:
+    0 0 18px rgba(var(--tone), 0.32),
+    inset 0 0 14px rgba(var(--tone), 0.12);
+  backdrop-filter: blur(10px);
   text-shadow: none;
+  animation: alert-in 0.45s ease-out;
 }
-.chip-file::before {
-  content: '◇ ';
-  color: var(--amber);
+.alert-blocking {
+  --tone: 255, 107, 91;
 }
-.chip-task::before {
-  content: '⚑ ';
-  color: var(--green);
+.alert-moderate {
+  --tone: 255, 179, 92;
 }
-.chip-verify {
-  color: var(--cyan);
+.alert-general {
+  --tone: 111, 151, 255;
+}
+.alert-glyph {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgb(var(--tone));
+  color: #0b0d13;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 0.82em;
+}
+.alert .icon {
+  width: 22px;
+  height: 22px;
+  padding: 3px;
+  border-radius: 50%;
+  color: #0b0d13;
+  background: rgb(var(--tone));
+}
+button.alert {
+  cursor: pointer;
+}
+button.alert:hover {
+  background: rgba(10, 12, 18, 0.66);
+  border-color: rgba(var(--tone), 0.9);
+}
+button.alert:focus-visible {
+  outline: 2px solid rgb(var(--tone));
+  outline-offset: 2px;
+}
+@keyframes alert-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.high-contrast .alert {
+  background: var(--glass-strong);
+  border-width: 2px;
 }
 .mode-work .hud,
 .overlay-open .hud {
   opacity: 0;
 }
+
 .stopped .hud-caption {
   opacity: 0;
 }
@@ -326,15 +458,30 @@ body {
   transform: translate(-50%, 0);
   pointer-events: auto !important;
 }
-.stop-title {
-  font-size: 0.8em;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--amber);
+/* The alert that stopped the car, straddling the card's top edge. */
+.stop-pill {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+}
+.stop-pill:empty {
+  display: none;
+}
+.stop-card.has-pill {
+  padding-top: 24px;
+}
+.stop-pill .alert {
+  background: rgba(10, 12, 18, 0.82);
 }
 .stop-line {
-  margin-top: 4px;
   color: var(--ink);
+}
+.stop-detail {
+  margin-top: 4px;
+  font-size: 0.86em;
+  color: var(--ink-dim);
 }
 .stop-card .btn {
   margin-top: 12px;
@@ -471,6 +618,17 @@ body {
 .mini-gauges[data-count='4'] .gauge-label {
   letter-spacing: 0.12em;
 }
+.mini-gauges[data-count='5'] {
+  gap: 4px;
+}
+.mini-gauges[data-count='5'] .gauge-small .gauge-svg {
+  width: clamp(48px, 6.6vh, 68px);
+  height: clamp(48px, 6.6vh, 68px);
+}
+.mini-gauges[data-count='5'] .gauge-label {
+  letter-spacing: 0.08em;
+  font-size: 0.64em;
+}
 
 .gauge {
   position: relative;
@@ -551,6 +709,56 @@ body {
 }
 .tone-red .gauge-value {
   stroke: var(--red);
+}
+.tone-blue .gauge-value {
+  stroke: var(--blue);
+}
+/* A digital dial: dark until there is something to count, then a lit ring and a big white number. */
+.gauge-digital .gauge-readout {
+  font-size: 22px;
+  fill: var(--ink-faint);
+}
+.gauge-digital.gauge-lit .gauge-readout {
+  fill: #fff;
+}
+.gauge-digital.gauge-lit .gauge-svg {
+  filter: drop-shadow(0 0 6px rgba(111, 151, 255, 0.55));
+}
+.gauge-digital.gauge-lit .gauge-track {
+  stroke: rgba(111, 151, 255, 0.22);
+}
+.gauge-label .icon {
+  display: inline-block;
+  width: 1.15em;
+  height: 1.15em;
+  margin-right: 0.3em;
+  vertical-align: -0.2em;
+}
+.gauge-note {
+  fill: var(--blue);
+  font: 600 11px var(--font);
+}
+.gauge-digital .gauge-label {
+  white-space: nowrap;
+}
+.gauge-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  border-radius: 12px;
+  cursor: pointer;
+}
+.gauge-btn:disabled {
+  cursor: default;
+}
+.gauge-btn:not(:disabled):hover .gauge-label {
+  color: var(--ink);
+}
+.gauge-btn:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
 }
 
 .lights {
@@ -694,6 +902,170 @@ body {
 .tab[aria-selected='true'] {
   color: var(--cyan);
   box-shadow: inset 0 -2px 0 var(--cyan);
+}
+/* Alerts is a bell, not a word: a narrow tab at the far right, lit like the top bell. */
+.tab.tab-alerts {
+  flex: 0 0 46px;
+}
+.tab-alerts:is(.lit-blocking, .lit-moderate, .lit-general) {
+  color: rgb(var(--lit));
+  filter: drop-shadow(0 0 6px rgba(var(--lit), 0.8));
+}
+
+/* Alerts tab: what needs you on the left; the file you're in and the files changed on the right. */
+.alerts-pane {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+}
+@media (max-width: 520px) {
+  .alerts-pane {
+    grid-template-columns: 1fr;
+  }
+}
+.alerts-list,
+.alerts-files {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+.alerts-pane h4 {
+  margin: 4px 0 0;
+  font-size: 0.68em;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.alerts-pane .alert {
+  max-width: 100%;
+  animation: none;
+  text-align: left;
+}
+.file-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.file-pill {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: inherit;
+  font-size: 0.82em;
+  padding: 3px 10px;
+  border-radius: 999px;
+  color: var(--ink);
+  background: rgba(111, 151, 255, 0.1);
+  border: 1px solid rgba(111, 151, 255, 0.35);
+}
+button.file-pill {
+  cursor: pointer;
+}
+button.file-pill:hover {
+  border-color: rgba(111, 151, 255, 0.8);
+}
+.file-pill.file-active {
+  background: rgba(255, 179, 92, 0.1);
+  border-color: rgba(255, 179, 92, 0.4);
+}
+.file-pill.file-active::before {
+  content: '◇ ';
+  color: var(--amber);
+}
+
+.tab-badge:not(:empty) {
+  margin-left: 0.5em;
+  padding: 0 0.5em;
+  border-radius: 999px;
+  letter-spacing: 0;
+  font-size: 0.92em;
+  color: var(--ink-dim);
+  background: rgba(255, 255, 255, 0.08);
+}
+/* A PR on your branch, or yours, needs you. */
+.tab-badge.hot {
+  color: #0b0d13;
+  background: var(--amber);
+  box-shadow: 0 0 10px rgba(255, 179, 92, 0.6);
+}
+
+/* PRs tab: one row per open pull request; a lit branch marks those on your branch. */
+.pr-row {
+  display: grid;
+  grid-template-columns: 18px auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+button.pr-row {
+  cursor: pointer;
+}
+button.pr-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.pr-row.on-branch {
+  background: rgba(111, 151, 255, 0.08);
+}
+.pr-branch .icon {
+  width: 16px;
+  height: 16px;
+  color: var(--blue);
+  filter: drop-shadow(0 0 4px rgba(111, 151, 255, 0.8));
+}
+.pr-num {
+  min-width: 2.4em;
+  text-align: center;
+  font: 700 1.45em/1 var(--mono);
+  color: var(--ink);
+}
+.pr-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.pr-body strong {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pr-body em {
+  font-style: normal;
+  font-size: 0.8em;
+  color: var(--ink-faint);
+}
+.pr-row.needs-you .pr-body em {
+  color: var(--amber);
+}
+.pr-ci {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+}
+.pr-ci.ci-passing {
+  background: var(--green);
+}
+.pr-ci.ci-failing {
+  background: var(--red);
+  box-shadow: 0 0 8px var(--red);
+}
+.pr-ci.ci-pending {
+  background: var(--amber);
+}
+.prs .btn {
+  margin-top: 8px;
 }
 .pane {
   display: none;
@@ -2267,7 +2639,8 @@ button.problem:hover {
   stroke-width: 8;
 }
 .high-contrast .hud,
-.high-contrast .mirror-glass,
+.high-contrast .alert-bell,
+.high-contrast .mirror,
 .high-contrast .screen {
   background: #000;
 }
@@ -2284,6 +2657,9 @@ button.problem:hover {
   animation: none !important;
 }
 @media (prefers-reduced-motion: reduce) {
+  .alert {
+    animation: none;
+  }
   .vt *,
   .vt *::before,
   .vt *::after {
@@ -2295,10 +2671,11 @@ button.problem:hover {
 /* ------------------------------------------------------------- responsive */
 
 @media (max-width: 1060px) {
-  .mirror {
-    top: 62px;
+  /* The top bar fills the top on narrow screens: the mirror drops below it. */
+  .mirror-wrap {
+    top: 70px;
   }
-  .mode-tour .mirror {
+  .mode-tour .mirror-wrap .mirror {
     display: none;
   }
 }
@@ -2333,6 +2710,20 @@ button.problem:hover {
   .gauge-small .gauge-svg {
     width: 60px;
     height: 60px;
+  }
+  /* Up to five dials: wrap them rather than run off the edge. */
+  .mini-gauges {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2px 4px;
+  }
+  .mini-gauges[data-count] .gauge-small .gauge-svg {
+    width: 50px;
+    height: 50px;
+  }
+  .mini-gauges[data-count] .gauge-label {
+    font-size: 0.6em;
+    letter-spacing: 0.06em;
   }
   .tour-strip {
     grid-template-columns: 1fr;
@@ -2372,8 +2763,19 @@ button.problem:hover {
   .ticket-stub {
     min-height: 140px;
   }
-  .mirror {
+  /* No room for the mirror on a phone: the bell alone, at the right under the top bar. */
+  .mirror-wrap .mirror {
     display: none;
+  }
+  .mirror-wrap {
+    top: 64px;
+    left: auto;
+    right: 16px;
+    width: auto;
+    transform: none;
+  }
+  .alert-bell {
+    position: static;
   }
   .pane-nav.active {
     grid-template-columns: 1fr;

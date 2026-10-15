@@ -8,7 +8,9 @@ import { normalizeDeck } from '../core/music';
 import type { ClientCommand, ClientPrefs, HostInfo, HostMessage } from '../core/protocol';
 import { VibeTourSession } from '../core/session';
 import { JsonFileStore } from '../host/fileStore';
+import { parseGitHubRemote, type GitHubRepo } from '../host/github';
 import { languageForPath } from '../host/paths';
+import { PrWatcher } from '../host/prWatcher';
 import { RadioService } from '../host/radio/service';
 import { Throttle } from '../host/throttle';
 import { VERSION } from '../host/version';
@@ -16,7 +18,7 @@ import { BUILTIN_PACKS } from '../packs';
 import { CompanionServer, generateToken } from '../server/companionServer';
 import { vibetourHome } from '../server/sessionFile';
 import { parseArgs, USAGE, type CliOptions } from './args';
-import { GitPoller } from './gitPoller';
+import { githubCliToken, GitPoller, originUrl } from './gitPoller';
 import { TreeWatcher } from './watch';
 
 /**
@@ -66,7 +68,18 @@ async function run(opts: CliOptions): Promise<void> {
     autoResume: true,
     yourTurnStopMs: opts.yourTurnStopMs ?? null,
   });
-  const ingest = (body: DevEventBody) => session.ingest({ ...body, at: Date.now() });
+  // Open pull requests, with --prs: the origin remote's, read again when the branch changes.
+  let github: GitHubRepo | undefined;
+  let lastAhead = 0;
+  const prs = new PrWatcher({ repo: () => github, token: () => githubCliToken(), emit: (e) => ingest(e), log });
+  const ingest = (body: DevEventBody) => {
+    session.ingest({ ...body, at: Date.now() });
+    if (body.type === 'git.branch') prs.refreshSoon();
+    if (body.type === 'git') {
+      if (body.ahead === 0 && lastAhead > 0) prs.refreshSoon();
+      lastAhead = body.ahead;
+    }
+  };
 
   let token = globalStore.get<string>(TOKEN_KEY);
   if (!token || !/^[0-9a-f]{64}$/.test(token)) {
@@ -89,13 +102,17 @@ async function run(opts: CliOptions): Promise<void> {
     version: VERSION,
     projectName: opts.streaming ? undefined : project,
     companionUrl: opts.streaming ? undefined : server.url,
-    capabilities: { openFiles: false, openDocs: false, saveFiles: false, focusIde: false, radio: !!radio },
+    capabilities: { openFiles: false, openDocs: false, saveFiles: false, focusIde: false, openLinks: opts.prs, radio: !!radio },
     ...(radio ? { radioStreamBase: `/radio/stream?token=${token}` } : { radioNote: 'Internet radio is off: the companion was started with --no-radio.' }),
   });
   const onCommand = (cmd: ClientCommand) => {
     if (session.handleCommand(cmd)) return;
     if (radio?.handleCommand(cmd, 'companion', (msg) => server.broadcast(msg))) return;
     if (cmd.type === 'savePrefs' && cmd.prefs && typeof cmd.prefs === 'object') globalStore.set(PREFS_KEY, { ...cmd.prefs, deck: normalizeDeck(cmd.prefs.deck) });
+    if (cmd.type === 'openPullRequest' && opts.prs) {
+      const url = session.pullRequestUrl(cmd.number);
+      if (url && /^https:\/\/github\.com\//.test(url)) openBrowser(url);
+    }
   };
   server = new CompanionServer({
     port: opts.port,
@@ -149,6 +166,10 @@ async function run(opts: CliOptions): Promise<void> {
   const { url } = await server.start();
   watcher.start();
   git.start();
+  if (opts.prs) {
+    github = parseGitHubRemote(await originUrl(dir));
+    prs.setEnabled(true);
+  }
   const ticker = setInterval(() => session.tick(), TICK_MS);
   session.tick();
 
@@ -160,6 +181,7 @@ async function run(opts: CliOptions): Promise<void> {
       `  Display   ${url}`,
       `  Journey   ${journey ? `${journey.title} (${journey.phase})` : 'none yet — choose a destination in the display'}`,
       `  Agents    Claude Code hooks: node "${hook}"`,
+      ...(opts.prs ? [`  PRs       ${github ? `${github.owner}/${github.name} on GitHub` : 'no GitHub remote named origin'}`] : []),
       '  Ctrl+C parks the journey and quits.',
     ].join('\n'),
   );
@@ -173,6 +195,7 @@ async function run(opts: CliOptions): Promise<void> {
     // below would auto-resume the journey we are about to put away.
     watcher.close();
     git.stop();
+    prs.stop();
     saves.dispose();
     radio?.dispose();
     await server.stop().catch(() => undefined);
