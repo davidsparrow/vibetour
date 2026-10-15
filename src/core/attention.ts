@@ -101,10 +101,13 @@ export function attentionOf(input: AttentionInput): Attention[] {
   }
   const turn = input.yourTurn;
   if (turn) out.push({ id: `turn:${turn.agentId}`, kind: 'turn', text: `${turn.agent} finished · your turn`, since: turn.since, target: { type: 'agent', agentId: turn.agentId } });
-  for (const pr of input.pullRequests) {
+  // The PR on your branch first, then yours, oldest first.
+  const prs = [...input.pullRequests].sort((a, b) => Number(b.onBranch) - Number(a.onBranch) || a.createdAt - b.createdAt);
+  for (const pr of prs) {
     const trouble = pullRequestTrouble(pr);
     if (trouble.length) out.push({ id: `pr:${pr.number}`, kind: 'pr', text: `PR #${pr.number} · ${trouble.join(', ')}`, since: pr.createdAt, target: { type: 'pr', number: pr.number } });
   }
   const rank = (k: AlertKind) => ALERT_KINDS.indexOf(k);
-  return out.sort((a, b) => rank(a.kind) - rank(b.kind) || a.since - b.since);
+  // Stable: PRs keep the order above; everything else waits longest first.
+  return out.sort((a, b) => rank(a.kind) - rank(b.kind) || (a.kind === 'pr' ? 0 : a.since - b.since));
 }

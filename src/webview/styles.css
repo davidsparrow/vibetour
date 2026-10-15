@@ -293,9 +293,105 @@ body {
 .chip-verify {
   color: var(--cyan);
 }
+/* Alerts: one glowing chip per thing that needs you, only while it does. */
+.hud-alerts {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.hud-alerts:empty {
+  display: none;
+}
+.alert {
+  --tone: 111, 211, 255;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px 5px 6px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.92em;
+  font-weight: 500;
+  color: var(--ink);
+  background: rgba(10, 12, 18, 0.44);
+  border: 1px solid rgba(var(--tone), 0.62);
+  box-shadow:
+    0 0 18px rgba(var(--tone), 0.32),
+    inset 0 0 14px rgba(var(--tone), 0.12);
+  backdrop-filter: blur(10px);
+  text-shadow: none;
+  animation: alert-in 0.45s ease-out;
+}
+.alert-question,
+.alert-plan,
+.alert-approval {
+  --tone: 111, 211, 255;
+}
+.alert-problem {
+  --tone: 255, 107, 91;
+}
+.alert-turn {
+  --tone: 111, 151, 255;
+}
+.alert-pr {
+  --tone: 255, 179, 92;
+}
+.alert-more {
+  --tone: 255, 255, 255;
+  padding: 5px 12px;
+  color: var(--ink-dim);
+  box-shadow: none;
+}
+.alert-glyph {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgb(var(--tone));
+  color: #0b0d13;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 0.82em;
+}
+.alert .icon {
+  width: 22px;
+  height: 22px;
+  padding: 3px;
+  border-radius: 50%;
+  color: #0b0d13;
+  background: rgb(var(--tone));
+}
+button.alert {
+  cursor: pointer;
+}
+button.alert:hover {
+  background: rgba(10, 12, 18, 0.66);
+  border-color: rgba(var(--tone), 0.9);
+}
+button.alert:focus-visible {
+  outline: 2px solid rgb(var(--tone));
+  outline-offset: 2px;
+}
+@keyframes alert-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.high-contrast .alert {
+  background: var(--glass-strong);
+  border-width: 2px;
+}
 .mode-work .hud,
 .overlay-open .hud {
   opacity: 0;
+}
+.mode-work .hud-alerts,
+.overlay-open .hud-alerts {
+  visibility: hidden;
 }
 .stopped .hud-caption {
   opacity: 0;
@@ -476,6 +572,17 @@ body {
 .mini-gauges[data-count='4'] .gauge-label {
   letter-spacing: 0.12em;
 }
+.mini-gauges[data-count='5'] {
+  gap: 4px;
+}
+.mini-gauges[data-count='5'] .gauge-small .gauge-svg {
+  width: clamp(48px, 6.6vh, 68px);
+  height: clamp(48px, 6.6vh, 68px);
+}
+.mini-gauges[data-count='5'] .gauge-label {
+  letter-spacing: 0.08em;
+  font-size: 0.64em;
+}
 
 .gauge {
   position: relative;
@@ -556,6 +663,56 @@ body {
 }
 .tone-red .gauge-value {
   stroke: var(--red);
+}
+.tone-blue .gauge-value {
+  stroke: var(--blue);
+}
+/* A digital dial: dark until there is something to count, then a lit ring and a big white number. */
+.gauge-digital .gauge-readout {
+  font-size: 22px;
+  fill: var(--ink-faint);
+}
+.gauge-digital.gauge-lit .gauge-readout {
+  fill: #fff;
+}
+.gauge-digital.gauge-lit .gauge-svg {
+  filter: drop-shadow(0 0 6px rgba(111, 151, 255, 0.55));
+}
+.gauge-digital.gauge-lit .gauge-track {
+  stroke: rgba(111, 151, 255, 0.22);
+}
+.gauge-label .icon {
+  display: inline-block;
+  width: 1.15em;
+  height: 1.15em;
+  margin-right: 0.3em;
+  vertical-align: -0.2em;
+}
+.gauge-note {
+  fill: var(--blue);
+  font: 600 11px var(--font);
+}
+.gauge-digital .gauge-label {
+  white-space: nowrap;
+}
+.gauge-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  border-radius: 12px;
+  cursor: pointer;
+}
+.gauge-btn:disabled {
+  cursor: default;
+}
+.gauge-btn:not(:disabled):hover .gauge-label {
+  color: var(--ink);
+}
+.gauge-btn:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
 }
 
 .lights {
@@ -699,6 +856,94 @@ body {
 .tab[aria-selected='true'] {
   color: var(--cyan);
   box-shadow: inset 0 -2px 0 var(--cyan);
+}
+.tab-badge:not(:empty) {
+  margin-left: 0.5em;
+  padding: 0 0.5em;
+  border-radius: 999px;
+  letter-spacing: 0;
+  font-size: 0.92em;
+  color: var(--ink-dim);
+  background: rgba(255, 255, 255, 0.08);
+}
+/* A PR on your branch, or yours, needs you. */
+.tab-badge.hot {
+  color: #0b0d13;
+  background: var(--amber);
+  box-shadow: 0 0 10px rgba(255, 179, 92, 0.6);
+}
+
+/* PRs tab: one row per open pull request; a lit branch marks those on your branch. */
+.pr-row {
+  display: grid;
+  grid-template-columns: 18px auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+button.pr-row {
+  cursor: pointer;
+}
+button.pr-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.pr-row.on-branch {
+  background: rgba(111, 151, 255, 0.08);
+}
+.pr-branch .icon {
+  width: 16px;
+  height: 16px;
+  color: var(--blue);
+  filter: drop-shadow(0 0 4px rgba(111, 151, 255, 0.8));
+}
+.pr-num {
+  font: 600 0.82em var(--mono);
+  color: var(--ink-dim);
+}
+.pr-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.pr-body strong {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pr-body em {
+  font-style: normal;
+  font-size: 0.8em;
+  color: var(--ink-faint);
+}
+.pr-row.needs-you .pr-body em {
+  color: var(--amber);
+}
+.pr-ci {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+}
+.pr-ci.ci-passing {
+  background: var(--green);
+}
+.pr-ci.ci-failing {
+  background: var(--red);
+  box-shadow: 0 0 8px var(--red);
+}
+.pr-ci.ci-pending {
+  background: var(--amber);
+}
+.prs .btn {
+  margin-top: 8px;
 }
 .pane {
   display: none;
@@ -1987,6 +2232,9 @@ button.problem:hover {
   animation: none !important;
 }
 @media (prefers-reduced-motion: reduce) {
+  .alert {
+    animation: none;
+  }
   .vt *,
   .vt *::before,
   .vt *::after {
@@ -2036,6 +2284,20 @@ button.problem:hover {
   .gauge-small .gauge-svg {
     width: 60px;
     height: 60px;
+  }
+  /* Up to five dials: wrap them rather than run off the edge. */
+  .mini-gauges {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2px 4px;
+  }
+  .mini-gauges[data-count] .gauge-small .gauge-svg {
+    width: 50px;
+    height: 50px;
+  }
+  .mini-gauges[data-count] .gauge-label {
+    font-size: 0.6em;
+    letter-spacing: 0.06em;
   }
   .tour-strip {
     grid-template-columns: 1fr;

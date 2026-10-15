@@ -45,6 +45,7 @@ This split decides where any new setting can live.
 **Each display draws its own**: a VS Code tab, a companion browser. A dashboard cue can differ per screen, like today's display settings. Each display decides:
 
 - lights, gauges, gear, stop card, mirrors and HUD
+- which HUD alerts show: questions, plans, approvals, an agent that stopped, your turn, pull requests
 - render settings: reduced motion, weather, frame rate, contrast
 - sound, and which gauges show (Context, Battery)
 - which moments light which cue, such as the blue your-turn light
@@ -59,9 +60,9 @@ Top to bottom is the engine's priority order for the car: the first row that mat
 | --- | --- | --- | --- |
 | **Arrived** `arrived`<br/>COMPLETE | The final approach reached 100%. | Stopped. Arrival scene. | **Passport stamped**, trip added to the library. *Refuel and drive again* (arrival card or command) starts the same route as a new journey, by a different way where the scene graph has one, after a 15 s stop at the pack's gas station. |
 | **Final approach** `final-approach`<br/>journey phase | You click *Arrive — objective complete*, press <kbd>A</kbd>, or run the command. | 60%. Only parking stops it, even when you're idle or an agent is waiting. | 90 s of driving to 100%. |
-| **Agent hit a problem** `agent-problem`<br/>BLOCKED | An agent reports `error` (HTTP API only; Claude Code hooks never send it). Lasts up to 10 min. | Stopped. Pulls onto the shoulder. | Paused. |
+| **Agent hit a problem** `agent-problem`<br/>BLOCKED | An agent reports `error`: Claude Code's `StopFailure` (a turn ended on an API error such as a rate limit), or the HTTP API. Lasts up to 10 min. | Stopped. Pulls onto the shoulder. | Paused. |
 | **Build left failing** `build-failing`<br/>BLOCKED | The last build failed, then 30 s passed with no input, no agent working and nothing verifying. | Stopped. Pulls onto the shoulder. | Paused. |
-| **Agent needs you** `agent-waiting`<br/>WAITING_FOR_USER | An agent is `waiting` (a Claude Code permission prompt) and you haven't edited code in the last 20 s. Expires after 30 min. | Stopped. Scenic stop after 2 s. | Paused. |
+| **Agent needs you** `agent-waiting`<br/>WAITING_FOR_USER | An agent is `waiting`: Claude Code asks a question (`AskUserQuestion`), shows a plan to approve (`ExitPlanMode`), shows a permission prompt, or an MCP server asks for input. Only while you haven't edited code in the last 20 s. Expires after 30 min. | Stopped. Scenic stop after 2 s. | Paused. |
 | **Verifying** `verifying`<br/>VERIFYING | A test, build or lint command is running, for its first 10 min. Watch modes, dev servers and background tasks don't count. | 85%. Checkpoint after 4 s: a tunnel, rock gallery or long straight is staged ahead. | Full speed (1×). |
 | **Agent at work** `agent-working`<br/>AGENT_ACTIVE | An agent is working or using a tool (heard from in the last 10 min), or files changed outside the editor in the last 15 s. | 100%. Cruise. | Full speed (1×). |
 | **You're coding** `coding`<br/>ACTIVE | You typed, saved, switched files, moved the cursor or focused the window in the last 20 s. | 100%. Cruise. Easy pace (80%) while you review diffs. | Full speed (1×). |
@@ -78,16 +79,16 @@ Top to bottom is the engine's priority order for the car: the first row that mat
 | --- | --- | --- | --- |
 | **Arrived** | *"Arrived in Big Sur"*. Arrival card with the stamp, *Refuel and drive again* and *Choose next destination*. Refuelling: *"Refuelling at a Carmel Highlands gas station — then Monterey to Big Sur again"*, with a stop card. | Gear **P**. | Fuel reads 100%. Status bar: *Arrived*. Soft music. |
 | **Final approach** | *"Final approach to Big Sur"*. Arrival scenery. | Gear **D**. | Sound follows speed. |
-| **Agent hit a problem** | *"Pulled over safely — Aider needs help"*. Stop card: *Pulled over safely*. | **Hazard** on. Gear **P**. | Rear view: *Aider hit a problem*. Radio: *Needs help*. Soft music. |
+| **Agent hit a problem** | *"Pulled over safely — Claude needs help"*. Stop card: *Pulled over safely*, with the reason (*Stopped: rate limit*). | **Hazard** on. Gear **P**. | HUD alert: *Claude stopped · rate limit*. Rear view: *Claude hit a problem*. Radio: *Needs help*. Soft music. |
 | **Build left failing** | *"Pulled over safely — Build is failing"*. Stop card. | **Hazard** and **check engine** on. Gear **P**. | Temperature up. Rear view: *Build failed*. Strip: ⚠. |
-| **Agent needs you** | *"Scenic stop at Bixby Creek Overlook — Claude is waiting for you"*. Stop card says it resumes when you reply. | **Agent waiting** light on. Gear **P**. | Rear view: *Claude needs you*. Radio: *Waiting for you*. Soft music. |
+| **Agent needs you** | Says why: *"Scenic stop at Bixby Creek Overlook — Claude has a question for you"*, *"… has a plan for you to approve"* or *"… needs your approval"*. The stop card names the tool (*to use Bash*) and says it resumes when you reply. Agents that don't say why: *"… is waiting for you"*. | **Agent waiting** light on. Gear **P**. | HUD alert: *Claude has a question*, *Claude has a plan to approve* or *Claude needs approval · Bash*. Rear view: the same. Radio: *Waiting for you*. Soft music. |
 | **Verifying** | *"Through the tunnel — verification running"*. | Gear **D**. Check engine updates when it ends. | HUD chip *npm test · running*. Strip: *Verifying*. Console spinner. Rear view: *Tests running*, then *passed* or *failed*. |
 | **Agent at work** | *"Steady autopilot cruise — agent at work"*. | Gear **D**. | Tachometer up. Side mirrors show crew agents. Radio shows status. Strip: *1 agent*. Rear view: *Agent edited 3 files*. Bright music. |
 | **You're coding** | *"Cruising"*, *"Departing Monterey"*, or *"Easy pace — reviewing changes"*. | Gear **D**, or **R** within 60 s of opening a diff. | Speedometer up. HUD chip with the active file. Bright music. |
 | **Thinking** | *"Gentle cruising — thinking time"*. | Gear **N** (**R** after a diff). | Medium music. |
 | **Idle** | *"Slowing down — taking a breather"*, then *"Parked at Bixby Creek Overlook — resume whenever you're ready"* with a stop card. | Gear **N**, then **P**. | Soft music once stopped. |
 | **Heads-up** | No change. | **Warnings** light (any errors or warnings). **Check engine** (a failed test, build or lint). | Temperature gauge. Strip: ⚠ and *2 errors*. |
-| **Your turn** | When pulled over: *"Scenic stop at Bixby Creek Overlook — Claude finished, your turn"*. Stop card: *Claude finished its turn*. | **Blue your-turn light**, if this display's Your-turn cue is on (off by default). Gear **P** when pulled over. | Rear view: *Claude finished*. Radio: *Finished*. |
+| **Your turn** | When pulled over: *"Scenic stop at Bixby Creek Overlook — Claude finished, your turn"*. Stop card: *Claude finished its turn*. | **Blue your-turn light**, if this display's Your-turn cue is on (off by default). Gear **P** when pulled over. | HUD alert: *Claude finished · your turn*. Rear view: *Claude finished*. Radio: *Finished*. |
 | **Parked** | *"Parked — your journey is saved"*. Stop card with *Resume journey*. | Gear **P**. | Status bar: *Parked*. |
 | **No journey** | *"Where do you want to go today?"* The destination board opens. | — | — |
 
@@ -109,16 +110,19 @@ The same wiring, read the other way: pick an object and see which signals reach 
 | Tachometer | Agent and tool score: agent events, outside edits, commands starting, commands running, agents working. 20 s half-life. | Agent at work, Verifying |
 | Fuel | Journey progress: reads the percent while the needle drops toward E. Back to F when you refuel. | Every moving moment |
 | Context | How much of the fullest agent's context window is left: from Claude Code's transcript or status line, or the HTTP API's `context`. Reads — until an agent reports it. On by default; Settings › Display on each screen. | Any agent signal that reports context |
+| Changes | Files changed and not yet committed, staged ones included, like the editor's Source Control badge: dark at 0, then a lit blue ring and a white number. ↑N after the label: commits to push. Click it to open Source Control (VS Code, Cursor, Windsurf). On by default; Settings › Display on each screen. | Any edit, save or commit |
 | Battery | This computer's battery. Off by default; Settings › Display on each screen. Hidden where the browser doesn't report battery (Safari, Firefox) and until a battery shows up: a desktop, or a laptop that's plugged in and full, reports no battery. | — |
 | Temperature | Errors, warnings (a fifth as much) and failed checks. | Heads-up, Build left failing |
 | Gear P · R · N · D | P when stopped. R within 60 s of a diff while coding or thinking. D while coding, agent at work, verifying or on final approach. N otherwise. | Every moment |
 | **Windshield and mirrors** | | |
 | Stop card | The car stopped (scenic stop, pull over, refuelling) or the journey is parked. | Agent needs you, Your turn, Idle, Blocked, Parked |
 | HUD | Location and caption, plus chips for the active file, the objective and a running test, build or lint. | Every moment |
-| Rear-view mirror | The last four events: saves, test/build/check results, commits, branch switches, agent needs you / finished / hit a problem, agent edits. | Most moments |
+| HUD alerts | What needs you right now, one glowing chip each, only while it does: an agent's question, a plan to approve, an approval (with the tool), an agent that stopped on an error, your turn, and a pull request on your branch or opened by you with a merge conflict, failing CI or requested changes. Most urgent first, four at most. Clicking one goes where you act: the terminal running the agent (else the editor), or the PR on GitHub. Each kind has a switch in Settings › HUD alerts on each screen; all on by default. | Agent needs you, Agent hit a problem, Your turn |
+| Rear-view mirror | The last four events: saves, test/build/check results, commits, branch switches, agent has a question / a plan / needs approval / finished / hit a problem, agent edits, PR opened. | Most moments |
 | Side mirrors | Crew agents (each Claude Code `Task`/`Agent` call until it reports back), and any agent after the first. | Agent at work |
 | **Center screen and strip** | | |
 | Radio tab | Every agent with its status: Working, Using tools, Waiting for you, Standing by, Finished, Needs help. | Any agent signal |
+| PRs tab | The repository's open pull requests, once you connect GitHub: number, title, CI dot, how far the branch is ahead of and behind its base (else how long it has been open), draft, conflict and review. A lit branch marks the ones on your current branch, listed first. The tab's count turns amber when one needs you. Click a row to open it on GitHub. | Pull requests |
 | Console tab | Running commands with elapsed time, and the last test, build and lint results. | Verifying |
 | Tour strip lights | *Verifying*, ⚠ (check engine), *N errors*, *N agents* working, and the gear. | Verifying, Heads-up, Agent at work |
 | Arrival card | The journey arrived. | Arrived |
@@ -139,9 +143,14 @@ What each source sends, and the moment it feeds.
 | `PreToolUse` | Claude: using Edit, Bash… | Agent at work |
 | `PreToolUse` on `Task`/`Agent` | A crew agent appears in a side mirror (NAV, ENG, QA, COMMS, OPS by type) | Agent at work |
 | `PostToolUse` | Claude: working. On `Task`/`Agent`, that crew agent leaves. | Agent at work |
-| `Notification` (permission prompt) | Claude: waiting, "Needs your approval" | Agent needs you |
-| `Notification` (`idle_prompt`, `auth_success`) | Ignored | — |
+| `PreToolUse` on `AskUserQuestion` | Claude: waiting, "Has a question for you" | Agent needs you |
+| `PreToolUse` on `ExitPlanMode` | Claude: waiting, "Has a plan for you to approve" | Agent needs you |
+| `Notification` (`permission_prompt`) | Claude: waiting, "Needs your approval to use Bash" (the tool from the last `PreToolUse`); still a question or a plan if one is open | Agent needs you |
+| `Notification` (`elicitation_dialog`, `elicitation_url_dialog`, `agent_needs_input`) | Claude: waiting, "Needs your input" | Agent needs you |
+| `Notification` (`idle_prompt`, `auth_success` and other notices that ask nothing) | Ignored | — |
 | `Stop` | Claude: finished, "your turn". Leftover crew leave. Starts the your-turn count. | Your turn |
+| `StopFailure` | The turn ended on an API error: Claude needs help, "Stopped: rate limit" (only the error's kind is forwarded). Leftover crew leave. | Agent hit a problem |
+| Interrupting Claude (Esc) | No hook fires: Claude reads as working until your next prompt, or 10 min. | — |
 | `PreCompact` | Claude: compacting context | Agent at work |
 | `SubagentStart`, `SubagentStop` | Ignored: `PostToolUse` retires the exact crew agent | — |
 | `SessionEnd` | Claude and its crew leave the cockpit | — |
@@ -150,7 +159,7 @@ What each source sends, and the moment it feeds.
 | **Other agents** | | |
 | Codex `agent-turn-complete` | Codex: finished, "your move" | Your turn |
 | HTTP API `working` / `tool` | That agent is working | Agent at work |
-| HTTP API `waiting` | That agent waits for you | Agent needs you |
+| HTTP API `waiting` | That agent waits for you; `ask` (`question`, `plan`, `approval`) and `tool` say why | Agent needs you |
 | HTTP API `error` | That agent needs help | Agent hit a problem |
 | HTTP API `idle` / `done` | Status only | Your turn |
 | HTTP API `context` | Context-window use, for the Context gauge | — |
@@ -165,10 +174,13 @@ What each source sends, and the moment it feeds.
 | A terminal command (shell integration) | `process`, classed as test, build, lint, install, run, agent or git | Verifying |
 | A task runs | `process`; background tasks count as running apps | Verifying |
 | Debugging | `process` (run) | — |
-| Git status, commits, branch switches | `git`, `git.commit`, `git.branch` | Rear view |
+| Git status, commits, branch switches | `git`, `git.commit`, `git.branch` | Rear view, Changes gauge |
+| **GitHub** (after you connect it) | | |
+| Open pull requests, every 2 min, sooner after a push or a branch switch | `github.prs`: numbers, titles, branches, authors, CI, review and merge state, ahead/behind. No code. | PRs tab, HUD alerts, rear view |
 | **vibetour CLI** | | |
 | A file changes | A save by you, or an outside edit while an agent reports working | You're coding / Agent at work |
-| Git polling | `git`, `git.commit`, `git.branch` | Rear view |
+| Git polling | `git`, `git.commit`, `git.branch` | Rear view, Changes gauge |
+| `--prs`: GitHub, with `GITHUB_TOKEN` or the `gh` CLI's sign-in | `github.prs` | PRs tab, HUD alerts |
 
 ## The clock behind it
 

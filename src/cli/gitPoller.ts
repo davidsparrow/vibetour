@@ -98,6 +98,20 @@ export class GitPoller {
   }
 }
 
+/** The `origin` remote's URL, if there is one. */
+export async function originUrl(dir: string): Promise<string | undefined> {
+  return (await git(dir, ['remote', 'get-url', 'origin']).catch(() => '')).trim() || undefined;
+}
+
+/** A GitHub token for the CLI: GITHUB_TOKEN or GH_TOKEN, else the GitHub CLI's own sign-in. */
+export function githubCliToken(env: NodeJS.ProcessEnv = process.env): Promise<string | undefined> {
+  const fromEnv = env.GITHUB_TOKEN?.trim() || env.GH_TOKEN?.trim();
+  if (fromEnv) return Promise.resolve(fromEnv);
+  return new Promise((done) => {
+    execFile('gh', ['auth', 'token'], { timeout: 5_000, windowsHide: true }, (err, stdout) => done(err ? undefined : stdout.trim() || undefined));
+  });
+}
+
 function firstLine(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err);
   return msg.split('\n').find((l) => l.trim() && !l.startsWith('Command failed'))?.trim() ?? msg.split('\n')[0];

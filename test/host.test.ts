@@ -228,11 +228,11 @@ describe('app page', () => {
 
 describe('CLI arguments', () => {
   it('parses the documented options', () => {
-    expect(parseArgs(['proj', '--port', '0', '--no-open', '--pack', 'california-coast', '--scope=coffee-run', '--streaming'], '/work')).toEqual({
+    expect(parseArgs(['proj', '--port', '0', '--no-open', '--pack', 'california-coast', '--scope=coffee-run', '--streaming', '--prs'], '/work')).toEqual({
       kind: 'run',
-      opts: { dir: '/work/proj', port: 0, open: false, pack: 'california-coast', scope: 'coffee-run', streaming: true },
+      opts: { dir: '/work/proj', port: 0, open: false, pack: 'california-coast', scope: 'coffee-run', streaming: true, prs: true },
     });
-    expect(parseArgs([], '/work')).toEqual({ kind: 'run', opts: { dir: '/work', port: 47477, open: true, scope: 'day-trip', streaming: false } });
+    expect(parseArgs([], '/work')).toEqual({ kind: 'run', opts: { dir: '/work', port: 47477, open: true, scope: 'day-trip', streaming: false, prs: false } });
     expect(parseArgs(['--help']).kind).toBe('help');
     expect(parseArgs(['--port', 'abc']).kind).toBe('error');
     expect(parseArgs(['--pack', 'atlantis']).kind).toBe('error');

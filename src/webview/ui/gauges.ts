@@ -9,8 +9,12 @@ export interface GaugeOptions {
   /** Labels at the start and end of the scale, e.g. E / F. */
   ends?: [string, string];
   ticks?: number;
-  tone?: 'amber' | 'cyan' | 'green' | 'red';
+  tone?: 'amber' | 'cyan' | 'green' | 'red' | 'blue';
   size?: 'large' | 'small';
+  /** False: a digital dial, its number large in the middle of a lit ring. */
+  needle?: boolean;
+  /** Shown before the label, e.g. a branch for Changes. */
+  icon?: SVGElement;
   ariaLabel: string;
 }
 
@@ -34,6 +38,8 @@ export class Gauge {
   private readonly valueArc: SVGPathElement;
   private readonly needle: SVGGElement;
   private readonly readout: SVGTextElement;
+  /** Inside a digital dial, under its number. */
+  private readonly note: SVGTextElement;
   private readonly length: number;
   private last = -1;
 
@@ -53,11 +59,14 @@ export class Gauge {
     this.valueArc.style.strokeDasharray = `${this.length}`;
     this.valueArc.style.strokeDashoffset = `${this.length}`;
     svg.append(this.valueArc);
+    const digital = opts.needle === false;
     this.needle = s('g', { class: 'gauge-needle' }, s('line', { x1: 50, y1: 50, x2: 50 + r - 14, y2: 50 }), s('circle', { cx: 50, cy: 50, r: 3.2 }));
     this.needle.style.transform = `rotate(${START}deg)`;
-    svg.append(this.needle);
-    this.readout = s('text', { x: 50, y: 66, class: 'gauge-readout', 'text-anchor': 'middle' }, '0');
+    if (!digital) svg.append(this.needle);
+    this.readout = s('text', digital ? { x: 50, y: 50, class: 'gauge-readout', 'text-anchor': 'middle', 'dominant-baseline': 'central' } : { x: 50, y: 66, class: 'gauge-readout', 'text-anchor': 'middle' }, '0');
     svg.append(this.readout);
+    this.note = s('text', { x: 50, y: 72, class: 'gauge-note', 'text-anchor': 'middle' });
+    if (digital) svg.append(this.note);
     if (opts.ends) {
       const [lx, ly] = polar(50, 50, r - 2, START + 8);
       const [rx, ry] = polar(50, 50, r - 2, START + SWEEP - 8);
@@ -67,7 +76,7 @@ export class Gauge {
     this.el = h(
       'div',
       {
-        class: `gauge gauge-${opts.size ?? 'large'} tone-${opts.tone ?? 'amber'}`,
+        class: `gauge gauge-${opts.size ?? 'large'} tone-${opts.tone ?? 'amber'}${digital ? ' gauge-digital' : ''}`,
         role: 'meter',
         'aria-label': opts.ariaLabel,
         'aria-valuemin': 0,
@@ -75,8 +84,13 @@ export class Gauge {
         'aria-valuenow': 0,
       },
       svg,
-      h('div', { class: 'gauge-label' }, opts.label),
+      h('div', { class: 'gauge-label' }, opts.icon ?? null, opts.label),
     );
+  }
+
+  /** A short note under a digital dial's number, e.g. "↑2" for commits to push. */
+  setNote(value: string): void {
+    text(this.note, value);
   }
 
   set(value: number, readout: string, valueText?: string): void {

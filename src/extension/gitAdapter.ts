@@ -2,6 +2,7 @@ import { isAbsolute, relative } from 'node:path';
 import * as vscode from 'vscode';
 import type { DevEventBody } from '../core/events';
 import { CommitTracker, commitSubject } from '../host/git';
+import { parseGitHubRemote, type GitHubRepo } from '../host/github';
 import { Debouncer } from '../host/throttle';
 
 /**
@@ -36,6 +37,7 @@ interface RepositoryState {
   readonly mergeChanges: readonly unknown[];
   /** Only populated when `git.untrackedChanges` is "separate". */
   readonly untrackedChanges?: readonly unknown[];
+  readonly remotes: readonly { readonly name: string; readonly fetchUrl?: string; readonly pushUrl?: string }[];
   readonly onDidChange: vscode.Event<void>;
 }
 
@@ -115,6 +117,17 @@ export class GitAdapter implements vscode.Disposable {
     if (this.repos.has(repo)) return;
     this.repos.set(repo, repo.state.onDidChange(() => this.debouncer.trigger()));
     this.debouncer.trigger();
+  }
+
+  /** The GitHub repository behind the primary repo's `origin` (else its first GitHub remote). */
+  githubRepo(): GitHubRepo | undefined {
+    const remotes = this.primary()?.state.remotes ?? [];
+    const ordered = [...remotes.filter((r) => r.name === 'origin'), ...remotes.filter((r) => r.name !== 'origin')];
+    for (const r of ordered) {
+      const repo = parseGitHubRemote(r.fetchUrl ?? r.pushUrl);
+      if (repo) return repo;
+    }
+    return undefined;
   }
 
   /** The repository for the first workspace folder, else the first one opened. */

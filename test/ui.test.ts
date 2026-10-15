@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { MOMENTS, type Moment } from '../src/core/moments';
+import type { Attention } from '../src/core/attention';
 import { DEFAULT_PREFS, mergePrefs } from '../src/core/protocol';
+import { alertClickable, MAX_ALERTS, shownAlerts } from '../src/webview/ui/alerts';
 import { batteryHiddenReason, batteryStatus } from '../src/webview/ui/battery';
 import { CUES, cueTable, litCues } from '../src/webview/ui/cues';
 import { formatDuration, formatElapsed } from '../src/webview/ui/dom';
@@ -53,5 +55,33 @@ describe('dashboard gauges', () => {
     expect(batteryHiddenReason({ kind: 'unsupported' })).toBe("this browser doesn't report battery");
     expect(batteryHiddenReason({ kind: 'none' })).toBe('no battery found yet');
     expect(batteryHiddenReason({ kind: 'battery', level: 0.5, charging: false })).toBeNull();
+  });
+});
+
+describe('HUD alerts', () => {
+  const alert = (id: string, kind: Attention['kind']): Attention => ({
+    id,
+    kind,
+    text: id,
+    since: 0,
+    target: kind === 'pr' ? { type: 'pr', number: 1 } : { type: 'agent', agentId: id },
+  });
+
+  it('shows the kinds this display switched on, at most a few, and folds the rest', () => {
+    const list = [alert('q', 'question'), alert('p', 'pr'), alert('t', 'turn'), alert('a', 'approval'), alert('x', 'problem'), alert('y', 'plan')];
+    expect(shownAlerts(list, DEFAULT_PREFS).shown).toHaveLength(MAX_ALERTS);
+    expect(shownAlerts(list, DEFAULT_PREFS).more.map((a) => a.id)).toEqual(['x', 'y']);
+    const prefs = mergePrefs({ hudAlerts: { pr: false, turn: false } as never });
+    expect(prefs.hudAlerts).toMatchObject({ question: true, pr: false, turn: false });
+    expect(shownAlerts(list, prefs).shown.map((a) => a.id)).toEqual(['q', 'a', 'x', 'y']);
+  });
+
+  it('makes a chip a button only where the host can act on it', () => {
+    const caps = { openFiles: false, openDocs: false, saveFiles: false, focusIde: false };
+    const host = (more: object) => ({ kind: 'cli' as const, version: '0', capabilities: { ...caps, ...more } });
+    expect(alertClickable(alert('q', 'question'), host({ focusAgent: true }))).toBe(true);
+    expect(alertClickable(alert('q', 'question'), host({ openLinks: true }))).toBe(false);
+    expect(alertClickable(alert('p', 'pr'), host({ openLinks: true }))).toBe(true);
+    expect(alertClickable(alert('p', 'pr'), undefined)).toBe(false);
   });
 });

@@ -98,6 +98,14 @@ export class IdeAdapter implements vscode.Disposable {
     this.diagnostics.trigger();
   }
 
+  /** The terminal running a coding agent (`claude`, `codex`…), preferring the active one. */
+  agentTerminal(): vscode.Terminal | undefined {
+    const runsAgent = (t: vscode.Terminal) => [...(this.terminalProcesses.get(t)?.values() ?? [])].some((p) => p.kind === 'agent');
+    const active = vscode.window.activeTerminal;
+    if (active && runsAgent(active)) return active;
+    return [...this.terminalProcesses.keys()].reverse().find(runsAgent);
+  }
+
   dispose(): void {
     this.edits.flush();
     this.edits.dispose();

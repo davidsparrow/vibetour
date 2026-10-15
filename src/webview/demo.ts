@@ -1,4 +1,4 @@
-import { fileRef, type DevEventBody } from '../core/events';
+import { fileRef, type DevEventBody, type PullRequestRef } from '../core/events';
 import type { ClientCommand, HostMessage } from '../core/protocol';
 import { MemoryStore, VibeTourSession, type KeyValueStore } from '../core/session';
 import { VERSION } from '../host/version';
@@ -128,7 +128,7 @@ export class DemoHost {
           kind: 'demo',
           version: VERSION,
           projectName: 'atlas',
-          capabilities: { openFiles: false, openDocs: false, saveFiles: false, focusIde: false },
+          capabilities: { openFiles: false, openDocs: false, saveFiles: false, focusIde: false, focusAgent: true, openScm: true, openLinks: true, connectGitHub: true },
         },
         catalog: this.session.catalog(),
       });
@@ -137,6 +137,22 @@ export class DemoHost {
     }
     if (cmd.type === 'openDocs' || cmd.type === 'openFile' || cmd.type === 'focusIde') {
       this.listener?.({ type: 'toast', text: 'In VS Code this opens right in your editor.' });
+      return;
+    }
+    if (cmd.type === 'focusAgent') {
+      this.listener?.({ type: 'toast', text: 'In VS Code this takes you to Claude.' });
+      return;
+    }
+    if (cmd.type === 'openSourceControl') {
+      this.listener?.({ type: 'toast', text: 'In VS Code this opens Source Control.' });
+      return;
+    }
+    if (cmd.type === 'openPullRequest') {
+      this.listener?.({ type: 'toast', text: `In VS Code this opens PR #${cmd.number} on GitHub.` });
+      return;
+    }
+    if (cmd.type === 'connectGitHub') {
+      this.showPullRequests();
       return;
     }
     this.session.handleCommand(cmd);
@@ -155,6 +171,37 @@ export class DemoHost {
   private nextFile(): string {
     this.fileIndex = (this.fileIndex + 1) % FILES.length;
     return FILES[this.fileIndex];
+  }
+
+  /** Made-up pull requests: one on this branch with failing CI, so it lights the branch and raises an alert. */
+  private showPullRequests(): void {
+    const ago = (hours: number) => this.now() - hours * 3_600_000;
+    const pr = (number: number, title: string, branch: string, author: string, hours: number, more: Partial<PullRequestRef>): PullRequestRef => ({
+      number,
+      title,
+      url: `https://github.com/atlas/atlas/pull/${number}`,
+      branch,
+      base: 'main',
+      author,
+      draft: false,
+      createdAt: ago(hours),
+      crossRepo: false,
+      ci: 'passing',
+      review: 'review-required',
+      conflict: false,
+      ...more,
+    });
+    this.ev({
+      type: 'github.prs',
+      state: 'ok',
+      repo: 'atlas/atlas',
+      viewer: 'you',
+      items: [
+        pr(42, 'Onboarding flow', 'feature/onboarding', 'you', 3, { ci: 'failing', ahead: 4, behind: 1 }),
+        pr(41, 'Faster session refresh', 'fix/session-refresh', 'sam', 26, { review: 'approved', ahead: 2, behind: 0 }),
+        pr(39, 'Dark mode tokens', 'feat/dark-mode', 'alex', 75, { draft: true, ahead: 7, behind: 12 }),
+      ],
+    });
   }
 
   private gitStatus(): void {
@@ -190,7 +237,7 @@ export class DemoHost {
         break;
       }
       case 'ask':
-        this.ev({ type: 'agent', agentId: 'claude:demo', name: 'Claude', role: 'copilot', status: 'waiting', detail: 'Needs your approval' });
+        this.ev({ type: 'agent', agentId: 'claude:demo', name: 'Claude', role: 'copilot', status: 'waiting', ask: 'question', detail: 'Has a question for you' });
         break;
       case 'answer':
         this.ev({ type: 'agent', agentId: 'claude:demo', name: 'Claude', role: 'copilot', status: 'working', detail: 'Working on your request' });

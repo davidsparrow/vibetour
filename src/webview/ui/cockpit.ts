@@ -1,12 +1,13 @@
 import { waitingFor } from '../../core/attention';
 import { APPROACH_CAP } from '../../core/journey';
 import type { JourneyPack } from '../../core/packs';
-import type { AgentSnapshot, TourSnapshot } from '../../core/protocol';
+import type { AgentSnapshot, PullRequestSnapshot, TourSnapshot } from '../../core/protocol';
 import { HudAlerts } from './alerts';
 import type { AppContext } from './context';
 import { CUES, cueTable, litCues, type Cue } from './cues';
 import { clear, formatDuration, formatElapsed, h, renderKeyed, text, timeAgo, toggle } from './dom';
 import { Gauge } from './gauges';
+import { branchIcon } from './icons';
 import { RouteMap } from './map';
 
 /**
@@ -45,7 +46,9 @@ const STATE_LABEL: Record<string, string> = {
   COMPLETE: 'Arrived',
 };
 
-type Tab = 'nav' | 'radio' | 'trip' | 'console';
+type Tab = 'nav' | 'radio' | 'prs' | 'trip' | 'console';
+const TABS: Tab[] = ['nav', 'radio', 'prs', 'trip', 'console'];
+const TAB_LABEL: Record<Tab, string> = { nav: 'Nav', radio: 'Radio', prs: 'PRs', trip: 'Trip', console: 'Console' };
 
 function light(name: string, label: string): HTMLElement {
   return h('span', { class: `light light-${name}`, title: label, 'aria-label': label, role: 'img' }, h('i'), h('b', {}, label));
@@ -67,7 +70,10 @@ export class Cockpit {
   private readonly contextGauge = new Gauge({ label: 'Context', size: 'small', tone: 'cyan', ends: ['E', 'F'], ticks: 5, ariaLabel: 'Agent context window left' });
   private readonly batteryGauge = new Gauge({ label: 'Battery', size: 'small', tone: 'green', ends: ['E', 'F'], ticks: 5, ariaLabel: 'Battery' });
   private readonly temp = new Gauge({ label: 'Issues', size: 'small', tone: 'red', ends: ['C', 'H'], ticks: 5, ariaLabel: 'Temperature: warnings and errors' });
-  private readonly miniGauges = h('div', { class: 'mini-gauges' }, this.fuel.el, this.contextGauge.el, this.batteryGauge.el, this.temp.el);
+  /** Files changed and not committed, like the editor's Source Control badge; clicking opens it. */
+  private readonly changesGauge = new Gauge({ label: 'Changes', size: 'small', tone: 'blue', ticks: 5, needle: false, icon: branchIcon(), ariaLabel: 'Uncommitted changes' });
+  private readonly changesButton = h('button', { class: 'gauge-btn', onclick: () => this.openSourceControl() }, this.changesGauge.el);
+  private readonly miniGauges = h('div', { class: 'mini-gauges' }, this.fuel.el, this.contextGauge.el, this.batteryGauge.el, this.changesButton, this.temp.el);
   private readonly lights = h(
     'div',
     { class: 'lights' },
@@ -85,6 +91,8 @@ export class Cockpit {
   private readonly map = new RouteMap();
   private readonly navInfo = h('div', { class: 'nav-info' });
   private readonly radio = h('div', { class: 'radio' });
+  private readonly prs = h('div', { class: 'prs' });
+  private readonly prsBadge = h('span', { class: 'tab-badge' });
   private readonly trip = h('div', { class: 'trip' });
   private readonly console = h('div', { class: 'console' });
   private readonly strip = h('div', { class: 'tour-strip' });
@@ -102,13 +110,13 @@ export class Cockpit {
 
   constructor(private readonly ctx: AppContext) {
     this.hudAlerts = new HudAlerts(ctx);
-    for (const t of ['nav', 'radio', 'trip', 'console'] as Tab[]) {
-      const label = { nav: 'Nav', radio: 'Radio', trip: 'Trip', console: 'Console' }[t];
-      const tabEl = h('button', { class: 'tab', role: 'tab', 'aria-selected': t === 'nav' ? 'true' : 'false', onclick: () => this.setTab(t) }, label);
+    for (const t of TABS) {
+      const tabEl = h('button', { class: 'tab', role: 'tab', 'aria-selected': t === 'nav' ? 'true' : 'false', onclick: () => this.setTab(t) }, TAB_LABEL[t], t === 'prs' ? this.prsBadge : null);
       this.tabs.set(t, tabEl);
     }
     this.panes.set('nav', h('div', { class: 'pane pane-nav' }, this.map.el, this.navInfo));
     this.panes.set('radio', h('div', { class: 'pane' }, this.radio));
+    this.panes.set('prs', h('div', { class: 'pane' }, this.prs));
     this.panes.set('trip', h('div', { class: 'pane' }, this.trip));
     this.panes.set('console', h('div', { class: 'pane' }, this.console));
 
@@ -227,6 +235,7 @@ export class Cockpit {
     this.updateFuel(snap);
     this.updateContextGauge(snap);
     this.updateBatteryGauge();
+    this.updateChangesGauge(snap);
     this.miniGauges.dataset.count = String([...this.miniGauges.children].filter((g) => !(g as HTMLElement).hidden).length);
     const issues = snap.ide.diagnostics.errors;
     this.temp.set(a.errorIntensity, String(issues), `${issues} errors, ${snap.ide.diagnostics.warnings} warnings`);
@@ -255,6 +264,7 @@ export class Cockpit {
 
     this.updateNav(snap, pack);
     this.updateRadio(snap);
+    this.updatePullRequests(snap);
     this.updateTrip(snap);
     this.updateConsole(snap);
     this.updateStrip(snap, pack);
@@ -281,6 +291,91 @@ export class Cockpit {
     if (b.kind !== 'battery') return;
     const pct = Math.round(b.level * 100);
     this.batteryGauge.set(b.level, `${pct}%`, `Battery ${pct} percent${b.charging ? ', charging' : ''}`);
+  }
+
+  private updateChangesGauge(snap: TourSnapshot): void {
+    const g = snap.ide.git;
+    this.changesButton.hidden = !this.ctx.prefs.changesGauge || !g;
+    if (!g) return;
+    const files = g.changes + g.staged;
+    const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+    const said = [
+      files ? `${plural(files, 'file', 'files')} changed, not committed` : 'Nothing to commit',
+      g.staged ? `${g.staged} staged` : '',
+      g.ahead ? `${plural(g.ahead, 'commit', 'commits')} to push` : '',
+    ]
+      .filter(Boolean)
+      .join(', ');
+    // The ring fills toward twenty files; the number is the count.
+    this.changesGauge.set(Math.min(1, files / 20), String(files), said);
+    this.changesGauge.setNote(g.ahead ? `↑${g.ahead}` : '');
+    toggle(this.changesGauge.el, 'gauge-lit', files > 0);
+    const canOpen = !!this.ctx.host?.capabilities.openScm;
+    this.changesButton.disabled = !canOpen;
+    this.changesButton.title = canOpen ? `${said}. Open Source Control` : said;
+    this.changesButton.setAttribute('aria-label', this.changesButton.title);
+  }
+
+  private openSourceControl(): void {
+    if (this.ctx.host?.capabilities.openScm) this.ctx.send({ type: 'openSourceControl' });
+  }
+
+  private updatePullRequests(snap: TourSnapshot): void {
+    const feed = snap.ide.pullRequests;
+    const caps = this.ctx.host?.capabilities;
+    const needYou = snap.attention.filter((a) => a.kind === 'pr').length;
+    text(this.prsBadge, feed.items.length ? String(feed.items.length) : '');
+    toggle(this.prsBadge, 'hot', needYou > 0);
+    const minutes = Math.floor(snap.at / 60_000);
+    const key = JSON.stringify([feed.state, feed.items, !!caps?.openLinks, !!caps?.connectGitHub, this.ctx.host?.kind, minutes]);
+    renderKeyed(this.prs, key, () => this.renderPullRequests(snap, feed.items));
+  }
+
+  private renderPullRequests(snap: TourSnapshot, items: PullRequestSnapshot[]): void {
+    const feed = snap.ide.pullRequests;
+    const caps = this.ctx.host?.capabilities;
+    const connect = (label: string) =>
+      caps?.connectGitHub
+        ? h('button', { class: 'btn btn-primary', onclick: () => this.ctx.send({ type: 'connectGitHub' }) }, label)
+        : h('p', { class: 'small muted' }, this.ctx.host?.kind === 'cli' ? 'Start the companion with --prs to show them (it uses GITHUB_TOKEN or the gh CLI’s sign-in).' : 'Shown in VS Code once you connect GitHub.');
+    if (feed.state === 'off') {
+      this.prs.append(h('p', { class: 'muted' }, "See this repository's open pull requests here, and get an alert when one of yours needs you."), connect('Connect GitHub'));
+      return;
+    }
+    if (feed.state === 'signed-out') {
+      this.prs.append(h('p', { class: 'muted' }, 'Signed out of GitHub.'), connect('Sign in to GitHub'));
+      return;
+    }
+    if (feed.state === 'no-remote') {
+      this.prs.append(h('p', { class: 'muted' }, 'This repository has no GitHub remote.'));
+      return;
+    }
+    if (!items.length) {
+      this.prs.append(h('p', { class: 'muted' }, feed.state === 'error' ? "GitHub didn't answer. Trying again in a few minutes." : 'No open pull requests.'));
+      return;
+    }
+    // Yours on this branch first, then yours, then the newest.
+    const ordered = [...items].sort((a, b) => Number(b.onBranch) - Number(a.onBranch) || Number(b.mine) - Number(a.mine) || b.createdAt - a.createdAt);
+    const trouble = new Set(snap.attention.filter((a) => a.kind === 'pr' && a.target.type === 'pr').map((a) => (a.target as { number: number }).number));
+    for (const pr of ordered) this.prs.append(this.pullRequestRow(pr, snap.at, trouble.has(pr.number), !!caps?.openLinks));
+    if (feed.state === 'error') this.prs.append(h('p', { class: 'small muted' }, "GitHub didn't answer the last check; this list may be out of date."));
+  }
+
+  private pullRequestRow(pr: PullRequestSnapshot, now: number, needsYou: boolean, openable: boolean): HTMLElement {
+    const ci = { passing: 'CI passing', failing: 'CI failing', pending: 'CI running', none: 'No CI' }[pr.ci];
+    const tags = [pr.draft ? 'draft' : '', pr.conflict ? 'conflict' : '', pr.review === 'changes-requested' ? 'changes requested' : pr.review === 'approved' ? 'approved' : ''].filter(Boolean);
+    // Ahead/behind when GitHub could compare the branch; otherwise how long it has been open.
+    const where = pr.ahead !== undefined && pr.behind !== undefined ? `↑${pr.ahead} ↓${pr.behind} · ${age(now - pr.createdAt)}` : `opened ${age(now - pr.createdAt)} ago`;
+    const label = `Pull request #${pr.number}${pr.title ? `: ${pr.title}` : ''}. ${ci}${tags.length ? `, ${tags.join(', ')}` : ''}. ${pr.onBranch ? 'On your branch. ' : ''}${where.replace('↑', 'ahead ').replace('↓', 'behind ')}`;
+    const children = [
+      h('span', { class: 'pr-branch', title: pr.onBranch ? 'On your current branch' : '' }, pr.onBranch ? branchIcon() : null),
+      h('span', { class: 'pr-num' }, `#${pr.number}`),
+      h('span', { class: 'pr-body' }, h('strong', {}, pr.title ?? 'Pull request'), h('em', {}, [where, ...tags].join(' · '))),
+      h('i', { class: `pr-ci ci-${pr.ci}`, title: ci }),
+    ];
+    const cls = `pr-row${pr.onBranch ? ' on-branch' : ''}${needsYou ? ' needs-you' : ''}`;
+    if (!openable) return h('div', { class: cls, 'aria-label': label }, ...children);
+    return h('button', { class: cls, title: 'Open on GitHub', 'aria-label': label, onclick: () => this.ctx.send({ type: 'openPullRequest', number: pr.number }) }, ...children);
   }
 
   private updateStopCard(snap: TourSnapshot, pack?: JourneyPack): void {
@@ -521,4 +616,12 @@ export class Cockpit {
       jp.append(h('p', { class: 'muted' }, 'No journey in progress.'));
     }
   }
+}
+
+/** How long ago, briefly: 12m, 5h, 3d. */
+function age(ms: number): string {
+  const m = Math.max(0, Math.floor(ms / 60_000));
+  if (m < 60) return `${m}m`;
+  const hours = Math.floor(m / 60);
+  return hours < 24 ? `${hours}h` : `${Math.floor(hours / 24)}d`;
 }

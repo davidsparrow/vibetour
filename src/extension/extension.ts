@@ -5,6 +5,7 @@ import * as vscode from 'vscode';
 import type { DevEventBody } from '../core/events';
 import type { ClientCommand, ClientPrefs, DisplayMode, HostInfo, HostMessage } from '../core/protocol';
 import { VibeTourSession, type KeyValueStore, type SessionOptions } from '../core/session';
+import { PrWatcher } from '../host/prWatcher';
 import { VERSION } from '../host/version';
 import { BUILTIN_PACKS } from '../packs';
 import { CompanionServer } from '../server/companionServer';
@@ -78,6 +79,7 @@ class VibeTourHost implements CommandHost {
   private readonly statusBar: StatusBar;
   private readonly ide: IdeAdapter;
   private readonly git: GitAdapter;
+  readonly prs: PullRequests;
   private readonly disposables: vscode.Disposable[] = [];
   private readonly project?: string;
   private ticker?: ReturnType<typeof setInterval>;
@@ -89,6 +91,7 @@ class VibeTourHost implements CommandHost {
   private streaming: boolean;
   private detectExternalEdits: boolean;
   private tickFailed = false;
+  private lastAhead = 0;
 
   constructor(readonly context: vscode.ExtensionContext) {
     this.log = vscode.window.createOutputChannel('VibeTour', { log: true });
@@ -129,6 +132,16 @@ class VibeTourHost implements CommandHost {
       (e) => this.ingest(e),
       (m) => this.log.info(m),
     );
+    this.prs = new PullRequests(
+      new PrWatcher({
+        repo: () => this.git.githubRepo(),
+        token: () => githubToken(false),
+        emit: (e) => this.ingest(e),
+        log: (m) => this.log.info(m),
+      }),
+      () => this.cfg(),
+      (m) => this.log.info(m),
+    );
   }
 
   async start(): Promise<void> {
@@ -158,7 +171,7 @@ class VibeTourHost implements CommandHost {
     });
 
     this.ide.start();
-    void this.git.start();
+    void this.git.start().then(() => this.prs.start());
     this.ticker = setInterval(() => this.tick(), TICK_MS);
     this.tick();
 
@@ -176,6 +189,7 @@ class VibeTourHost implements CommandHost {
     // below would auto-resume the journey we are about to put away.
     this.ide.dispose();
     this.git.dispose();
+    this.prs.stop();
     await this.companionChange.catch(() => undefined);
     await this.stopCompanion();
     try {
@@ -193,6 +207,12 @@ class VibeTourHost implements CommandHost {
 
   private ingest(body: DevEventBody): void {
     this.session.ingest({ ...body, at: Date.now() });
+    // A push (ahead drops to 0) or a branch switch changes what GitHub has to say.
+    if (body.type === 'git.branch') this.prs.refreshSoon();
+    if (body.type === 'git') {
+      if (body.ahead === 0 && this.lastAhead > 0) this.prs.refreshSoon();
+      this.lastAhead = body.ahead;
+    }
   }
 
   private tick(): void {
@@ -223,6 +243,7 @@ class VibeTourHost implements CommandHost {
     if (e.affectsConfiguration('vibetour.statusBar.enabled')) this.statusBar.setEnabled(cfg.get<boolean>('statusBar.enabled', true));
     if (e.affectsConfiguration('vibetour.agents.detectExternalEdits')) this.detectExternalEdits = cfg.get<boolean>('agents.detectExternalEdits', true);
     if (e.affectsConfiguration('vibetour.yourTurn')) this.session.setYourTurnStop(yourTurnStopMs(cfg));
+    if (e.affectsConfiguration('vibetour.pullRequests.enabled')) this.prs.start();
     if (e.affectsConfiguration('vibetour.companion')) {
       this.companionChange = this.companionChange.then(async () => {
         await this.stopCompanion();
@@ -241,7 +262,7 @@ class VibeTourHost implements CommandHost {
       projectName: this.streaming ? undefined : this.project,
       companionUrl: this.streaming || !this.server ? undefined : (this.externalCompanionUrl ?? this.server.url),
       // A companion screen can open files in VS Code, but saves its captures as browser downloads.
-      capabilities: { openFiles: true, openDocs: true, saveFiles: panel, focusIde: panel },
+      capabilities: { openFiles: true, openDocs: true, saveFiles: panel, focusIde: panel, focusAgent: true, openScm: true, openLinks: true, connectGitHub: true },
     };
   }
 
@@ -290,6 +311,18 @@ class VibeTourHost implements CommandHost {
         return;
       case 'focusIde':
         return this.goToWork();
+      case 'focusAgent':
+        return this.focusAgent(display);
+      case 'openSourceControl':
+        await vscode.commands.executeCommand('workbench.view.scm');
+        return;
+      case 'openPullRequest': {
+        const url = this.session.pullRequestUrl(cmd.number);
+        if (url && /^https:\/\/github\.com\//.test(url)) await vscode.env.openExternal(vscode.Uri.parse(url));
+        return;
+      }
+      case 'connectGitHub':
+        return this.prs.connect();
       default:
         return;
     }
@@ -313,6 +346,18 @@ class VibeTourHost implements CommandHost {
       }
     }
     await vscode.commands.executeCommand('workbench.action.focusFirstEditorGroup');
+  }
+
+  /**
+   * An alert asked for the agent that needs you: the terminal running it, else
+   * the editor (Claude Code's own panel sits beside it).
+   */
+  private async focusAgent(display: Display): Promise<void> {
+    const terminal = this.ide.agentTerminal();
+    if (terminal) return terminal.show(false);
+    // From a second screen, leave the tour panel where it is.
+    if (display === 'panel') return this.goToWork();
+    await vscode.commands.executeCommand('workbench.action.focusActiveEditorGroup');
   }
 
   /** The signature interaction (PRD §32): one shortcut between the tour and the IDE. */
@@ -437,6 +482,54 @@ class VibeTourHost implements CommandHost {
     } catch (err) {
       this.log.warn(`Could not update the hook script: ${String(err)}`);
     }
+  }
+}
+
+/** VS Code's own GitHub sign-in, with the scope private repositories need. */
+async function githubToken(interactive: boolean): Promise<string | undefined> {
+  try {
+    const session = await vscode.authentication.getSession('github', ['repo'], interactive ? { createIfNone: true } : { silent: true });
+    return session?.accessToken;
+  } catch {
+    // Cancelled, or no GitHub sign-in in this editor.
+    return undefined;
+  }
+}
+
+/**
+ * The PR list's switch: `vibetour.pullRequests.enabled`, turned on by
+ * connecting GitHub from the PRs tab or the command palette.
+ */
+class PullRequests {
+  constructor(
+    private readonly watcher: PrWatcher,
+    private readonly cfg: () => vscode.WorkspaceConfiguration,
+    private readonly log: (msg: string) => void,
+  ) {}
+
+  start(): void {
+    this.watcher.setEnabled(this.cfg().get<boolean>('pullRequests.enabled', false));
+  }
+
+  refreshSoon(): void {
+    this.watcher.refreshSoon();
+  }
+
+  stop(): void {
+    this.watcher.stop();
+  }
+
+  /** Signs in to GitHub (asking first) and turns the PR list on. */
+  async connect(): Promise<void> {
+    const token = await githubToken(true);
+    if (!token) {
+      void vscode.window.showInformationMessage('VibeTour needs a GitHub sign-in to show your open pull requests.');
+      return;
+    }
+    if (!this.cfg().get<boolean>('pullRequests.enabled', false)) await updateSetting(this.cfg(), 'pullRequests.enabled', true);
+    this.log('GitHub connected: showing open pull requests.');
+    this.watcher.setEnabled(true);
+    void this.watcher.poll();
   }
 }
 

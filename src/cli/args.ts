@@ -16,6 +16,7 @@ Options:
   --scope <id>            Journey length with --pack (${SCOPES.map((s) => s.id).join(', ')}; default day-trip)
   --streaming             Streaming Mode: hide file names, branches, commands and messages
   --your-turn-stop <s>    When an agent finishes its turn, pull over after <s> quiet seconds (5-3600)
+  --prs                   Show the repository's open pull requests (GitHub; uses GITHUB_TOKEN or gh's sign-in)
   -h, --help              Show this help
   -v, --version           Show the version
 `;
@@ -29,12 +30,14 @@ export interface CliOptions {
   streaming: boolean;
   /** Pull over this long after an agent finishes its turn; unset keeps driving. */
   yourTurnStopMs?: number;
+  /** Ask GitHub for the repository's open pull requests. */
+  prs: boolean;
 }
 
 export type Parsed = { kind: 'run'; opts: CliOptions } | { kind: 'help' } | { kind: 'version' } | { kind: 'error'; message: string };
 
 export function parseArgs(argv: string[], cwd = process.cwd()): Parsed {
-  const opts: CliOptions = { dir: cwd, port: 47477, open: true, scope: 'day-trip', streaming: false };
+  const opts: CliOptions = { dir: cwd, port: 47477, open: true, scope: 'day-trip', streaming: false, prs: false };
   let dir: string | undefined;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -52,6 +55,9 @@ export function parseArgs(argv: string[], cwd = process.cwd()): Parsed {
         break;
       case '--streaming':
         opts.streaming = true;
+        break;
+      case '--prs':
+        opts.prs = true;
         break;
       case '--port': {
         const port = Number(value());

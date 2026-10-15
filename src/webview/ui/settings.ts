@@ -1,4 +1,6 @@
+import { ALERT_KINDS } from '../../core/attention';
 import type { AudioPrefs, ClientPrefs, DisplayMode } from '../../core/protocol';
+import { ALERT_LABELS } from './alerts';
 import { batteryHiddenReason } from './battery';
 import type { AppContext } from './context';
 import { clear, h } from './dom';
@@ -65,10 +67,11 @@ export class SettingsPanel {
           h(
             'p',
             { class: 'small muted' },
-            "Filled by agents that report their context window (the HTTP API's context field). Until one does, it reads —. Claude Code's hooks don't report it.",
+            "Filled by Claude Code's hooks, or by any agent that reports its context window (the HTTP API's context field). Until one does, it reads —.",
           ),
           toggleRow('Battery gauge', "This computer's battery", p.batteryGauge, (pr, v) => (pr.batteryGauge = v)),
           h('p', { class: 'small muted battery-note' }, batteryNote(p.batteryGauge ? batteryHiddenReason(this.ctx.battery) : null)),
+          toggleRow('Changes gauge', 'Files changed and not yet committed; click it for Source Control', p.changesGauge, (pr, v) => (pr.changesGauge = v)),
           segmented<ClientPrefs['yourTurnCue']>('Your-turn cue', [['none', 'None'], ['light', 'Blue light']], p.yourTurnCue, (pr, v) => (pr.yourTurnCue = v)),
           h(
             'p',
@@ -76,6 +79,15 @@ export class SettingsPanel {
             `Lights on this screen when an agent finishes its turn. Whether the car also pulls over is set ${
               host?.kind === 'cli' ? 'when starting the companion: --your-turn-stop <seconds>' : 'in VS Code: Settings › VibeTour › Your Turn'
             }.`,
+          ),
+        ),
+        h(
+          'section',
+          {},
+          h('h2', {}, 'HUD alerts'),
+          h('p', { class: 'small muted' }, 'Chips on the windshield for what needs you, shown only while it does. Click one to go where you act. Choose which kinds this screen shows.'),
+          ...ALERT_KINDS.map((kind) =>
+            toggleRow(ALERT_LABELS[kind].label, ALERT_LABELS[kind].hint, p.hudAlerts[kind], (pr, v) => (pr.hudAlerts = { ...pr.hudAlerts, [kind]: v })),
           ),
         ),
         h(
@@ -121,12 +133,16 @@ export class SettingsPanel {
             'p',
             { class: 'small muted' },
             this.ctx.snapshot?.privacy.streaming
-              ? 'Streaming mode is ON: file names, paths, branches, commands and messages are hidden at the source.'
+              ? 'Streaming mode is ON: file names, paths, branches, PR titles, commands and messages are hidden at the source.'
               : host?.kind === 'vscode' || host?.kind === 'companion'
                 ? 'Streaming mode hides file names, paths, branches, commands and messages. Toggle it with “VibeTour: Toggle Streaming Mode”.'
                 : 'Streaming mode hides file names, paths, branches, commands and messages (start the companion with --streaming).',
           ),
-          h('p', { class: 'small muted' }, 'VibeTour reads activity metadata only — never your source code — and nothing leaves your machine.'),
+          h(
+            'p',
+            { class: 'small muted' },
+            'VibeTour reads activity metadata only — never your source code — and nothing leaves your machine, unless you connect GitHub for the PRs tab: then it asks GitHub for the repository’s open pull requests (no code).',
+          ),
         ),
         h(
           'section',
