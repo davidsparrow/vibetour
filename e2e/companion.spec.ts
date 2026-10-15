@@ -38,10 +38,17 @@ test.beforeAll(async () => {
   });
 });
 
-test.afterAll(() => {
-  cli?.kill('SIGTERM');
-  rmSync(project, { recursive: true, force: true });
-  rmSync(home, { recursive: true, force: true });
+test.afterAll(async () => {
+  // On SIGTERM the CLI parks the journey and writes its state into home: delete
+  // home while it is still writing and rmdir fails with ENOTEMPTY. Wait for it.
+  if (cli && cli.exitCode === null && cli.signalCode === null) {
+    const exited = new Promise<void>((ok) => cli.once('exit', () => ok()));
+    cli.kill('SIGTERM');
+    await Promise.race([exited, new Promise<void>((ok) => setTimeout(ok, 10_000))]);
+    if (cli.exitCode === null && cli.signalCode === null) cli.kill('SIGKILL');
+  }
+  rmSync(project, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+  rmSync(home, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
 });
 
 test('a browser companion follows a project and its coding agent', async ({ page }) => {
