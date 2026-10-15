@@ -162,38 +162,87 @@ body {
 
 /* ------------------------------------------------------------------ bells */
 
-/* The Alerts icon at the top of the windshield, where the rear-view mirror's corner was. */
+/* The rear-view mirror: glass that catches the sky and the road behind, nothing written on it. */
+.mirror-wrap {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  z-index: 5;
+  width: min(300px, 52vw);
+  transform: translateX(-50%);
+  transition: opacity 0.4s;
+}
+.mirror {
+  position: relative;
+  padding: 4px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, #1b1e25, #08090c);
+  box-shadow:
+    0 8px 26px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+/* The stem it hangs from. */
+.mirror::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: 22px;
+  height: 12px;
+  transform: translateX(-50%);
+  border-radius: 4px 4px 2px 2px;
+  background: #0b0c10;
+}
+.mirror-glass {
+  position: relative;
+  height: 46px;
+  overflow: hidden;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(168, 190, 214, 0.55) 0%, rgba(120, 138, 160, 0.45) 46%, rgba(58, 60, 64, 0.7) 54%, rgba(28, 29, 32, 0.85) 100%);
+}
+/* A sheen across the glass. */
+.mirror-glass::after {
+  content: '';
+  position: absolute;
+  inset: -40% auto -40% 18%;
+  width: 22%;
+  transform: rotate(18deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent);
+}
+.mode-tour .mirror-wrap .mirror {
+  opacity: 0.82;
+}
+.mode-work .mirror-wrap,
+.overlay-open .mirror-wrap {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The Alerts bell, on the mirror's top-right corner. */
 .alert-bell {
   position: absolute;
-  top: 12px;
-  left: calc(50% + 150px);
-  z-index: 5;
+  top: -10px;
+  right: -14px;
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   padding: 0;
   border-radius: 50%;
   color: var(--ink-faint);
-  background: var(--glass);
+  background: rgba(11, 13, 19, 0.86);
   border: 1px solid var(--line);
   backdrop-filter: blur(12px);
   cursor: pointer;
   transition:
     color 0.3s,
-    box-shadow 0.3s,
-    opacity 0.4s;
+    box-shadow 0.3s;
 }
 .alert-bell .icon,
 .tab-alerts .icon {
   display: block;
   width: 20px;
   height: 20px;
-}
-.mode-work .alert-bell,
-.overlay-open .alert-bell {
-  opacity: 0;
-  pointer-events: none;
 }
 /* Lit by the loudest alert: red stopped the car, orange needs you, blue is worth a look. */
 .lit-blocking {
@@ -2289,6 +2338,7 @@ button.problem:hover {
 }
 .high-contrast .hud,
 .high-contrast .alert-bell,
+.high-contrast .mirror,
 .high-contrast .screen {
   background: #000;
 }
@@ -2319,11 +2369,12 @@ button.problem:hover {
 /* ------------------------------------------------------------- responsive */
 
 @media (max-width: 1060px) {
-  /* The top bar fills the top on narrow screens: the bell drops below it, at the right. */
-  .alert-bell {
-    top: 64px;
-    left: auto;
-    right: 16px;
+  /* The top bar fills the top on narrow screens: the mirror drops below it. */
+  .mirror-wrap {
+    top: 70px;
+  }
+  .mode-tour .mirror-wrap .mirror {
+    display: none;
   }
 }
 
@@ -2409,6 +2460,20 @@ button.problem:hover {
   }
   .ticket-stub {
     min-height: 140px;
+  }
+  /* No room for the mirror on a phone: the bell alone, at the right under the top bar. */
+  .mirror-wrap .mirror {
+    display: none;
+  }
+  .mirror-wrap {
+    top: 64px;
+    left: auto;
+    right: 16px;
+    width: auto;
+    transform: none;
+  }
+  .alert-bell {
+    position: static;
   }
   .pane-nav.active {
     grid-template-columns: 1fr;

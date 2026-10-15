@@ -64,7 +64,7 @@ export class Cockpit {
   /** The alert that stopped the car, riding on the stop card's top edge. */
   private readonly stopPill = h('div', { class: 'stop-pill' });
   private readonly stopBody = h('div', { class: 'stop-body' });
-  /** The Alerts icon at the top of the windshield: lit by the loudest alert, opens the Alerts tab. */
+  /** The Alerts icon on the rear-view mirror's top-right corner: lit by the loudest alert, opens the Alerts tab. */
   private readonly topBell = h('button', { class: 'alert-bell' }, bell());
   private readonly alertsPane: AlertsPane;
   private readonly sideLeft = h('div', { class: 'side-mirror left', 'aria-label': 'Side mirror: background agents' });
@@ -169,7 +169,8 @@ export class Cockpit {
       'div',
       { class: 'cockpit' },
       h('div', { class: 'frame', 'aria-hidden': 'true' }, h('div', { class: 'roof' }), h('div', { class: 'pillar left' }), h('div', { class: 'pillar right' })),
-      this.topBell,
+      // The rear-view mirror is just a mirror now; its only display is the Alerts bell on its corner.
+      h('div', { class: 'mirror-wrap' }, h('div', { class: 'mirror', 'aria-hidden': 'true' }, h('div', { class: 'mirror-glass' })), this.topBell),
       // The alerts are for everyone; the rest of the HUD repeats what the screen reader already hears.
       // The HUD keeps only where you are and what the car is doing; alerts live in the Alerts tab.
       h('div', { class: 'hud', 'aria-hidden': 'true' }, this.hudLocation, this.hudCaption),

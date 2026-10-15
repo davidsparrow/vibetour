@@ -117,8 +117,8 @@ The same wiring, read the other way: pick an object and see which signals reach 
 | **Windshield and mirrors** | | |
 | Stop card | Why the car stopped, in one line (no title): a question, a plan, an approval, an API error, a failing build, your turn, a breather, refuelling, or parked (with *Resume journey*). When an alert stopped it, that alert's pill straddles the card's top edge, coloured like the bells; clicking it goes where you act. | Agent needs you, Your turn, Idle, Blocked, Parked |
 | HUD | The location and, while moving, the caption. | Every moment |
-| Alerts bell (top of the windshield) | Lit by the loudest alert: **red** when something stopped the car (a question, a plan, an approval, an agent that stopped, a build left failing), **orange** when something needs you but the car may drive on (your turn, a PR of yours that needs you), **blue** for files changed and not committed. Dark when there is nothing. Clicking it opens the dash on the Alerts tab. | Any alert |
-| Rear-view mirror | Removed: its events are the Console tab's *Recent* log. | — |
+| Alerts bell (on the rear-view mirror's top-right corner) | Lit by the loudest alert: **red** when something stopped the car (a question, a plan, an approval, an agent that stopped, a build left failing), **orange** when something needs you but the car may drive on (your turn, a PR of yours that needs you), **blue** for files changed and not committed. Dark when there is nothing. Clicking it opens the dash on the Alerts tab. | Any alert |
+| Rear-view mirror | A plain mirror: nothing written on it. Its only display is the Alerts bell on its corner. The recent events it used to list are the Console tab's *Recent* log. On a phone only the bell shows. | — |
 | Side mirrors | Crew agents (each Claude Code `Task`/`Agent` call until it reports back), and any agent after the first. | Agent at work |
 | **Center screen and strip** | | |
 | Radio tab | Every agent with its status: Working, Using tools, Waiting for you, Standing by, Finished, Needs help. | Any agent signal |

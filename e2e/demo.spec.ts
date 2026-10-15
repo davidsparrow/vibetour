@@ -62,6 +62,10 @@ test('the demo story drives the cockpit: agent work, tests and a scenic stop', a
   const pill = page.locator('.stop-pill').getByRole('button', { name: 'Claude has a question' });
   await expect(pill).toHaveClass(/alert-blocking/);
   await expect(page.locator('.alert-bell')).toHaveClass(/lit-blocking/);
+  // The rear-view mirror is a plain mirror; the bell on its corner is its only display.
+  await expect(page.locator('.mirror-wrap .mirror')).toBeVisible();
+  await expect(page.locator('.mirror-wrap .mirror')).toHaveText('');
+  await expect(page.locator('.mirror-wrap .alert-bell')).toBeVisible();
   await expect(page.locator('.light-agent')).toHaveClass(/on/);
   await pill.click();
   await expect(page.locator('.toast')).toContainText('In VS Code this takes you to Claude.');
