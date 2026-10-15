@@ -68,7 +68,7 @@ All three share one procedural Three.js renderer and one activity/journey engine
   | Check-engine light | Failing builds or tests |
   | Rear-view mirror | Recent activity and your Git timeline |
   | Side mirrors | Background (crew) agents |
-  | Radio | Your AI agents |
+  | Radio | Internet radio and your agents on CB |
   | Console | Running commands |
   | Glovebox | Project docs |
   | Gear selector | P / R / N / D |
@@ -81,7 +81,8 @@ All three share one procedural Three.js renderer and one activity/journey engine
   - Display: high contrast, UI scale, full keyboard control and screen-reader announcements.
   - Performance: 30/60 FPS, low-GPU mode, automatic GPU throttling, and no rendering while hidden.
   - Sound: a procedural soundscape (engine, road, wind, rain, ambience, generative Focus Mix) with independent volumes.
-- **Private by design.** VibeTour reads metadata only (event types, file names, counts, exit codes), never source code. Nothing leaves your machine. Streaming Mode removes file names, paths, branches, commands and messages at the source.
+- **A car radio.** The dashboard's Radio tab (`R`) has two bands. **FM** plays internet radio: curated [SomaFM](https://somafm.com/support/) presets, stations near where you're driving, and a search of the [Radio Browser](https://www.radio-browser.info/) directory. It has power, volume, six presets (hold one to save), bass, treble, fader, balance, surround and stereo mix, and equalizer lights that move with the music. **CB** lists your agents.
+- **Private by design.** VibeTour reads metadata only (event types, file names, counts, exit codes), never source code. Nothing leaves your machine, except the internet radio you choose to play: station searches and streams go out from VS Code or the CLI, never from the tour page. Turn it off with `vibetour.radio.enabled` or `--no-radio`. Streaming Mode removes file names, paths, branches, commands and messages at the source.
 
 ## Try it
 
@@ -114,6 +115,7 @@ Then run **VibeTour: Open Tour** or press `Ctrl+Alt+V` / `⌘⌥V`.
 | VibeTour: Open Companion Display / Copy Companion Display URL | Second-screen display |
 | VibeTour: Open Glovebox | Project docs |
 | VibeTour: Show Passport / Capture My Workplace | Passport stamps and share cards |
+| VibeTour: Open Radio | The dashboard's radio: FM music, CB agents |
 | VibeTour: Toggle Streaming Mode | Hide private details everywhere |
 | VibeTour: Copy Claude Code Hook Configuration | Agent integration (see below) |
 
@@ -125,6 +127,7 @@ Inside the view: `T` `D` `W` switch modes, `G` destinations, `P` passport, `C` c
 | --- | --- |
 | `vibetour.companion.enabled`, `vibetour.companion.port` | Companion Display server |
 | `vibetour.privacy.streamingMode` | Streaming Mode |
+| `vibetour.radio.enabled` | Internet radio on the FM band (on by default; off makes no network requests). Plays through the Companion Display server, so it needs `vibetour.companion.enabled` too |
 | `vibetour.journey.autoResume` | Auto-resume after VS Code restarts |
 | `vibetour.tour.openBeside` | Open the tour beside the editor |
 | `vibetour.statusBar.enabled` | Status bar item |
@@ -155,11 +158,11 @@ The standalone companion:
 - accepts agent hook events
 - opens the display in your browser
 
-Run `node dist/cli.js --help` for options (`--port`, `--no-open`, `--scope`, `--streaming`, `--your-turn-stop`).
+Run `node dist/cli.js --help` for options (`--port`, `--no-open`, `--scope`, `--streaming`, `--your-turn-stop`, `--no-radio`).
 
 ### Claude Code (and other agents)
 
-VibeTour shows your agents in the cockpit. The main agent is your co-pilot on the radio, and sub-agents appear in the side mirrors as crew. When an agent waits for approval, the car pulls into a scenic stop. Run **VibeTour: Copy Claude Code Hook Configuration** and paste the result into `.claude/settings.json`. The hooks also feed the Context gauge with how full Claude's context window is, and an optional status line makes it exact. See [docs/agent-integration.md](docs/agent-integration.md) for the hook forwarder, the status line, Codex `notify`, and the provider-neutral HTTP API.
+VibeTour shows your agents in the cockpit. The main agent is your co-pilot on the radio's CB band, and sub-agents appear in the side mirrors as crew. When an agent waits for approval, the car pulls into a scenic stop. Run **VibeTour: Copy Claude Code Hook Configuration** and paste the result into `.claude/settings.json`. The hooks also feed the Context gauge with how full Claude's context window is, and an optional status line makes it exact. See [docs/agent-integration.md](docs/agent-integration.md) for the hook forwarder, the status line, Codex `notify`, and the provider-neutral HTTP API.
 
 ## Development
 
@@ -214,6 +217,7 @@ See [docs/architecture.md](docs/architecture.md) for how the pieces fit together
 - Match my clock
 - Streaming Mode
 - accessibility and performance controls
+- the car radio: internet radio with tone controls and equalizer lights
 
 **Not yet built (V2 and later):**
 

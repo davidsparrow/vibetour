@@ -1,10 +1,14 @@
+import type { MusicLevels } from '../../core/music';
 import type { AudioPrefs, TourSnapshot } from '../../core/protocol';
 import type { JourneyPack } from '../../core/packs';
+import { AnalyserLevels, SILENT } from './levels';
+import { MusicDeck } from './musicDeck';
 
 /**
  * Procedural tour audio (PRD §14): engine, road, wind, weather, ambience and a
  * gentle generative "Focus Mix" — every layer independently adjustable and
- * nothing loaded from the network.
+ * nothing loaded from the network. The radio's MusicDeck shares the context
+ * and the analyser behind the equalizer lights; the Focus Mix feeds it too.
  */
 
 type Layer = 'engine' | 'road' | 'wind' | 'weather' | 'ambience' | 'music';
@@ -38,6 +42,11 @@ const SCALE = [0, 2, 4, 7, 9, 12, 14, 16];
 export class Soundscape {
   private ctx?: AudioContext;
   private master?: GainNode;
+  private analyser?: AnalyserNode;
+  private analyserLevels?: AnalyserLevels;
+  /** The Focus Mix's feed into the analyser: silent while tour audio is off. */
+  private musicTap?: GainNode;
+  private musicDeck?: MusicDeck;
   private readonly layers = new Map<Layer, GainNode>();
   private engineOsc: OscillatorNode[] = [];
   private engineFilter?: BiquadFilterNode;
@@ -72,7 +81,31 @@ export class Soundscape {
   }
 
   async stop(): Promise<void> {
-    await this.ctx?.suspend();
+    // The radio keeps playing: just fade the tour out.
+    if (this.musicDeck?.active) this.applyVolumes();
+    else await this.ctx?.suspend();
+  }
+
+  /** The radio's head unit, built on first use (from Power, a user gesture). */
+  deck(): MusicDeck {
+    if (!this.ctx) {
+      this.build();
+      this.applyVolumes();
+    }
+    this.musicDeck ??= new MusicDeck(this.ctx!, this.analyser!);
+    return this.musicDeck;
+  }
+
+  /** The radio stopped: with tour audio off, let the context sleep. */
+  deckStopped(): void {
+    if (!this.prefs?.enabled && !this.musicDeck?.active) void this.ctx?.suspend();
+  }
+
+  /** What the equalizer lights show: the radio and the Focus Mix. */
+  levels(): MusicLevels {
+    if (!this.analyserLevels) return SILENT;
+    const playing = this.running && (!!this.musicDeck?.playing || (!!this.prefs?.enabled && this.prefs.music > 0));
+    return this.analyserLevels.read(playing);
   }
 
   setPrefs(prefs: AudioPrefs): void {
@@ -90,7 +123,14 @@ export class Soundscape {
     const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const ctx = (this.ctx = new AC());
     this.master = ctx.createGain();
+    this.master.gain.value = 0;
     this.master.connect(ctx.destination);
+    this.analyser = ctx.createAnalyser();
+    this.analyser.fftSize = 2048;
+    this.analyser.smoothingTimeConstant = 0.5;
+    this.analyser.minDecibels = -85;
+    this.analyser.maxDecibels = -20;
+    this.analyserLevels = new AnalyserLevels(this.analyser);
     const layer = (name: Layer) => {
       const g = ctx.createGain();
       g.connect(this.master!);
@@ -200,6 +240,9 @@ export class Soundscape {
       this.musicVoices.push(o);
     }
     this.musicFilter.connect(mg).connect(music);
+    // The pad is quiet: lift it so the lights move with it.
+    this.musicTap = ctx.createGain();
+    music.connect(this.musicTap).connect(this.analyser);
     this.nextChord();
   }
 
@@ -218,11 +261,12 @@ export class Soundscape {
     const t = this.ctx.currentTime;
     this.master.gain.setTargetAtTime(p.enabled ? p.master : 0, t, 0.3);
     for (const [name, g] of this.layers) g.gain.setTargetAtTime(p[name], t, 0.3);
+    this.musicTap?.gain.setTargetAtTime(p.enabled ? 12 : 0, t, 0.3);
   }
 
   /** Called a few times per second with the latest snapshot and vehicle speed (m/s). */
   update(snapshot: TourSnapshot | undefined, speed: number, cruise: number, inTunnel: number): void {
-    if (!this.ctx || this.ctx.state !== 'running') return;
+    if (!this.ctx || this.ctx.state !== 'running' || !this.prefs?.enabled) return;
     const t = this.ctx.currentTime;
     const v = cruise > 0 ? Math.min(1.2, speed / cruise) : 0;
     const amb = new Set(this.pack?.audio.ambience ?? []);

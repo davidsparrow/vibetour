@@ -2,7 +2,7 @@
 
 VibeTour treats AI agents as cockpit entities (PRD §15):
 
-- **Co-pilot:** your main agent sits on the **radio**.
+- **Co-pilot:** your main agent sits on the radio's **CB band**.
 - **Crew:** sub-agents show up in the **side mirrors**, labelled NAV, ENG, QA, COMMS or OPS.
 - **Activity:** agent activity moves the **tachometer** and keeps the journey cruising on autopilot.
 - **Waiting for you:** when an agent needs approval or a reply, the car pulls into a **scenic stop** until you answer.

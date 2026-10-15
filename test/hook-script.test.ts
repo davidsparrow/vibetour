@@ -49,7 +49,7 @@ describe('bin/vibetour-hook.js', () => {
       port: 0,
       token,
       staticDir: home,
-      hostInfo: () => ({ kind: 'cli', version: 'test', capabilities: { openFiles: false, openDocs: false, saveFiles: false, focusIde: false } }),
+      hostInfo: () => ({ kind: 'cli', version: 'test', capabilities: { openFiles: false, openDocs: false, saveFiles: false, focusIde: false, radio: false } }),
       catalog: () => {
         throw new Error('not needed');
       },

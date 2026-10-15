@@ -16,6 +16,8 @@ export interface TourPanelOptions {
   latest(): HostMessage | undefined;
   onCommand(cmd: ClientCommand): void;
   onVisibilityChange(visible: boolean): void;
+  /** Origins the app may play media from: the companion server, for the radio. */
+  mediaOrigins(): string[];
 }
 
 const QUEUE_MAX = 8;
@@ -53,7 +55,7 @@ export class TourPanel implements vscode.Disposable {
     this.panel = panel;
     this.ready = false;
     panel.iconPath = vscode.Uri.joinPath(root, 'favicon.svg');
-    panel.webview.html = this.html(panel.webview, root);
+    panel.webview.html = this.html(panel.webview);
     panel.webview.onDidReceiveMessage((raw: unknown) => this.receive(raw));
     panel.onDidChangeViewState(() => {
       // A hidden webview without retained context is torn down; it says `ready` again when shown.
@@ -83,6 +85,13 @@ export class TourPanel implements vscode.Disposable {
     this.panel?.dispose();
   }
 
+  /** Reloads the app, e.g. when the radio's stream origin changed and the CSP must follow. */
+  refreshHtml(): void {
+    if (!this.panel) return;
+    this.ready = false;
+    this.panel.webview.html = this.html(this.panel.webview);
+  }
+
   dispose(): void {
     this.close();
   }
@@ -102,12 +111,13 @@ export class TourPanel implements vscode.Disposable {
     for (const msg of queued) this.post(msg);
   }
 
-  private html(webview: vscode.Webview, root: vscode.Uri): string {
+  private html(webview: vscode.Webview): string {
+    const root = vscode.Uri.joinPath(this.opts.extensionUri, 'dist', 'webview');
     const nonce = makeNonce();
     return renderAppHtml({
       boot: { host: 'vscode' },
       nonce,
-      csp: webviewCsp(webview.cspSource, nonce),
+      csp: webviewCsp(webview.cspSource, nonce, this.opts.mediaOrigins()),
       asset: (name) => webview.asWebviewUri(vscode.Uri.joinPath(root, name)).toString(),
     });
   }

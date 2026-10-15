@@ -1,10 +1,13 @@
 import { mkdtempSync, rmSync, statSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
-import { request } from 'node:http';
+import { request, type IncomingMessage } from 'node:http';
+import { createServer as createTcpServer, type AddressInfo, type Server as TcpServer, type Socket } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DevEventBody } from '../src/core/events';
 import type { ClientCommand, HostMessage } from '../src/core/protocol';
+import type { PresetStation } from '../src/host/radio/presets';
+import { RadioService } from '../src/host/radio/service';
 import { CompanionServer, generateToken } from '../src/server/companionServer';
 import { readSessionFile, removeSessionFile, sessionFilePath, writeSessionFile } from '../src/server/sessionFile';
 import { makeSession } from './helpers';
@@ -84,7 +87,7 @@ describe('CompanionServer', () => {
       port: 0,
       token,
       staticDir,
-      hostInfo: () => ({ kind: 'cli', version: 'test', capabilities: { openFiles: false, openDocs: false, saveFiles: false, focusIde: false } }),
+      hostInfo: () => ({ kind: 'cli', version: 'test', capabilities: { openFiles: false, openDocs: false, saveFiles: false, focusIde: false, radio: false } }),
       catalog: () => session.catalog(),
       snapshot: () => session.latestSnapshot,
       prefs: () => ({ mode: 'tour' }),
@@ -259,7 +262,7 @@ describe('CompanionServer lifecycle', () => {
   const base = {
     token: generateToken(),
     staticDir: tmpdir(),
-    hostInfo: () => ({ kind: 'cli' as const, version: 'test', capabilities: { openFiles: false, openDocs: false, saveFiles: false, focusIde: false } }),
+    hostInfo: () => ({ kind: 'cli' as const, version: 'test', capabilities: { openFiles: false, openDocs: false, saveFiles: false, focusIde: false, radio: false } }),
     catalog: () => makeSession().session.catalog(),
     snapshot: () => undefined,
     onCommand: () => undefined,
@@ -316,6 +319,155 @@ describe('CompanionServer lifecycle', () => {
       expect(existsSync(sessionFilePath(home))).toBe(false);
     } finally {
       rmSync(home, { recursive: true, force: true });
+    }
+  });
+});
+
+/** A fake Icecast station: Shoutcast's status line, a 16-byte metaint, and a live stream that never ends. */
+function fakeIcecast() {
+  const requests: string[] = [];
+  const sockets = new Set<Socket>();
+  const audio = (fill: number) => Buffer.alloc(16, fill);
+  const meta = (text: string) => {
+    const body = Buffer.from(text);
+    const block = Buffer.alloc(1 + Math.ceil(body.length / 16) * 16);
+    block[0] = Math.ceil(body.length / 16);
+    body.copy(block, 1);
+    return block;
+  };
+  const server: TcpServer = createTcpServer((socket) => {
+    sockets.add(socket);
+    socket.on('close', () => sockets.delete(socket));
+    socket.on('error', () => undefined);
+    let head = '';
+    socket.on('data', (d) => {
+      head += d.toString('latin1');
+      if (!head.includes('\r\n\r\n')) return;
+      requests.push(head);
+      socket.write('ICY 200 OK\r\nContent-Type: audio/mpeg\r\nicy-metaint: 16\r\nicy-name: Fake FM\r\n\r\n');
+      socket.write(Buffer.concat([audio(0xaa), meta("StreamTitle='Fake Song';"), audio(0xbb), Buffer.from([0]), audio(0xcc)]));
+    });
+  });
+  return {
+    requests,
+    sockets,
+    start: () => new Promise<number>((ok) => server.listen(0, '127.0.0.1', () => ok((server.address() as AddressInfo).port))),
+    stop: () => new Promise<void>((ok) => {
+      for (const sk of sockets) sk.destroy();
+      server.close(() => ok());
+    }),
+  };
+}
+
+/** Opens a radio stream and reads `bytes` of it; `res` stays open until destroyed. */
+function listen(port: number, path: string, bytes: number, headers: Record<string, string> = {}): Promise<{ res: IncomingMessage; body: Buffer }> {
+  return new Promise((ok, fail) => {
+    const req = request({ host: '127.0.0.1', port, path, headers }, (res) => {
+      if (res.statusCode !== 200) return fail(new Error(`status ${res.statusCode}`));
+      const chunks: Buffer[] = [];
+      let size = 0;
+      res.on('data', (c: Buffer) => {
+        chunks.push(c);
+        size += c.length;
+        if (size >= bytes) {
+          res.pause();
+          ok({ res, body: Buffer.concat(chunks).subarray(0, bytes) });
+        }
+      });
+    });
+    req.on('error', fail);
+    req.end();
+  });
+}
+
+describe('CompanionServer radio', () => {
+  const token = generateToken();
+  const station = fakeIcecast();
+  const published: HostMessage[] = [];
+  let radio: RadioService | undefined;
+  let server: CompanionServer;
+  let port: number;
+  const q = `?token=${token}`;
+
+  beforeAll(async () => {
+    const icyPort = await station.start();
+    const preset: PresetStation = { id: 'soma:fake', name: 'Fake FM', tags: [], source: 'preset', url: `http://127.0.0.1:${icyPort}/fake-128-mp3` };
+    radio = new RadioService({ pack: () => undefined, publish: (_d, msg) => published.push(msg), presets: [preset], maxStreams: 1 });
+    server = new CompanionServer({
+      port: 0,
+      token,
+      staticDir: tmpdir(),
+      hostInfo: () => ({ kind: 'cli', version: 'test', capabilities: { openFiles: false, openDocs: false, saveFiles: false, focusIde: false, radio: true } }),
+      catalog: () => makeSession().session.catalog(),
+      snapshot: () => undefined,
+      onCommand: () => undefined,
+      onAgentEvents: () => undefined,
+      radio: () => radio,
+    });
+    ({ port } = await server.start());
+  });
+
+  afterAll(async () => {
+    radio?.dispose();
+    await server.stop();
+    await station.stop();
+  });
+
+  it('needs the token and a station id, never a URL', async () => {
+    expect((await call(port, { path: '/radio/stream?station=soma:fake' })).status).toBe(401);
+    expect((await call(port, { path: `/radio/stream${q}` })).status).toBe(400);
+    expect((await call(port, { path: `/radio/stream${q}&station=${encodeURIComponent('http://127.0.0.1:22/')}` })).status).toBe(400);
+    expect((await call(port, { path: `/radio/stream${q}&station=soma:unknown` })).status).toBe(502);
+    expect((await call(port, { method: 'POST', path: `/radio/stream${q}&station=soma:fake` })).status).toBe(405);
+  });
+
+  it('streams audio only, with CORS for the webview, and publishes the song title', async () => {
+    radio!.handleCommand({ type: 'musicWatch', watching: true }, 'companion', () => undefined);
+    const { res, body } = await listen(port, `/radio/stream${q}&station=soma:fake`, 48, { origin: 'vscode-webview://abc123' });
+    expect(body).toEqual(Buffer.concat([Buffer.alloc(16, 0xaa), Buffer.alloc(16, 0xbb), Buffer.alloc(16, 0xcc)]));
+    expect(res.headers['content-type']).toBe('audio/mpeg');
+    expect(res.headers['access-control-allow-origin']).toBe('*');
+    expect(res.headers['accept-ranges']).toBe('none');
+    expect(res.headers['cache-control']).toBe('no-store');
+    expect(station.requests[0]).toMatch(/^GET \/fake-128-mp3 HTTP\/1\.0\r\n/);
+    expect(station.requests[0]).toContain('Icy-MetaData: 1');
+    expect(station.requests[0]).toMatch(/User-Agent: VibeTour\//);
+    await vi.waitFor(() =>
+      expect(published.at(-1)).toMatchObject({ type: 'music', music: { radio: { streams: 1, nowPlaying: [{ stationId: 'soma:fake', title: 'Fake Song', station: { name: 'Fake FM' } }] } } }),
+    );
+
+    // One stream at a time here: a second display gets 503.
+    expect((await call(port, { path: `/radio/stream${q}&station=soma:fake` })).status).toBe(503);
+
+    // The display goes away: the station's connection closes too.
+    expect(station.sockets.size).toBe(1);
+    res.destroy();
+    await vi.waitFor(() => expect(station.sockets.size).toBe(0));
+    await vi.waitFor(() => expect(radio!.streams).toBe(0));
+    await vi.waitFor(() => expect(published.at(-1)).toMatchObject({ music: { radio: { streams: 0, nowPlaying: [] } } }));
+  });
+
+  it('sends no CORS headers anywhere else', async () => {
+    for (const path of ['/api/health', `/${q}`]) {
+      const r = await call(port, { path, headers: { origin: 'vscode-webview://abc123' } });
+      expect(r.headers['access-control-allow-origin'], path).toBeUndefined();
+    }
+    const events = await new Promise<IncomingMessage>((ok, fail) => {
+      const req = request({ host: '127.0.0.1', port, path: `/events${q}` }, ok);
+      req.on('error', fail);
+      req.end();
+    });
+    expect(events.headers['access-control-allow-origin']).toBeUndefined();
+    events.destroy();
+  });
+
+  it('answers 404 while the radio is off', async () => {
+    const off = radio;
+    radio = undefined;
+    try {
+      expect((await call(port, { path: `/radio/stream${q}&station=soma:fake` })).status).toBe(404);
+    } finally {
+      radio = off;
     }
   });
 });

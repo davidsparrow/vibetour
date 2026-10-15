@@ -3,8 +3,10 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import * as vscode from 'vscode';
 import type { DevEventBody } from '../core/events';
+import { normalizeDeck } from '../core/music';
 import type { ClientCommand, ClientPrefs, DisplayMode, HostInfo, HostMessage } from '../core/protocol';
 import { VibeTourSession, type KeyValueStore, type SessionOptions } from '../core/session';
+import { RadioService } from '../host/radio/service';
 import { VERSION } from '../host/version';
 import { BUILTIN_PACKS } from '../packs';
 import { CompanionServer } from '../server/companionServer';
@@ -84,6 +86,9 @@ class VibeTourHost implements CommandHost {
   private server?: CompanionServer;
   private companionChange: Promise<void> = Promise.resolve();
   private externalCompanionUrl?: string;
+  private radio?: RadioService;
+  /** The companion server as the panel reaches it (forwarded in remote windows), for radio streams. */
+  private streamOrigin?: string;
   private lastEditor?: vscode.TextEditor;
   private panelMode: DisplayMode = 'tour';
   private streaming: boolean;
@@ -118,6 +123,7 @@ class VibeTourHost implements CommandHost {
       },
       onCommand: (cmd) => this.runDisplayCommand(cmd, 'panel'),
       onVisibilityChange: (visible) => void vscode.commands.executeCommand('setContext', 'vibetour.tourVisible', visible),
+      mediaOrigins: () => (this.streamOrigin ? [this.streamOrigin] : []),
     });
     this.statusBar = new StatusBar((id) => this.session.packs.get(id), cfg.get<boolean>('statusBar.enabled', true));
     this.ide = new IdeAdapter({
@@ -163,6 +169,7 @@ class VibeTourHost implements CommandHost {
     this.tick();
 
     this.refreshHookScript();
+    this.startRadio();
     this.companionChange = this.startCompanion();
     await this.companionChange;
     void vscode.commands.executeCommand('setContext', 'vibetour.tourVisible', false);
@@ -178,6 +185,7 @@ class VibeTourHost implements CommandHost {
     this.git.dispose();
     await this.companionChange.catch(() => undefined);
     await this.stopCompanion();
+    this.stopRadio();
     try {
       // Parks a moving journey "by closing", so it resumes when work starts again.
       this.session.shutdown();
@@ -223,6 +231,12 @@ class VibeTourHost implements CommandHost {
     if (e.affectsConfiguration('vibetour.statusBar.enabled')) this.statusBar.setEnabled(cfg.get<boolean>('statusBar.enabled', true));
     if (e.affectsConfiguration('vibetour.agents.detectExternalEdits')) this.detectExternalEdits = cfg.get<boolean>('agents.detectExternalEdits', true);
     if (e.affectsConfiguration('vibetour.yourTurn')) this.session.setYourTurnStop(yourTurnStopMs(cfg));
+    if (e.affectsConfiguration('vibetour.radio')) {
+      this.stopRadio();
+      this.startRadio();
+      this.panel.post(this.hello('panel'));
+      this.server?.broadcast(this.hello('companion'));
+    }
     if (e.affectsConfiguration('vibetour.companion')) {
       this.companionChange = this.companionChange.then(async () => {
         await this.stopCompanion();
@@ -235,13 +249,23 @@ class VibeTourHost implements CommandHost {
 
   private hostInfo(display: Display): HostInfo {
     const panel = display === 'panel';
+    const token = this.companionToken();
+    // The panel streams from the companion server; a companion page from its own origin.
+    const streamBase = !this.radio || !this.server ? undefined : panel ? this.streamOrigin && `${this.streamOrigin}/radio/stream?token=${token}` : `/radio/stream?token=${token}`;
     return {
       kind: panel ? 'vscode' : 'companion',
       version: VERSION,
       projectName: this.streaming ? undefined : this.project,
       companionUrl: this.streaming || !this.server ? undefined : (this.externalCompanionUrl ?? this.server.url),
       // A companion screen can open files in VS Code, but saves its captures as browser downloads.
-      capabilities: { openFiles: true, openDocs: true, saveFiles: panel, focusIde: panel },
+      capabilities: { openFiles: true, openDocs: true, saveFiles: panel, focusIde: panel, radio: !!streamBase },
+      ...(streamBase
+        ? { radioStreamBase: streamBase }
+        : {
+            radioNote: !this.radio
+              ? 'Internet radio is off. Turn it on in Settings › VibeTour › Radio.'
+              : 'Internet radio plays through VibeTour’s local display server, which is off. Turn on Settings › VibeTour › Companion.',
+          }),
     };
   }
 
@@ -274,10 +298,11 @@ class VibeTourHost implements CommandHost {
   private async onDisplayCommand(cmd: ClientCommand, display: Display): Promise<void> {
     if (this.session.handleCommand(cmd)) return;
     const reply = (msg: HostMessage) => (display === 'panel' ? this.panel.post(msg) : this.server?.broadcast(msg));
+    if (this.radio?.handleCommand(cmd, display, reply)) return;
     switch (cmd.type) {
       case 'savePrefs': {
         if (!cmd.prefs || typeof cmd.prefs !== 'object') return;
-        await this.context.globalState.update(PREFS_KEY[display], cmd.prefs);
+        await this.context.globalState.update(PREFS_KEY[display], { ...cmd.prefs, deck: normalizeDeck(cmd.prefs.deck) });
         if (display === 'panel' && ['tour', 'dashboard', 'work'].includes(cmd.prefs.mode)) this.rememberPanelMode(cmd.prefs.mode);
         return;
       }
@@ -290,6 +315,10 @@ class VibeTourHost implements CommandHost {
         return;
       case 'focusIde':
         return this.goToWork();
+      case 'radioSearch':
+        return reply({ type: 'radioStations', requestId: cmd.requestId, stations: [], error: 'Internet radio is off' });
+      case 'radioLocal':
+        return reply({ type: 'radioLocal', packId: cmd.packId, stations: [], error: 'Internet radio is off' });
       default:
         return;
     }
@@ -331,7 +360,7 @@ class VibeTourHost implements CommandHost {
     this.panel.post({ type: 'setMode', mode }, true);
   }
 
-  show(view: 'picker' | 'passport' | 'settings' | 'capture'): void {
+  show(view: 'picker' | 'passport' | 'settings' | 'capture' | 'radio'): void {
     this.openTour();
     this.panel.post({ type: 'show', view }, true);
   }
@@ -362,6 +391,7 @@ class VibeTourHost implements CommandHost {
       prefs: () => this.context.globalState.get<Partial<ClientPrefs>>(PREFS_KEY.companion),
       onCommand: (cmd) => this.onDisplayCommand(cmd, 'companion'),
       onAgentEvents: (events) => events.forEach((e) => this.ingest(e)),
+      radio: () => this.radio,
       sessionFile: true,
       log: (m) => this.log.info(m),
     });
@@ -373,6 +403,7 @@ class VibeTourHost implements CommandHost {
     }
     this.server = server;
     this.externalCompanionUrl = undefined;
+    await this.updateStreamOrigin(server);
     // Agents started in VS Code's terminals report to this window, even with several open.
     const env = this.context.environmentVariableCollection;
     env.persistent = false;
@@ -387,8 +418,39 @@ class VibeTourHost implements CommandHost {
     if (!server) return;
     this.server = undefined;
     this.externalCompanionUrl = undefined;
+    this.streamOrigin = undefined;
     this.context.environmentVariableCollection.clear();
     await server.stop();
+  }
+
+  /** Where the panel loads radio streams; its CSP names this origin, so a change reloads it. */
+  private async updateStreamOrigin(server: CompanionServer): Promise<void> {
+    let origin = server.origin;
+    try {
+      // Remote windows (SSH, WSL, containers) reach the server through a forwarded port.
+      origin = new URL((await vscode.env.asExternalUri(vscode.Uri.parse(server.origin))).toString(true)).origin;
+    } catch {
+      /* keep the loopback origin */
+    }
+    if (this.server !== server || origin === this.streamOrigin) return;
+    this.streamOrigin = origin;
+    this.panel.refreshHtml();
+  }
+
+  // ------------------------------------------------------------ radio
+
+  private startRadio(): void {
+    if (this.radio || !this.cfg().get<boolean>('radio.enabled', true)) return;
+    this.radio = new RadioService({
+      pack: (id) => this.session.packs.get(id),
+      publish: (display, msg) => (display === 'panel' ? this.panel.post(msg) : this.server?.broadcast(msg)),
+      log: (m) => this.log.info(m),
+    });
+  }
+
+  private stopRadio(): void {
+    this.radio?.dispose();
+    this.radio = undefined;
   }
 
   async companionUrl(): Promise<string | undefined> {

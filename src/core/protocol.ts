@@ -2,6 +2,7 @@ import type { ActivityState } from './activity';
 import type { AgentStatus, AgentRole, ProcessKind } from './events';
 import type { LocationInfo, ScopeId, ScopeInfo } from './journey';
 import type { Moment } from './moments';
+import { isStationId, normalizeDeck, type DeckPrefs, type MusicState, type RadioStation } from './music';
 import type { Behavior, JourneyPhase, StopReason } from './motion';
 import type { EnvParams, JourneyPack, Mood, SceneKind, TimeOfDay, Weather } from './packs';
 import type { LibraryEntry, PassportStats, Stamp, TravelMemory } from './passport';
@@ -140,7 +141,11 @@ export interface HostInfo {
   version: string;
   projectName?: string;
   companionUrl?: string;
-  capabilities: { openFiles: boolean; openDocs: boolean; saveFiles: boolean; focusIde: boolean };
+  capabilities: { openFiles: boolean; openDocs: boolean; saveFiles: boolean; focusIde: boolean; radio: boolean };
+  /** Where this display loads radio streams: `<base>&station=<id>`. Absent without radio. */
+  radioStreamBase?: string;
+  /** Why there is no radio on this display, in a sentence. */
+  radioNote?: string;
 }
 
 export interface AudioPrefs {
@@ -173,6 +178,8 @@ export interface ClientPrefs {
   yourTurnCue: 'none' | 'light';
   captureIncludeProject: boolean;
   audio: AudioPrefs;
+  /** The car radio's band, station, tone controls and presets. */
+  deck: DeckPrefs;
 }
 
 export const DEFAULT_PREFS: ClientPrefs = {
@@ -191,6 +198,7 @@ export const DEFAULT_PREFS: ClientPrefs = {
   yourTurnCue: 'none',
   captureIncludeProject: false,
   audio: { enabled: false, master: 0.6, engine: 0.5, road: 0.5, wind: 0.4, weather: 0.6, ambience: 0.6, music: 0.35 },
+  deck: normalizeDeck(undefined),
 };
 
 export function mergePrefs(saved: Partial<ClientPrefs> | undefined): ClientPrefs {
@@ -198,6 +206,7 @@ export function mergePrefs(saved: Partial<ClientPrefs> | undefined): ClientPrefs
     ...DEFAULT_PREFS,
     ...(saved ?? {}),
     audio: { ...DEFAULT_PREFS.audio, ...(saved?.audio ?? {}) },
+    deck: normalizeDeck({ ...DEFAULT_PREFS.deck, ...(saved?.deck ?? {}) }),
   };
 }
 
@@ -206,8 +215,11 @@ export type HostMessage =
   | { type: 'snapshot'; snapshot: TourSnapshot }
   | { type: 'catalog'; catalog: Catalog }
   | { type: 'setMode'; mode: DisplayMode }
-  | { type: 'show'; view: 'picker' | 'passport' | 'settings' | 'capture' }
-  | { type: 'toast'; text: string };
+  | { type: 'show'; view: 'picker' | 'passport' | 'settings' | 'capture' | 'radio' }
+  | { type: 'toast'; text: string }
+  | { type: 'music'; music: MusicState }
+  | { type: 'radioStations'; requestId: string; stations: RadioStation[]; error?: string }
+  | { type: 'radioLocal'; packId: string; stations: RadioStation[]; error?: string };
 
 export type ClientCommand =
   | { type: 'ready' }
@@ -226,7 +238,14 @@ export type ClientCommand =
   | { type: 'openFile'; path: string; line?: number }
   | { type: 'focusIde' }
   | { type: 'savePrefs'; prefs: ClientPrefs }
-  | { type: 'saveCapture'; dataUrl: string; fileName: string };
+  | { type: 'saveCapture'; dataUrl: string; fileName: string }
+  /** No query, country or tag: the curated presets. */
+  | { type: 'radioSearch'; requestId: string; query?: string; countryCode?: string; tag?: string; limit?: number }
+  | { type: 'radioLocal'; packId: string }
+  /** The display tuned in (or stopped, without a station): the host counts the click. */
+  | { type: 'radioTune'; stationId?: string }
+  /** The display shows the radio and wants `music` messages; sent again every 10 s while it does. */
+  | { type: 'musicWatch'; watching: boolean };
 
 export const MOOD_LABELS: Record<Mood | 'anywhere' | 'surprise', string> = {
   anywhere: 'Anywhere',
@@ -280,6 +299,20 @@ export function isClientCommand(raw: unknown): raw is ClientCommand {
       return !!c.prefs && typeof c.prefs === 'object' && !Array.isArray(c.prefs);
     case 'saveCapture':
       return isStr(c.dataUrl, 20_000_000) && (c.dataUrl as string).startsWith('data:image/png;base64,') && isStr(c.fileName, 200);
+    case 'radioSearch':
+      return (
+        isStr(c.requestId, 64) &&
+        (c.query === undefined || isStr(c.query, 100)) &&
+        (c.countryCode === undefined || (typeof c.countryCode === 'string' && /^[A-Z]{2}$/.test(c.countryCode))) &&
+        (c.tag === undefined || isStr(c.tag, 40)) &&
+        (c.limit === undefined || (Number.isInteger(c.limit) && (c.limit as number) >= 1 && (c.limit as number) <= 50))
+      );
+    case 'radioLocal':
+      return isStr(c.packId, 64);
+    case 'radioTune':
+      return c.stationId === undefined || isStationId(c.stationId);
+    case 'musicWatch':
+      return typeof c.watching === 'boolean';
     default:
       return false;
   }

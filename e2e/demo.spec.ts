@@ -190,6 +190,40 @@ test('settings persist and accessibility options apply', async ({ page }) => {
   await page.evaluate(() => localStorage.removeItem('vibetour.prefs.demo'));
 });
 
+test('the radio: CB has the agents, FM needs a real host, and the lights follow the Focus Mix', async ({ page }) => {
+  await page.goto('/?fresh&autopilot=0');
+  await bookFirstJourney(page);
+  await page.keyboard.press('t');
+  await page.keyboard.press('r');
+  await expect(page.locator('.vt')).toHaveClass(/mode-dashboard/);
+  await expect(page.getByRole('tab', { name: 'Radio' })).toHaveAttribute('aria-selected', 'true');
+  // FM: the demo host has no internet radio, and says so.
+  await expect(page.locator('.deck-note')).toHaveText('Internet radio needs the VS Code extension or the CLI.');
+  await expect(page.locator('.deck-power')).toBeDisabled();
+  const eq = page.locator('canvas.deck-eq');
+  await expect(eq).toBeVisible();
+  // Lit segments are drawn nearly opaque; the dark grid is faint.
+  const litPixels = () =>
+    eq.evaluate((c: HTMLCanvasElement) => {
+      const px = c.getContext('2d')!.getImageData(0, 0, c.width, c.height).data;
+      let lit = 0;
+      for (let i = 3; i < px.length; i += 4) if (px[i] > 150) lit++;
+      return lit;
+    });
+  expect(await litPixels()).toBe(0);
+  // Sound on: the Focus Mix plays into the equalizer.
+  await page.keyboard.press('m');
+  await expect.poll(litPixels, { timeout: 15_000 }).toBeGreaterThan(0);
+  // CB: the agents.
+  await page.locator('.demo-panel summary').click();
+  await page.getByRole('button', { name: 'Agent asks' }).click();
+  await page.getByRole('button', { name: 'CB', exact: true }).click();
+  await expect(page.locator('.deck-cb')).toContainText('Claude');
+  await expect(page.locator('.deck-fm')).toBeHidden();
+  await expect(page.locator('.band-cb')).toHaveClass(/alert/);
+  await page.evaluate(() => localStorage.removeItem('vibetour.prefs.demo'));
+});
+
 test('announces journey changes to screen readers', async ({ page }) => {
   await page.goto('/?fresh&autopilot=0');
   await bookFirstJourney(page);

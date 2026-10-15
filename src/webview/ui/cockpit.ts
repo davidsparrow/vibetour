@@ -1,35 +1,18 @@
 import { APPROACH_CAP } from '../../core/journey';
 import type { JourneyPack } from '../../core/packs';
 import type { AgentSnapshot, TourSnapshot } from '../../core/protocol';
+import { ROLE_LABEL, STATUS_LABEL } from './agents';
 import type { AppContext } from './context';
 import { CUES, cueTable, litCues, type Cue } from './cues';
 import { clear, formatDuration, formatElapsed, h, renderKeyed, text, timeAgo, toggle } from './dom';
 import { Gauge } from './gauges';
 import { RouteMap } from './map';
+import type { RadioDeck } from './radioDeck';
 
 /**
  * The cockpit as a spatial development interface (PRD §8): instruments,
  * mirrors, HUD, console and the Work Mode panels.
  */
-
-const ROLE_LABEL: Record<AgentSnapshot['role'], string> = {
-  copilot: 'CO-PILOT',
-  nav: 'NAV',
-  eng: 'ENG',
-  qa: 'QA',
-  comms: 'COMMS',
-  ops: 'OPS',
-  crew: 'CREW',
-};
-
-const STATUS_LABEL: Record<AgentSnapshot['status'], string> = {
-  working: 'Working',
-  tool: 'Using tools',
-  waiting: 'Waiting for you',
-  idle: 'Standing by',
-  done: 'Finished',
-  error: 'Needs help',
-};
 
 const STATE_LABEL: Record<string, string> = {
   IDLE: 'Idle',
@@ -43,7 +26,7 @@ const STATE_LABEL: Record<string, string> = {
   COMPLETE: 'Arrived',
 };
 
-type Tab = 'nav' | 'radio' | 'trip' | 'console';
+export type Tab = 'nav' | 'radio' | 'trip' | 'console';
 
 function light(name: string, label: string): HTMLElement {
   return h('span', { class: `light light-${name}`, title: label, 'aria-label': label, role: 'img' }, h('i'), h('b', {}, label));
@@ -96,15 +79,20 @@ export class Cockpit {
   private readonly workPanels: Record<string, HTMLElement> = {};
   private readonly workMap = new RouteMap(true);
   private stripPack = '';
+  private tab: Tab = 'nav';
 
-  constructor(private readonly ctx: AppContext) {
+  constructor(
+    private readonly ctx: AppContext,
+    private readonly deck: RadioDeck,
+  ) {
     for (const t of ['nav', 'radio', 'trip', 'console'] as Tab[]) {
       const label = { nav: 'Nav', radio: 'Radio', trip: 'Trip', console: 'Console' }[t];
       const tabEl = h('button', { class: 'tab', role: 'tab', 'aria-selected': t === 'nav' ? 'true' : 'false', onclick: () => this.setTab(t) }, label);
       this.tabs.set(t, tabEl);
     }
     this.panes.set('nav', h('div', { class: 'pane pane-nav' }, this.map.el, this.navInfo));
-    this.panes.set('radio', h('div', { class: 'pane' }, this.radio));
+    this.radio.append(deck.el);
+    this.panes.set('radio', h('div', { class: 'pane pane-radio' }, this.radio));
     this.panes.set('trip', h('div', { class: 'pane' }, this.trip));
     this.panes.set('console', h('div', { class: 'pane' }, this.console));
 
@@ -159,9 +147,20 @@ export class Cockpit {
     this.setTab('nav');
   }
 
+  showTab(t: Tab): void {
+    this.setTab(t);
+  }
+
   private setTab(t: Tab): void {
+    this.tab = t;
     for (const [k, el] of this.tabs) el.setAttribute('aria-selected', k === t ? 'true' : 'false');
     for (const [k, el] of this.panes) toggle(el, 'active', k === t);
+    this.syncRadio();
+  }
+
+  /** The radio runs its lights and follows song titles only while its pane is on screen. */
+  syncRadio(): void {
+    this.deck.setVisible(this.tab === 'radio' && this.ctx.prefs.mode === 'dashboard');
   }
 
   private buildWork(): void {
@@ -248,7 +247,8 @@ export class Cockpit {
     text(this.gearHint, { P: 'Paused', R: 'Review', N: 'Thinking', D: 'Build / edit' }[a.gear]);
 
     this.updateNav(snap, pack);
-    this.updateRadio(snap);
+    this.deck.updateAgents(snap.ide.agents);
+    this.deck.setPack(j?.packId);
     this.updateTrip(snap);
     this.updateConsole(snap);
     this.updateStrip(snap, pack);
@@ -363,29 +363,6 @@ export class Cockpit {
     if (canArrive) {
       if (capped) this.navInfo.append(h('p', { class: 'nav-hint' }, 'Final approach is waiting on you: arrive when the work is truly done.'));
       this.navInfo.append(this.arriveButton);
-    }
-  }
-
-  private updateRadio(snap: TourSnapshot): void {
-    clear(this.radio);
-    const agents = snap.ide.agents;
-    if (!agents.length) {
-      this.radio.append(
-        h('p', { class: 'muted' }, 'No agents on the air.'),
-        h('p', { class: 'small muted' }, 'Connect Claude Code or another agent with hooks to see your co-pilot here.'),
-      );
-      return;
-    }
-    for (const ag of agents) {
-      this.radio.append(
-        h(
-          'div',
-          { class: `station status-${ag.status}` },
-          h('span', { class: 'station-role' }, ROLE_LABEL[ag.role] ?? ag.role),
-          h('div', { class: 'station-body' }, h('strong', {}, ag.name), h('span', {}, ag.detail ?? STATUS_LABEL[ag.status])),
-          h('span', { class: 'station-status' }, STATUS_LABEL[ag.status]),
-        ),
-      );
     }
   }
 

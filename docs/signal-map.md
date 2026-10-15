@@ -118,12 +118,12 @@ The same wiring, read the other way: pick an object and see which signals reach 
 | Rear-view mirror | The last four events: saves, test/build/check results, commits, branch switches, agent needs you / finished / hit a problem, agent edits. | Most moments |
 | Side mirrors | Crew agents (each Claude Code `Task`/`Agent` call until it reports back), and any agent after the first. | Agent at work |
 | **Center screen and strip** | | |
-| Radio tab | Every agent with its status: Working, Using tools, Waiting for you, Standing by, Finished, Needs help. | Any agent signal |
+| Radio tab | Two bands. **CB**: every agent with its status: Working, Using tools, Waiting for you, Standing by, Finished, Needs help; an amber dot on the CB button while one is waiting or needs help. **FM**: internet radio (SomaFM presets, stations near the journey, Radio Browser search) with the song title from the stream, presets 1–6, tone controls and equalizer lights. FM follows no moment. | Any agent signal (CB) |
 | Console tab | Running commands with elapsed time, and the last test, build and lint results. | Verifying |
 | Tour strip lights | *Verifying*, ⚠ (check engine), *N errors*, *N agents* working, and the gear. | Verifying, Heads-up, Agent at work |
 | Arrival card | The journey arrived. | Arrived |
 | **Outside the dashboard** | | |
-| Sound | Engine, road and wind follow the car's speed. Music is brightest while coding or an agent works, then verifying, thinking, and softest when stopped. | Every moment |
+| Sound | Engine, road and wind follow the car's speed. The Focus Mix is brightest while coding or an agent works, then verifying, thinking, and softest when stopped. The radio plays on its own volume, even with tour audio off, and stops when the panel closes (Work mode in VS Code); the Companion Display keeps playing. The radio's equalizer lights follow whatever music plays: the radio, or the Focus Mix. | Every moment (Focus Mix) |
 | VS Code status bar | Destination, percent and a short caption; or *Parked* / *Arrived*. | Every moment |
 | Screen reader | Announces each new caption. | Every change of caption |
 

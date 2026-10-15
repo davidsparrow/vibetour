@@ -111,6 +111,24 @@ export class SettingsPanel {
           slider('Weather', 'weather'),
           slider('Ambience', 'ambience'),
           slider('Focus Mix music', 'music'),
+          h('h3', {}, 'Radio'),
+          toggleRow('Equalizer lights', 'Orange columns on the radio that move with the music', p.deck.lights, (pr, v) => (pr.deck.lights = v)),
+          h(
+            'p',
+            { class: 'small muted' },
+            host?.capabilities.radio
+              ? `The radio is on the dashboard's Radio tab (R): FM plays internet radio, CB shows your agents. Searching and playing stations goes out to the internet from ${
+                  host.kind === 'cli' ? 'the companion; start it with --no-radio to turn that off' : 'VS Code; turn it off in Settings › VibeTour › Radio'
+                }.`
+              : (host?.radioNote ?? 'Internet radio needs the VS Code extension or the CLI.'),
+          ),
+          h(
+            'p',
+            { class: 'small muted' },
+            'Presets by SomaFM, listener-supported and commercial-free. ',
+            h('a', { href: 'https://somafm.com/support/', target: '_blank', rel: 'noopener noreferrer' }, 'Support SomaFM'),
+            '.',
+          ),
         ),
         h(
           'section',
@@ -126,7 +144,11 @@ export class SettingsPanel {
                 ? 'Streaming mode hides file names, paths, branches, commands and messages. Toggle it with “VibeTour: Toggle Streaming Mode”.'
                 : 'Streaming mode hides file names, paths, branches, commands and messages (start the companion with --streaming).',
           ),
-          h('p', { class: 'small muted' }, 'VibeTour reads activity metadata only — never your source code — and nothing leaves your machine.'),
+          h(
+            'p',
+            { class: 'small muted' },
+            'VibeTour reads activity metadata only — never your source code — and nothing leaves your machine, except the internet radio you choose to play (Radio tab, FM band).',
+          ),
         ),
         h(
           'section',
@@ -157,6 +179,7 @@ export function helpOverlay(close: () => void): HTMLElement {
       row('P', 'Passport'),
       row('C', 'Capture my workplace'),
       row('M', 'Sound on / off'),
+      row('R', 'Radio'),
       row('S', 'Settings'),
       row('A', 'Arrive — objective complete'),
       row('Esc', 'Close panels'),

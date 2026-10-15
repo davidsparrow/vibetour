@@ -55,14 +55,16 @@ export function renderAppHtml(opts: AppPageOptions): string {
   ].join('\n');
 }
 
-export function webviewCsp(cspSource: string, nonce: string): string {
+/** `mediaOrigins`: where the radio streams from (the local companion server). */
+export function webviewCsp(cspSource: string, nonce: string, mediaOrigins: string[] = []): string {
+  const media = mediaOrigins.filter((o) => /^https?:\/\/[\w.:[\]-]+$/.test(o));
   return [
     "default-src 'none'",
     `img-src ${cspSource} data: blob:`,
     `style-src ${cspSource} 'unsafe-inline'`,
     `script-src 'nonce-${nonce}'`,
     `font-src ${cspSource}`,
-    'media-src blob: data:',
+    ['media-src blob: data:', ...media].join(' '),
     "connect-src 'none'",
   ].join('; ');
 }

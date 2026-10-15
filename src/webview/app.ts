@@ -10,6 +10,7 @@ import type { AppContext } from './ui/context';
 import { h, icon, text, toggle } from './ui/dom';
 import { ArrivalCard, PassportView } from './ui/passport';
 import { Picker } from './ui/picker';
+import { RadioDeck } from './ui/radioDeck';
 import { helpOverlay, SettingsPanel } from './ui/settings';
 import type { DemoAction } from './demo';
 
@@ -33,6 +34,7 @@ export class App implements AppContext {
   private readonly canvas = h('canvas', { class: 'scene-canvas', 'aria-hidden': 'true' }) as HTMLCanvasElement;
   private renderer?: TourRenderer;
   private readonly cockpit: Cockpit;
+  private readonly deck: RadioDeck;
   private readonly picker: Picker;
   private readonly passport: PassportView;
   private readonly settings: SettingsPanel;
@@ -56,7 +58,8 @@ export class App implements AppContext {
     private readonly transport: Transport,
   ) {
     this.prefs = mergePrefs(transport.loadPrefs());
-    this.cockpit = new Cockpit(this);
+    this.deck = new RadioDeck(this, this.sound);
+    this.cockpit = new Cockpit(this, this.deck);
     this.picker = new Picker(this);
     this.passport = new PassportView(this);
     this.settings = new SettingsPanel(this, (on) => this.setSound(on), () => this.renderer?.stats ?? { fps: 0, pixelRatio: 0 });
@@ -213,6 +216,7 @@ export class App implements AppContext {
           this.applyPrefs();
         }
         this.root.dataset.host = m.host.kind;
+        this.deck.onHost();
         this.onCatalog();
         break;
       case 'catalog':
@@ -227,12 +231,29 @@ export class App implements AppContext {
         break;
       case 'show':
         if (m.view === 'capture') this.capture();
+        else if (m.view === 'radio') this.showRadio();
         else this.open(m.view);
         break;
       case 'toast':
         this.toast(m.text);
         break;
+      case 'music':
+        this.deck.onMusic(m.music);
+        break;
+      case 'radioStations':
+        this.deck.onStations(m.requestId, m.stations, m.error);
+        break;
+      case 'radioLocal':
+        this.deck.onLocal(m.packId, m.stations, m.error);
+        break;
     }
+  }
+
+  /** The radio lives on the dashboard's center screen. */
+  private showRadio(): void {
+    this.close();
+    if (this.prefs.mode !== 'dashboard') this.setMode('dashboard');
+    this.cockpit.showTab('radio');
   }
 
   private onCatalog(): void {
@@ -344,6 +365,8 @@ export class App implements AppContext {
     this.renderer?.setPrefs(p);
     this.renderer?.setMode(p.mode);
     this.sound.setPrefs(p.audio);
+    this.deck.applyPrefs();
+    this.cockpit.syncRadio();
     if (this.snapshot) this.cockpit.update(this.snapshot);
   }
 
@@ -388,6 +411,7 @@ export class App implements AppContext {
         s: () => (this.overlay === 'settings' ? this.close() : this.open('settings')),
         c: () => this.capture(),
         m: () => this.setSound(!this.prefs.audio.enabled),
+        r: () => this.showRadio(),
         a: () => this.snapshot?.journey && this.send({ type: 'completeObjective' }),
         '?': () => this.open('help'),
         escape: () => this.close(),
