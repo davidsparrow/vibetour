@@ -121,14 +121,14 @@ The same wiring, read the other way: pick an object and see which signals reach 
 | Rear-view mirror | A plain mirror: nothing written on it. Its only display is the Alerts bell on its corner. The recent events it used to list are the Console tab's *Recent* log. On a phone only the bell shows. | — |
 | Side mirrors | Crew agents (each Claude Code `Task`/`Agent` call until it reports back), and any agent after the first. | Agent at work |
 | **Center screen and strip** | | |
-| Radio tab | Every agent with its status: Working, Using tools, Waiting for you, Standing by, Finished, Needs help. | Any agent signal |
+| Radio tab | Two bands. **CB**: every agent with its status: Working, Using tools, Waiting for you, Standing by, Finished, Needs help; an amber dot on the CB button while one is waiting or needs help. **FM**: internet radio (SomaFM presets, stations near the journey, Radio Browser search) with the song title from the stream, presets 1–6, tone controls and equalizer lights. FM follows no moment. | Any agent signal (CB) |
 | Alerts tab (bell) | Left, *Needs you*: a pill per alert, most urgent first, coloured red, orange or blue like the bells, only while it holds; clicking one goes where you act (the agent's terminal, else the editor; the PR on GitHub; Problems). Right: the file you're in, and the changed files (names hidden in Streaming Mode). The tab's bell lights like the top bell. Each kind of alert, and changed files, has a switch in Settings › Alerts on each screen; all on by default. | Agent needs you, Agent hit a problem, Build left failing, Your turn, Pull requests, changes |
 | PRs tab | The repository's open pull requests, once you connect GitHub: a large number, title, CI dot, how far the branch is ahead of and behind its base, when it was opened (*Oct 14, 3:12 PM*) and by whom, draft, conflict and review. A lit branch marks the ones on your current branch, listed first. The tab's count turns amber when one needs you. Click a row to open it on GitHub. | Pull requests |
 | Console tab | Running commands with elapsed time, the last test, build and lint results, and *Recent*: the last eight events (saves, test/build/check results, commits, branch switches, an agent's question / plan / approval / finish / problem, agent edits, PR opened). | Verifying, most moments |
 | Tour strip lights | *Verifying*, ⚠ (check engine), *N errors*, *N agents* working, and the gear. | Verifying, Heads-up, Agent at work |
 | Arrival card | The journey arrived. | Arrived |
 | **Outside the dashboard** | | |
-| Sound | Engine, road and wind follow the car's speed. Music is brightest while coding or an agent works, then verifying, thinking, and softest when stopped. | Every moment |
+| Sound | Engine, road and wind follow the car's speed. The Focus Mix is brightest while coding or an agent works, then verifying, thinking, and softest when stopped. The radio plays on its own volume, even with tour audio off, and stops when the panel closes (Work mode in VS Code); the Companion Display keeps playing. The radio's equalizer lights follow whatever music plays: the radio, or the Focus Mix. | Every moment (Focus Mix) |
 | VS Code status bar | Destination, percent and a short caption; or *Parked* / *Arrived*. | Every moment |
 | Screen reader | Announces each new caption. | Every change of caption |
 

@@ -111,6 +111,11 @@
         "category": "VibeTour"
       },
       {
+        "command": "vibetour.openRadio",
+        "title": "Open Radio",
+        "category": "VibeTour"
+      },
+      {
         "command": "vibetour.capture",
         "title": "Capture My Workplace",
         "category": "VibeTour"
@@ -163,6 +168,11 @@
           "type": "boolean",
           "default": false,
           "description": "Hide file names, paths, branches, repositories, terminal commands and messages from every VibeTour display (for streaming and screenshots)."
+        },
+        "vibetour.radio.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Internet radio on the dashboard's Radio tab (FM band). Searching stations contacts the free Radio Browser directory, and playing one connects to that station's server, both from VS Code's extension host, never from the tour page itself. Off: no network use at all, and the radio shows only your agents (CB band)."
         },
         "vibetour.journey.autoResume": {
           "type": "boolean",

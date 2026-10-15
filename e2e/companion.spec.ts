@@ -72,6 +72,12 @@ test('a browser companion follows a project and its coding agent', async ({ page
   expect(String(hook.stdout)).toBe('');
   await page.keyboard.press('d');
   await page.getByRole('tab', { name: 'Radio' }).click();
+  // FM (music) is the default band: the curated presets and the search box, from the host.
+  await expect(page.locator('.deck-fm')).toBeVisible();
+  await expect(page.locator('.deck-fm .deck-row', { hasText: 'Groove Salad' })).toBeVisible();
+  await expect(page.getByRole('searchbox', { name: 'Search radio stations' })).toBeVisible();
+  await page.getByRole('button', { name: 'CB', exact: true }).click();
+  await expect(page.locator('.deck-cb')).toBeVisible();
   await expect(page.locator('.radio')).toContainText('Claude');
   await expect(page.locator('.radio')).toContainText('Needs your approval');
   await expect(page.locator('.radio')).not.toContainText('secret prompt text');
@@ -83,4 +89,6 @@ test('rejects requests without the token', async ({ request }) => {
   expect(res.status()).toBe(401);
   const cmd = await request.post(`${base.origin}/command`, { data: { type: 'park' } });
   expect(cmd.status()).toBe(401);
+  const radio = await request.get(`${base.origin}/radio/stream?station=soma:groovesalad`);
+  expect(radio.status()).toBe(401);
 });

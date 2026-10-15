@@ -224,6 +224,13 @@ describe('app page', () => {
     const html = renderAppHtml({ boot: { host: 'vscode' }, nonce: 'abc', csp });
     expect(csp).toContain("script-src 'nonce-abc'");
     expect(csp).toContain("connect-src 'none'");
+    expect(csp).toContain('media-src blob: data:;');
+    // The radio streams from the companion server; nothing else joins media-src or connect-src.
+    const radio = webviewCsp('vscode-resource:', 'abc', ['http://127.0.0.1:47477', 'https://evil.example/x; script-src *']);
+    expect(radio).toContain('media-src blob: data: http://127.0.0.1:47477;');
+    expect(radio).not.toContain('evil');
+    expect(radio).toContain("connect-src 'none'");
+    expect(companionCsp('abc')).toContain("media-src 'self' blob: data:");
     expect(html.indexOf('Content-Security-Policy')).toBeLessThan(html.indexOf('<link'));
     expect(html).toContain('window.__VIBETOUR_BOOT__ = {"host":"vscode"};');
     expect(companionCsp('abc')).toContain("frame-ancestors 'none'");
@@ -236,11 +243,11 @@ describe('app page', () => {
 
 describe('CLI arguments', () => {
   it('parses the documented options', () => {
-    expect(parseArgs(['proj', '--port', '0', '--no-open', '--pack', 'california-coast', '--scope=coffee-run', '--streaming', '--prs'], '/work')).toEqual({
+    expect(parseArgs(['proj', '--port', '0', '--no-open', '--pack', 'california-coast', '--scope=coffee-run', '--streaming', '--prs', '--no-radio'], '/work')).toEqual({
       kind: 'run',
-      opts: { dir: '/work/proj', port: 0, open: false, pack: 'california-coast', scope: 'coffee-run', streaming: true, prs: true },
+      opts: { dir: '/work/proj', port: 0, open: false, pack: 'california-coast', scope: 'coffee-run', streaming: true, prs: true, radio: false },
     });
-    expect(parseArgs([], '/work')).toEqual({ kind: 'run', opts: { dir: '/work', port: 47477, open: true, scope: 'day-trip', streaming: false, prs: false } });
+    expect(parseArgs([], '/work')).toEqual({ kind: 'run', opts: { dir: '/work', port: 47477, open: true, scope: 'day-trip', streaming: false, prs: false, radio: true } });
     expect(parseArgs(['--help']).kind).toBe('help');
     expect(parseArgs(['--port', 'abc']).kind).toBe('error');
     expect(parseArgs(['--pack', 'atlantis']).kind).toBe('error');

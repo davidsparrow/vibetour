@@ -6,6 +6,7 @@ import { DEFAULT_MOTION_CONFIG } from '../src/core/motion';
 import { cueTable, CUES } from '../src/webview/ui/cues';
 
 const signalMap = readFileSync(new URL('../docs/signal-map.md', import.meta.url), 'utf8');
+const readme = readFileSync(new URL('../README.md', import.meta.url), 'utf8');
 
 /** How the signal map writes a duration: seconds up to a minute, whole minutes after that. */
 function label(ms: number): string {
@@ -39,5 +40,21 @@ describe('docs/signal-map.md', () => {
     expect(rowFor('refuelMs')).toContain(`| ${label(refuelMs)} |`);
     const holds = [holdMs.checkpoint!, holdMs['scenic-stop']!, defaultHoldMs].map((ms) => ms / 1000).join(' · ');
     expect(rowFor('holdMs')).toContain(`| ${holds} s |`);
+  });
+});
+
+describe('the radio in the docs', () => {
+  it('gives the Radio tab both bands', () => {
+    const row = signalMap.split('\n').find((line) => line.startsWith('| Radio tab |'));
+    expect(row).toBeDefined();
+    expect(row).toContain('**CB**');
+    expect(row).toContain('**FM**');
+  });
+
+  it("qualifies README's privacy promise with the radio, and says how to turn it off", () => {
+    expect(readme).not.toMatch(/Nothing leaves your machine\. /);
+    expect(readme).toContain('Nothing leaves your machine, except the internet radio you choose to play');
+    expect(readme).toContain('`vibetour.radio.enabled`');
+    expect(readme).toContain('`--no-radio`');
   });
 });

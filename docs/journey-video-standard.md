@@ -69,7 +69,7 @@ Footage never reacts to anything else. These stay **dashboard only**:
 - a test passing or failing
 - commits and branch switches
 - crew agents in the side mirrors
-- the radio
+- the radio, including music
 - the blue your-turn light
 
 That is the rule from the PRD discussion, *"most IDE events change the dashboard, not the scenery"*. It's also what keeps the number of extra scenes small.

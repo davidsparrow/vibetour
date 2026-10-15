@@ -12,7 +12,8 @@ export default defineConfig({
     viewport: { width: 1280, height: 760 },
     launchOptions: {
       // Software WebGL so the renderer runs in headless CI.
-      args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
+      // No user gesture needed for Web Audio (the radio's equalizer test).
+      args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'],
     },
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 760 } } }],

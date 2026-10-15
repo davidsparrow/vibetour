@@ -18,7 +18,7 @@ export interface CommandHost {
   openTour(): void;
   toggleWork(): Promise<void>;
   cycleDisplayMode(): void;
-  show(view: 'picker' | 'passport' | 'settings' | 'capture'): void;
+  show(view: 'picker' | 'passport' | 'settings' | 'capture' | 'radio'): void;
   /** The companion URL as reachable from the user's browser; undefined when the server is off. */
   companionUrl(): Promise<string | undefined>;
   enableCompanion(): Promise<void>;
@@ -55,6 +55,7 @@ export function registerCommands(host: CommandHost): vscode.Disposable[] {
     reg('vibetour.copyCompanionUrl', () => copyCompanionUrl(host)),
     reg('vibetour.openGlovebox', () => openGlovebox()),
     reg('vibetour.showPassport', () => host.show('passport')),
+    reg('vibetour.openRadio', () => host.show('radio')),
     reg('vibetour.capture', () => host.show('capture')),
     reg('vibetour.toggleStreamingMode', () => toggleStreamingMode()),
     reg('vibetour.copyClaudeHooks', () => copyClaudeHooks(host)),

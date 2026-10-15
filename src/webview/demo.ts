@@ -48,6 +48,8 @@ export type DemoAction =
   | 'idle'
   | 'review';
 
+const RADIO_NOTE = 'Internet radio needs the VS Code extension or the CLI.';
+
 const FILES = [
   'src/onboarding/OnboardingFlow.tsx',
   'src/onboarding/steps.ts',
@@ -128,7 +130,8 @@ export class DemoHost {
           kind: 'demo',
           version: VERSION,
           projectName: 'atlas',
-          capabilities: { openFiles: false, openDocs: false, saveFiles: false, focusIde: false, focusAgent: true, openScm: true, openLinks: true, connectGitHub: true },
+          capabilities: { openFiles: false, openDocs: false, saveFiles: false, focusIde: false, focusAgent: true, openScm: true, openLinks: true, connectGitHub: true, radio: false },
+          radioNote: RADIO_NOTE,
         },
         catalog: this.session.catalog(),
       });
@@ -139,6 +142,11 @@ export class DemoHost {
       this.listener?.({ type: 'toast', text: 'In VS Code this opens right in your editor.' });
       return;
     }
+    if (cmd.type === 'radioSearch' || cmd.type === 'radioLocal' || cmd.type === 'radioTune') {
+      this.listener?.({ type: 'toast', text: RADIO_NOTE });
+      return;
+    }
+    if (cmd.type === 'musicWatch') return;
     if (cmd.type === 'focusAgent') {
       this.listener?.({ type: 'toast', text: 'In VS Code this takes you to Claude.' });
       return;

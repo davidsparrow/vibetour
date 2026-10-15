@@ -85,7 +85,7 @@ describe('HUD alerts', () => {
   });
 
   it('makes a chip a button only where the host can act on it', () => {
-    const caps = { openFiles: false, openDocs: false, saveFiles: false, focusIde: false };
+    const caps = { openFiles: false, openDocs: false, saveFiles: false, focusIde: false, radio: false };
     const host = (more: object) => ({ kind: 'cli' as const, version: '0', capabilities: { ...caps, ...more } });
     expect(alertClickable(alert('q', 'question'), host({ focusAgent: true }))).toBe(true);
     expect(alertClickable(alert('q', 'question'), host({ openLinks: true }))).toBe(false);

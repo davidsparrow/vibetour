@@ -82,7 +82,7 @@ Not in the standard yet:
   | Check-engine light | Failing builds or tests |
   | Side mirrors | Background (crew) agents |
   | Alerts (bell) | What needs you now: a question, a plan, an approval, an agent that stopped, a failing build, your turn, a PR of yours with failing CI, a conflict or requested changes, and changed files. The bells light red, orange or blue; the Alerts tab lists them, and the alert that stopped the car rides on the stop card. One click goes there |
-  | Radio | Your AI agents |
+  | Radio | Internet radio and your agents on CB |
   | PRs | The repository's open pull requests, with a lit branch on the ones on your branch (after you connect GitHub) |
   | Console | Running commands, and recent activity and your Git timeline |
   | Glovebox | Project docs |
@@ -96,7 +96,8 @@ Not in the standard yet:
   - Display: high contrast, UI scale, full keyboard control and screen-reader announcements.
   - Performance: 30/60 FPS, low-GPU mode, automatic GPU throttling, and no rendering while hidden.
   - Sound: a procedural soundscape (engine, road, wind, rain, ambience, generative Focus Mix) with independent volumes.
-- **Private by design.** VibeTour reads metadata only (event types, file names, counts, exit codes), never source code. Nothing leaves your machine, unless you connect GitHub for the PRs tab: then it asks GitHub for the repository's open pull requests (numbers, titles, branches, CI, review and merge state; no code). Streaming Mode removes file names, paths, branches, PR titles, commands and messages at the source.
+- **A car radio.** The dashboard's Radio tab (`R`) has two bands. **FM** plays internet radio: curated [SomaFM](https://somafm.com/support/) presets, stations near where you're driving, and a search of the [Radio Browser](https://www.radio-browser.info/) directory. It has power, volume, six presets (hold one to save), bass, treble, fader, balance, surround and stereo mix, and equalizer lights that move with the music. **CB** lists your agents.
+- **Private by design.** VibeTour reads metadata only (event types, file names, counts, exit codes), never source code. Nothing leaves your machine, except the internet radio you choose to play and, if you connect GitHub for the PRs tab, a request for the repository's open pull requests (numbers, titles, branches, CI, review and merge state; no code). Radio searches and streams go out from VS Code or the CLI, never from the tour page; turn the radio off with `vibetour.radio.enabled` or `--no-radio`. Streaming Mode removes file names, paths, branches, PR titles, commands and messages at the source.
 
 ## Try it
 
@@ -129,6 +130,7 @@ Then run **VibeTour: Open Tour** or press `Ctrl+Alt+V` / `⌘⌥V`.
 | VibeTour: Open Companion Display / Copy Companion Display URL | Second-screen display |
 | VibeTour: Open Glovebox | Project docs |
 | VibeTour: Show Passport / Capture My Workplace | Passport stamps and share cards |
+| VibeTour: Open Radio | The dashboard's radio: FM music, CB agents |
 | VibeTour: Toggle Streaming Mode | Hide private details everywhere |
 | VibeTour: Copy Claude Code Hook Configuration | Agent integration (see below) |
 | VibeTour: Show Pull Requests | Sign in to GitHub and list the repository's open PRs (also the PRs tab's *Connect GitHub*) |
@@ -141,6 +143,7 @@ Inside the view: `T` `D` `W` switch modes, `G` destinations, `P` passport, `C` c
 | --- | --- |
 | `vibetour.companion.enabled`, `vibetour.companion.port` | Companion Display server |
 | `vibetour.privacy.streamingMode` | Streaming Mode |
+| `vibetour.radio.enabled` | Internet radio on the FM band (on by default; off makes no network requests). Plays through the Companion Display server, so it needs `vibetour.companion.enabled` too |
 | `vibetour.journey.autoResume` | Auto-resume after VS Code restarts |
 | `vibetour.tour.openBeside` | Open the tour beside the editor |
 | `vibetour.statusBar.enabled` | Status bar item |
@@ -174,11 +177,11 @@ The standalone companion:
 - accepts agent hook events
 - opens the display in your browser
 
-Run `node dist/cli.js --help` for options (`--port`, `--no-open`, `--scope`, `--streaming`, `--your-turn-stop`, `--prs`). With `--prs` it lists the `origin` remote's open pull requests, signing in with `GITHUB_TOKEN`, `GH_TOKEN` or the `gh` CLI.
+Run `node dist/cli.js --help` for options (`--port`, `--no-open`, `--scope`, `--streaming`, `--your-turn-stop`, `--prs`, `--no-radio`). With `--prs` it lists the `origin` remote's open pull requests, signing in with `GITHUB_TOKEN`, `GH_TOKEN` or the `gh` CLI.
 
 ### Claude Code (and other agents)
 
-VibeTour shows your agents in the cockpit. The main agent is your co-pilot on the radio, and sub-agents appear in the side mirrors as crew. When an agent asks a question, shows a plan to approve or waits for permission, the car pulls into a scenic stop that says which, and a glowing alert on the windshield takes you to it with one click. If a turn ends on an API error, such as a rate limit, the car pulls onto the shoulder and says so. Run **VibeTour: Copy Claude Code Hook Configuration** and paste the result into `.claude/settings.json`. The hooks also feed the Context gauge with how full Claude's context window is, and an optional status line makes it exact. See [docs/agent-integration.md](docs/agent-integration.md) for the hook forwarder, the status line, Codex `notify`, and the provider-neutral HTTP API.
+VibeTour shows your agents in the cockpit. The main agent is your co-pilot on the radio's CB band, and sub-agents appear in the side mirrors as crew. When an agent asks a question, shows a plan to approve or waits for permission, the car pulls into a scenic stop that says which, and the Alerts bell on the rear-view mirror's top-right corner lights up and takes you to it with one click. If a turn ends on an API error, such as a rate limit, the car pulls onto the shoulder and says so. Run **VibeTour: Copy Claude Code Hook Configuration** and paste the result into `.claude/settings.json`. The hooks also feed the Context gauge with how full Claude's context window is, and an optional status line makes it exact. See [docs/agent-integration.md](docs/agent-integration.md) for the hook forwarder, the status line, Codex `notify`, and the provider-neutral HTTP API.
 
 ## Development
 
@@ -233,6 +236,7 @@ See [docs/architecture.md](docs/architecture.md) for how the pieces fit together
 - Match my clock
 - Streaming Mode
 - accessibility and performance controls
+- the car radio: internet radio with tone controls and equalizer lights
 
 **Not yet built (V2 and later):**
 

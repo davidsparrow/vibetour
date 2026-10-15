@@ -4,12 +4,14 @@ import { existsSync, statSync } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { fileRef, type DevEventBody } from '../core/events';
+import { normalizeDeck } from '../core/music';
 import type { ClientCommand, ClientPrefs, HostInfo, HostMessage } from '../core/protocol';
 import { VibeTourSession } from '../core/session';
 import { JsonFileStore } from '../host/fileStore';
 import { parseGitHubRemote, type GitHubRepo } from '../host/github';
 import { languageForPath } from '../host/paths';
 import { PrWatcher } from '../host/prWatcher';
+import { RadioService } from '../host/radio/service';
 import { Throttle } from '../host/throttle';
 import { VERSION } from '../host/version';
 import { BUILTIN_PACKS } from '../packs';
@@ -22,7 +24,7 @@ import { TreeWatcher } from './watch';
 /**
  * Standalone companion (PRD §33): VibeTour for any editor or terminal agent.
  *
- *   vibetour [dir] [--port N] [--no-open] [--pack id] [--scope id] [--streaming]
+ *   vibetour [dir] [--port N] [--no-open] [--pack id] [--scope id] [--streaming] [--no-radio]
  *
  * Watches the project directory and Git, receives agent hook events, and
  * serves the Companion Display in the browser. State lives in $VIBETOUR_HOME.
@@ -92,16 +94,21 @@ async function run(opts: CliOptions): Promise<void> {
   /** Last time an agent reported working; snapshots lag events by up to one tick. */
   let agentWorkingAt = 0;
   let stopping = false;
+  const radio = opts.radio
+    ? new RadioService({ pack: (id) => session.packs.get(id), publish: (_display, msg) => server.broadcast(msg), log })
+    : undefined;
   const hostInfo = (): HostInfo => ({
     kind: 'cli',
     version: VERSION,
     projectName: opts.streaming ? undefined : project,
     companionUrl: opts.streaming ? undefined : server.url,
-    capabilities: { openFiles: false, openDocs: false, saveFiles: false, focusIde: false, openLinks: opts.prs },
+    capabilities: { openFiles: false, openDocs: false, saveFiles: false, focusIde: false, openLinks: opts.prs, radio: !!radio },
+    ...(radio ? { radioStreamBase: `/radio/stream?token=${token}` } : { radioNote: 'Internet radio is off: the companion was started with --no-radio.' }),
   });
   const onCommand = (cmd: ClientCommand) => {
     if (session.handleCommand(cmd)) return;
-    if (cmd.type === 'savePrefs' && cmd.prefs && typeof cmd.prefs === 'object') globalStore.set(PREFS_KEY, cmd.prefs);
+    if (radio?.handleCommand(cmd, 'companion', (msg) => server.broadcast(msg))) return;
+    if (cmd.type === 'savePrefs' && cmd.prefs && typeof cmd.prefs === 'object') globalStore.set(PREFS_KEY, { ...cmd.prefs, deck: normalizeDeck(cmd.prefs.deck) });
     if (cmd.type === 'openPullRequest' && opts.prs) {
       const url = session.pullRequestUrl(cmd.number);
       if (url && /^https:\/\/github\.com\//.test(url)) openBrowser(url);
@@ -122,6 +129,7 @@ async function run(opts: CliOptions): Promise<void> {
         ingest(e);
       }
     },
+    radio: () => radio,
     sessionFile: true,
     log,
   });
@@ -189,6 +197,7 @@ async function run(opts: CliOptions): Promise<void> {
     git.stop();
     prs.stop();
     saves.dispose();
+    radio?.dispose();
     await server.stop().catch(() => undefined);
     try {
       session.shutdown();

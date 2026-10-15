@@ -7,7 +7,10 @@ import { setInterval, clearInterval } from 'node:timers';
 import type { DevEventBody } from '../core/events';
 import { AgentHookMapper, parseNeutralAgentEvent, sanitizeHookPayload } from '../core/hooks';
 import { isClientCommand, type Catalog, type ClientCommand, type ClientPrefs, type HostInfo, type HostMessage, type TourSnapshot } from '../core/protocol';
+import { isStationId } from '../core/music';
 import { companionCsp, makeNonce, renderAppHtml } from '../host/html';
+import { RadioError } from '../host/radio/icyClient';
+import type { RadioService } from '../host/radio/service';
 import { processAlive, readSessionFile, removeSessionFile, vibetourHome, writeSessionFile } from './sessionFile';
 
 /**
@@ -16,7 +19,10 @@ import { processAlive, readSessionFile, removeSessionFile, vibetourHome, writeSe
  *
  * Bound to loopback and token-protected. Requests must carry a loopback Host
  * header (DNS-rebinding guard); every route except the health check needs the
- * token. No CORS headers are ever sent. Host-agnostic: no `vscode` import.
+ * token. No CORS headers are sent, except `Access-Control-Allow-Origin: *` on
+ * the token-guarded `/radio/stream`: the VS Code panel plays it from its own
+ * `vscode-webview://` origin, and Web Audio silences cross-origin media without
+ * CORS. Host-agnostic: no `vscode` import.
  */
 
 export interface CompanionServerOptions {
@@ -32,6 +38,8 @@ export interface CompanionServerOptions {
   prefs?(): Partial<ClientPrefs> | undefined;
   onCommand(cmd: ClientCommand): void | Promise<void>;
   onAgentEvents(events: DevEventBody[]): void;
+  /** The radio behind `/radio/stream`, while it is on. */
+  radio?(): RadioService | undefined;
   /**
    * Write `~/.vibetour/companion.json` on start and remove it on stop. With
    * several servers (VS Code windows, CLIs), the newest owns the file; when its
@@ -267,6 +275,10 @@ export class CompanionServer {
         if (method !== 'POST') return this.send(res, 405, 'Method Not Allowed');
         if (!this.authorized(req, query)) return this.send(res, 401, 'Unauthorized');
         return this.agentEvent(req, res);
+      case '/radio/stream':
+        if (method !== 'GET') return this.send(res, 405, 'Method Not Allowed');
+        if (!this.authorized(req, query)) return this.send(res, 401, 'Unauthorized');
+        return this.radioStream(res, query.get('station'));
       default:
         if (method !== 'GET' && method !== 'HEAD') return this.send(res, 404, 'Not Found');
         return this.asset(res, path, method === 'HEAD');
@@ -365,6 +377,32 @@ export class CompanionServer {
       }
     }
     this.send(res, 204, '');
+  }
+
+  /** One display's radio: the station's audio with the song titles taken out. */
+  private async radioStream(res: ServerResponse, stationId: string | null): Promise<void> {
+    if (!isStationId(stationId)) return this.send(res, 400, 'Bad Request');
+    const radio = this.opts.radio?.();
+    if (!radio) return this.send(res, 404, 'Radio is off');
+    if (radio.full) return this.send(res, 503, 'Too many radio streams');
+    let stream;
+    try {
+      stream = await radio.openStream(stationId);
+    } catch (err) {
+      this.log(`Radio ${stationId}: ${err instanceof Error ? err.message : String(err)}`);
+      return this.send(res, 502, err instanceof RadioError ? err.message : 'Station offline');
+    }
+    if (res.destroyed) return stream.close();
+    res.writeHead(200, {
+      ...BASE_HEADERS,
+      'Content-Type': stream.contentType,
+      'Cache-Control': 'no-store',
+      'Accept-Ranges': 'none',
+      'Access-Control-Allow-Origin': '*',
+    });
+    res.on('close', () => stream.close());
+    stream.body.on('error', () => res.destroy());
+    stream.body.pipe(res);
   }
 
   private async agentEvent(req: IncomingMessage, res: ServerResponse): Promise<void> {
