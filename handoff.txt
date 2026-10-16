@@ -353,6 +353,11 @@ From the Controls Map. Review images: `docs/sample-videos/review/45-round3-dash-
   (class `car-stopped` on the cockpit) and goes when it drives on; the stop pill is centred top to bottom in the
   window; on a phone the three dials sit in one centred row, the four gauges centred under them, then the gear.
   Images 49-round3b-tour-stopped.png, 50-round3b-phone.png. Map republished (version 4).
+- Last list on the same PR (16 Oct): warning lights removed with `cues.ts` and the Your-turn "Blue light" setting
+  (decision B's "tell-tales in the cluster" for the photo car needs re-asking); the Glovebox is a drawn lid and chrome
+  handle; the demo's controls open from a Demo pill on the glovebox into a lower-right panel with a × (hidden on
+  phones, like the glovebox); stop pins take their scale's colour (red in a red zone); the Controls Map is captured
+  at 2× (5.0 MB). Images 51- … 55-round3c-*.png. Map republished (version 5).
 - Found on the way: scenic stops' names are picked at random from the pack's list, not by position (the demo stopped
   at 1% near Monterey as "Cliffside café in Big Sur"). The windshield now uses the route's waypoints instead; the
   caption and the refuel pill still use the stop name. Follow-up to offer: give each scenic stop an `at` on the route.
