@@ -21,6 +21,7 @@ All three share one procedural Three.js renderer and one activity/journey engine
 ## Journeys: how they work and how to make one
 
 - **[Signal Map](docs/signal-map.md):** every signal VibeTour listens to, the moment it becomes, and what the car, the journey and each instrument do about it.
+- **[Controls Map](docs/site/controls-map.html):** every control on the dashboard, screen by screen: numbered pictures with a key saying what feeds each one and what a click or a key does. `npm run controls-map` re-makes it after a UI change.
 - **[Journey Packs](docs/journey-packs.md):** what a pack contains (route, scene graph, scenic stops, variants, provenance) and how to write one. Today's packs are procedural.
 - **[Journey Video Standard](docs/journey-video-standard.md)** (proposed, draft 0.2): how to make a video pack, so creators can build their own journeys and one day sell them. It covers:
   - the three layers: footage plates, a cockpit that steers with the road, and the instruments
