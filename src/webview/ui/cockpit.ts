@@ -91,6 +91,8 @@ export class Cockpit {
   private readonly workPanels: Record<string, HTMLElement> = {};
   private readonly workMap = new RouteMap(true);
   private tab: Tab = 'nav';
+  /** The car is stopped and the stop pill is up: Tour mode brings the dashboard up too. */
+  private stopShown = false;
 
   constructor(
     private readonly ctx: AppContext,
@@ -176,7 +178,9 @@ export class Cockpit {
 
   /** The radio runs its lights and follows song titles only while its pane is on screen. */
   syncRadio(): void {
-    this.deck.setVisible(this.tab === 'radio' && this.ctx.prefs.mode === 'dashboard');
+    const mode = this.ctx.prefs.mode;
+    const dashUp = mode === 'dashboard' || (mode === 'tour' && this.stopShown);
+    this.deck.setVisible(this.tab === 'radio' && dashUp);
   }
 
   private buildWork(): void {
@@ -405,6 +409,12 @@ export class Cockpit {
     const j = snap.journey;
     const show = !!j && (m.stopped || j.phase === 'parked') && m.behavior !== 'arrived';
     toggle(this.stopCard, 'show', show);
+    // In Tour mode the dashboard comes up while the car is stopped, and goes when it drives on.
+    toggle(this.root, 'car-stopped', show);
+    if (show !== this.stopShown) {
+      this.stopShown = show;
+      this.syncRadio();
+    }
     if (!show) return;
     const a = snap.activity;
     const parked = j!.phase === 'parked';

@@ -420,12 +420,13 @@ button.alert:focus-visible {
 
 /* --------------------------------------------------------------- stop card */
 
-/* Why the car stopped: one pill, like the alert pills, kept narrow enough to read; it wraps and grows taller. */
+/* Why the car stopped: one pill, like the alert pills, kept narrow enough to read; it wraps and grows taller.
+   Centred top to bottom in the window. */
 .stop-card {
   position: absolute;
-  top: 17vh;
+  top: 50%;
   left: 50%;
-  transform: translate(-50%, -8px);
+  transform: translate(-50%, calc(-50% - 8px));
   width: max-content;
   max-width: min(440px, 88vw);
   display: flex;
@@ -440,7 +441,7 @@ button.alert:focus-visible {
 }
 .stop-card.show {
   opacity: 1;
-  transform: translate(-50%, 0);
+  transform: translate(-50%, -50%);
   pointer-events: auto !important;
 }
 .stop-card .alert {
@@ -507,6 +508,15 @@ button.alert:focus-visible {
   transform: translateY(105%);
   opacity: 0;
   pointer-events: none;
+}
+/* Tour mode keeps the view clear while the car drives; when it stops, the dashboard comes up. */
+.mode-tour .car-stopped .dash {
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+}
+.mode-tour .car-stopped .hud {
+  bottom: calc(var(--dash-h) + 3.5vh);
 }
 .cluster {
   display: flex;
@@ -2595,19 +2605,25 @@ button.problem:hover {
   :root {
     --dash-h: clamp(220px, 40vh, 320px);
   }
+  /* A phone: Activity, Agents and Tools in a centred row; the small gauges centred under them, the gear under those; then the screen. */
   .dash {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
     padding: 18px 16px 10px;
-    gap: 10px;
+    gap: 6px;
   }
   .dash .screen {
-    grid-column: 1 / -1;
-    grid-row: 2;
+    grid-column: 1;
+    grid-row: 3;
+  }
+  .cluster-left {
+    grid-row: 1;
   }
   .cluster-right {
-    flex-direction: row;
-    flex-wrap: wrap;
+    grid-row: 2;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
   }
   .gear-hint,
   .glovebox,
@@ -2633,11 +2649,10 @@ button.problem:hover {
     width: 60px;
     height: 60px;
   }
-  /* Up to five dials: wrap them rather than run off the edge. */
+  /* Up to five dials, in one centred row. */
   .mini-gauges {
-    flex-wrap: wrap;
     justify-content: center;
-    gap: 2px 4px;
+    gap: 2px 8px;
   }
   .mini-gauges[data-count] .gauge-small .gauge-svg {
     width: 50px;

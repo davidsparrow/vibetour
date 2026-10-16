@@ -43,6 +43,7 @@ test('switches between Tour, Dashboard and Work modes from the keyboard', async 
   // Tour mode keeps the lower windshield empty: no strip, no line while the car drives.
   await expect(page.locator('.tour-strip')).toHaveCount(0);
   await expect(page.locator('.hud-caption')).toBeHidden();
+  await expect.poll(() => page.locator('.dash').evaluate((el) => Number(getComputedStyle(el).opacity))).toBe(0);
   await page.keyboard.press('w');
   await expect(root).toHaveClass(/mode-work/);
   await expect(page.locator('.work-panel h3', { hasText: 'Problems' })).toBeVisible();
@@ -71,6 +72,11 @@ test('the demo story drives the cockpit: agent work, tests and a scenic stop', a
   await expect(pill).toHaveClass(/alert-blocking/);
   // Activity is the speedometer: zero while stopped.
   await expect(page.getByRole('meter', { name: /Speedometer/ })).toHaveAttribute('aria-valuenow', '0');
+  // Tour mode hides the dashboard while the car drives, and brings it up while it's stopped.
+  await page.keyboard.press('t');
+  await expect(page.locator('.vt')).toHaveClass(/mode-tour/);
+  await expect.poll(() => page.locator('.dash').evaluate((el) => Number(getComputedStyle(el).opacity))).toBe(1);
+  await page.keyboard.press('d');
   await expect(page.locator('.alert-bell')).toHaveClass(/lit-blocking/);
   // The rear-view mirror is a plain mirror; the bell on its corner is its only display.
   await expect(page.locator('.mirror-wrap .mirror')).toBeVisible();

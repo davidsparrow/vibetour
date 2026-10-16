@@ -287,7 +287,7 @@ export const STATES = [
     short: 'Tour mode',
     group: 'mode',
     title: 'Tour mode',
-    intro: 'The view and nothing in front of it: no strip, and no windshield line while the car drives. When the car stops, the stop pill and the place show as on the dashboard. The top bar shows when you move the mouse and fades after a few seconds. Press `T`.',
+    intro: 'The view and nothing in front of it: no dashboard, no strip, and no windshield line while the car drives. When the car stops, the dashboard comes up with the stop pill and the place, and goes again when the drive resumes. The top bar shows when you move the mouse and fades after a few seconds. Press `T`.',
     async setup(page) {
       await depart(page);
       await demo(page, 'Agent edits');
