@@ -541,6 +541,36 @@ export class VibeTourSession {
     }
   }
 
+  /**
+   * The windshield's one line. Nothing while the car just drives: the dials say how busy
+   * you and your agents are. It names the place when that is the news: a stop, the
+   * shoulder or a parked car (the stop card says why), a tunnel, a town on the route,
+   * the departure and the arrival. The
+   * full caption still goes to the screen reader, the status bar and the tour strip.
+   */
+  private windshield(motion: MotionReading, stopName?: string): string {
+    const j = this.journey;
+    if (!j) return 'Where do you want to go today?';
+    switch (motion.behavior) {
+      case 'scenic-stop':
+        return stopName ? placeName(stopName) : 'Scenic stop';
+      case 'pull-over':
+      case 'parked':
+        // Where the car stands; the stop card says why.
+        return j.location().label;
+      case 'approach':
+        return `Final approach to ${j.pack.route.to}`;
+      case 'arrived':
+        return `Arrived in ${j.pack.route.to}`;
+      case 'checkpoint':
+        if (j.scene().env.tunnel) return 'Through the tunnel';
+        return motion.stopped ? 'Checkpoint' : '';
+      default:
+        if (j.phase === 'departing') return `Departing ${j.pack.route.from}`;
+        return j.passing() ?? '';
+    }
+  }
+
   private gear(motion: MotionReading, a: ActivityReading): Gear {
     if (motion.stopped) return 'P';
     if (a.reviewing && (a.basis === 'ACTIVE' || a.basis === 'THINKING')) return 'R';
@@ -651,6 +681,7 @@ export class VibeTourSession {
         stopReason: motion.stopReason,
         stopName,
         caption,
+        windshield: this.windshield(motion, stopName),
         since: motion.since,
         hazard: motion.behavior === 'pull-over',
         stopAlert: stopAlertOf(motion, a),
@@ -721,4 +752,10 @@ export class VibeTourSession {
       announce,
     };
   }
+}
+
+/** A stop's name as a title on the windshield: "a Carmel Highlands gas station" reads "Carmel Highlands gas station". */
+export function placeName(name: string): string {
+  const bare = name.replace(/^(a|an|the) /i, '');
+  return bare.charAt(0).toUpperCase() + bare.slice(1);
 }

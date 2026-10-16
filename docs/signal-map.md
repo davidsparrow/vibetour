@@ -4,6 +4,8 @@ Every signal VibeTour listens to, the moment it turns into, and what that moment
 
 `test/docs.test.ts` keeps this page in step with the code: it fails if a moment or a timing here no longer matches. Captions use the California Coast journey as an example.
 
+To see where each object is, the [Controls Map](site/controls-map.html) has a numbered picture of every screen, with what feeds each control and what a click or a key does.
+
 ## The path of a signal
 
 ```mermaid
@@ -106,17 +108,17 @@ The same wiring, read the other way: pick an object and see which signals reach 
 | Your turn (blue) | Cue table: `your-turn`, only when this display's Your-turn cue is *Blue light*. Hidden otherwise. | Your turn |
 | Headlights | Scenery only: dusk, night, rain or fog on this journey. | — |
 | **Gauges and gear** | | |
-| Speedometer | Your activity score: edits (bigger edits count more), saves, navigation, focus, plus outside edits. Fades with a 15 s half-life. | You're coding, Agent at work |
-| Tachometer | Agent and tool score: agent events, outside edits, commands starting, commands running, agents working. 20 s half-life. | Agent at work, Verifying |
+| Speedometer | Your activity score: edits (bigger edits count more), saves, navigation, focus, plus outside edits. Fades with a 15 s half-life. Its top quarter is a red zone, marked faintly on the scale; past 75% the arc runs red. | You're coding, Agent at work |
+| Tachometer | Agent and tool score: agent events, outside edits, commands starting, commands running, agents working. 20 s half-life. A red zone in its top quarter, like a redline: cyan to 75%, red past it. | Agent at work, Verifying |
 | Fuel | Journey progress: reads the percent while the needle drops toward E. Back to F when you refuel. | Every moving moment |
-| Context | How much of the fullest agent's context window is left: from Claude Code's transcript or status line, or the HTTP API's `context`. Reads — until an agent reports it. On by default; Settings › Display on each screen. | Any agent signal that reports context |
-| Changes | Files changed and not yet committed, staged ones included, like the editor's Source Control badge: dark at 0, then a lit blue ring and a white number. ↑N after the label: commits to push. Click it to open Source Control (VS Code, Cursor, Windsurf). On by default; Settings › Display on each screen. | Any edit, save or commit |
+| Context | How much of the fullest agent's context window is left: from Claude Code's transcript or status line, or the HTTP API's `context`. Reads — until an agent reports it. Its bottom quarter is a red zone: under 25% left, the whole arc turns red. On by default; Settings › Display on each screen. | Any agent signal that reports context |
+| Changes | Files changed and not yet committed, staged ones included, like the editor's Source Control badge: dark at 0, then a lit blue ring and a white number. Twenty files sit at 75%, where its red zone starts; 21 and up run red. ↑N after the label: commits to push. Click it to open Source Control (VS Code, Cursor, Windsurf). On by default; Settings › Display on each screen. | Any edit, save or commit |
 | Battery | This computer's battery. Off by default; Settings › Display on each screen. Hidden where the browser doesn't report battery (Safari, Firefox) and until a battery shows up: a desktop, or a laptop that's plugged in and full, reports no battery. | — |
-| Temperature | Errors, warnings (a fifth as much) and failed checks. | Heads-up, Build left failing |
+| Temperature | Errors, warnings (a fifth as much) and failed checks. Scaled so more than three issues (a score of 4) reach its red zone at 75%, which burns a deeper red. | Heads-up, Build left failing |
 | Gear P · R · N · D | P when stopped. R within 60 s of a diff while coding or thinking. D while coding, agent at work, verifying or on final approach. N otherwise. | Every moment |
 | **Windshield and mirrors** | | |
 | Stop card | Why the car stopped, in one line (no title): a question, a plan, an approval, an API error, a failing build, your turn, a breather, refuelling, or parked (with *Resume journey*). When an alert stopped it, that alert's pill straddles the card's top edge, coloured like the bells; clicking it goes where you act. | Agent needs you, Your turn, Idle, Blocked, Parked |
-| HUD | The caption, and above it the location (*Near Carmel*, *Approaching Big Sur*), unless the caption already names the place: at the start *Departing Monterey* stands alone, without *Leaving Monterey* over it. | Every moment |
+| HUD | One line at the bottom of the windshield, and only when there's news: the place at a stop (*Bixby Creek Overlook*) or where the car pulled over or parked (*Near Garrapata*), while the stop card says why; *Through the tunnel*, a checkpoint only if the car stops there, a town on the route (*Approaching Carmel-by-the-Sea*, *Leaving Carmel-by-the-Sea*, close to it), *Departing Monterey*, *Final approach to Big Sur*, *Arrived in Big Sur*. Clear while the car just cruises: the dials say how busy you and your agents are. | Stops, tunnels, towns, departing, arriving |
 | Alerts bell (on the rear-view mirror's glass, in its top-right corner) | Lit by the loudest alert: **red** when something stopped the car (a question, a plan, an approval, an agent that stopped, a build left failing), **orange** when something needs you but the car may drive on (your turn, a PR of yours that needs you), **blue** for files changed and not committed. Dark when there is nothing. Clicking it opens the dash on the Alerts tab. | Any alert |
 | Rear-view mirror | A plain mirror: nothing written on it. Its only display is the Alerts bell, a glowing glyph on its glass. The recent events it used to list are the Console tab's *Recent* log. On a phone, and in Tour mode on a narrow screen, the mirror hides and the bell stands alone on a dark disc. | — |
 | Side mirrors | Crew agents (each Claude Code `Task`/`Agent` call until it reports back), and any agent after the first. | Agent at work |

@@ -5,8 +5,9 @@ import { DEFAULT_PREFS, mergePrefs } from '../src/core/protocol';
 import { alertClickable, alertLevel, shownAlerts } from '../src/webview/ui/alerts';
 import { batteryHiddenReason, batteryStatus } from '../src/webview/ui/battery';
 import { CUES, cueTable, litCues } from '../src/webview/ui/cues';
-import { hudLocationLine } from '../src/webview/ui/cockpit';
+import { changesDial, issuesDial } from '../src/webview/ui/cockpit';
 import { formatDuration, formatElapsed } from '../src/webview/ui/dom';
+import { zoneSplit } from '../src/webview/ui/gauges';
 
 describe('duration labels', () => {
   it('shows seconds for the first minute, then minutes and hours', () => {
@@ -96,18 +97,34 @@ describe('HUD alerts', () => {
   });
 });
 
-describe('the windshield location line', () => {
-  it('steps aside when the caption already names the place', () => {
-    expect(hudLocationLine('Leaving Monterey', 'Departing Monterey')).toBe('');
-    expect(hudLocationLine('Final approach to Big Sur', 'Final approach to Big Sur')).toBe('');
-    expect(hudLocationLine('Arrived in Big Sur', 'Arrived in Big Sur')).toBe('');
-    expect(hudLocationLine('', 'Where do you want to go today?')).toBe('');
+describe('red zones', () => {
+  it('splits a high zone: the gauge colour to 75%, red past it', () => {
+    expect(zoneSplit(0.5, 'high')).toEqual({ main: 0.5, hot: 0, inZone: false });
+    expect(zoneSplit(0.75, 'high')).toEqual({ main: 0.75, hot: 0, inZone: true });
+    expect(zoneSplit(0.875, 'high')).toEqual({ main: 0.75, hot: 0.5, inZone: true });
+    expect(zoneSplit(1, 'high')).toEqual({ main: 0.75, hot: 1, inZone: true });
   });
 
-  it('stays when it says something the caption does not', () => {
-    expect(hudLocationLine('Near Carmel', 'Cruising')).toBe('Near Carmel');
-    expect(hudLocationLine('Approaching Big Sur', 'Steady autopilot cruise — agent at work')).toBe('Approaching Big Sur');
-    expect(hudLocationLine('Leaving Monterey', 'Steady autopilot cruise — agent at work')).toBe('Leaving Monterey');
-    expect(hudLocationLine('Free drive · California Coast', 'Cruising')).toBe('Free drive · California Coast');
+  it('turns a low zone red once the gauge runs under a quarter', () => {
+    expect(zoneSplit(0.6, 'low')).toEqual({ main: 0.6, hot: 0, inZone: false });
+    expect(zoneSplit(0.2, 'low')).toEqual({ main: 0.2, hot: 0, inZone: true });
+    expect(zoneSplit(0.9)).toEqual({ main: 0.9, hot: 0, inZone: false });
+  });
+
+  it('puts more than twenty changed files in the red', () => {
+    expect(changesDial(0)).toBe(0);
+    expect(changesDial(20)).toBeCloseTo(0.75, 5);
+    expect(zoneSplit(changesDial(20), 'high').hot).toBe(0);
+    expect(zoneSplit(changesDial(21), 'high').hot).toBeGreaterThan(0);
+    expect(changesDial(40)).toBe(1);
+  });
+
+  it('puts more than three issues in the red', () => {
+    // The engine's intensity for a score s is 1 − e^(−s/5).
+    const intensity = (score: number) => 1 - Math.exp(-score / 5);
+    expect(issuesDial(intensity(0))).toBe(0);
+    expect(issuesDial(intensity(3))).toBeLessThan(0.75);
+    expect(issuesDial(intensity(4))).toBeCloseTo(0.75, 5);
+    expect(issuesDial(intensity(10))).toBeGreaterThan(0.9);
   });
 });

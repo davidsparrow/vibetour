@@ -3,7 +3,7 @@ import { ActivityEngine } from '../src/core/activity';
 import { fileRef } from '../src/core/events';
 import { APPROACH_CAP, JourneyEngine } from '../src/core/journey';
 import { MotionController } from '../src/core/motion';
-import { KEYS } from '../src/core/session';
+import { KEYS, placeName } from '../src/core/session';
 import { WorkspaceTracker } from '../src/core/workspace';
 import { BUILTIN_PACKS } from '../src/packs';
 import { makeSession } from './helpers';
@@ -191,6 +191,22 @@ describe('JourneyEngine', () => {
     expect(j.record.progress).toBeGreaterThan(0);
   });
 
+  it('names the town the car is passing, only close to it', () => {
+    const j = JourneyEngine.create(coast, { id: 'j', scope: 'day-trip', now: 0, seed: 3 });
+    // Carmel-by-the-Sea is at 12% of the coast route.
+    const at = (p: number) => {
+      j.record.progress = p;
+      return j.passing();
+    };
+    expect(at(0.005)).toBe('Leaving Monterey');
+    expect(at(0.06)).toBeUndefined();
+    expect(at(0.1)).toBe('Approaching Carmel-by-the-Sea');
+    expect(at(0.125)).toBe('Leaving Carmel-by-the-Sea');
+    expect(at(0.15)).toBeUndefined();
+    // Big Sur is the destination: the final approach says that.
+    expect(at(0.99)).toBeUndefined();
+  });
+
   it('walks the scene graph in order from departure', () => {
     const j = JourneyEngine.create(coast, { id: 'j', scope: 'day-trip', now: 0, seed: 3 });
     expect(j.scene().kind).toBe('departure');
@@ -220,12 +236,15 @@ describe('VibeTourSession', () => {
     expect(s.journey?.phase).toBe('departing');
     expect(s.motion.stopped).toBe(false);
     expect(s.activity.gear).toBe('D');
+    expect(s.motion.windshield).toBe('Departing Monterey');
 
     emit({ type: 'process.start', id: 'p1', kind: 'test', label: 'npm test' });
     clock.advance(6_000);
     s = session.latestSnapshot!;
     expect(s.activity.state).toBe('VERIFYING');
     expect(s.motion.behavior).toBe('checkpoint');
+    // A checkpoint says so on the windshield only in a tunnel, or if the car stops there.
+    expect(s.motion.windshield).toBe(s.motion.caption.startsWith('Through the tunnel') ? 'Through the tunnel' : '');
 
     emit({ type: 'process.end', id: 'p1', kind: 'test', label: 'npm test', exitCode: 0 });
     clock.advance(20_000);
@@ -235,6 +254,7 @@ describe('VibeTourSession', () => {
     expect(s.motion.behavior).toBe('scenic-stop');
     expect(s.motion.caption).toMatch(/Claude is waiting for you/);
     expect(s.motion.stopName).toBeTruthy();
+    expect(s.motion.windshield).toBe(placeName(s.motion.stopName!));
     expect(s.activity.gear).toBe('P');
 
     emit({ type: 'agent', agentId: 'claude:1', name: 'Claude', status: 'working' });
@@ -246,6 +266,7 @@ describe('VibeTourSession', () => {
     s = session.latestSnapshot!;
     expect(s.journey?.phase).toBe('arrived');
     expect(s.motion.behavior).toBe('arrived');
+    expect(s.motion.windshield).toBe('Arrived in Big Sur');
     expect(s.activity.state).toBe('COMPLETE');
 
     const catalog = session.catalog();
@@ -363,6 +384,8 @@ describe('VibeTourSession', () => {
     const snap = () => session.latestSnapshot!;
     expect(snap().motion).toMatchObject({ behavior: 'scenic-stop', stopped: true, stopReason: 'refuel', stopName: 'a Carmel Highlands gas station' });
     expect(snap().motion.caption).toBe('Refuelling at a Carmel Highlands gas station — then Monterey to Big Sur again');
+    // The windshield names just the place; the stop card says why.
+    expect(snap().motion.windshield).toBe('Carmel Highlands gas station');
 
     // Typing doesn't cut the stop short; after it, the car departs and the journey moves.
     type();
@@ -372,7 +395,33 @@ describe('VibeTourSession', () => {
     clock.advance(10_000, 1_000);
     expect(snap().motion.stopped).toBe(false);
     expect(snap().motion.caption).toBe('Departing Monterey');
+    expect(snap().motion.windshield).toBe('Departing Monterey');
     expect(session.catalog().stamps).toHaveLength(1);
+  });
+
+  it('keeps the windshield clear while the car just cruises, naming only the towns it passes', () => {
+    const { session, clock, emit, type } = makeSession();
+    session.startJourney('california-coast', 'day-trip');
+    emit({ type: 'agent', agentId: 'claude:1', name: 'Claude', status: 'working' });
+    const lines = new Set<string>();
+    let clear = 0;
+    for (let i = 0; i < 40; i++) {
+      type();
+      emit({ type: 'agent', agentId: 'claude:1', name: 'Claude', status: 'working' });
+      clock.advance(30_000, 1_000);
+      const m = session.latestSnapshot!.motion;
+      if (m.stopped || session.latestSnapshot!.journey?.phase !== 'cruising') continue;
+      if (m.windshield) lines.add(m.windshield);
+      else clear++;
+    }
+    expect(clear).toBeGreaterThan(10);
+    for (const line of lines) expect(line).toMatch(/^(Approaching|Leaving|Through the tunnel)/);
+  });
+
+  it('names a stop as a place: no article, a capital letter', () => {
+    expect(placeName('a Carmel Highlands gas station')).toBe('Carmel Highlands gas station');
+    expect(placeName('the Point Sur turnout')).toBe('Point Sur turnout');
+    expect(placeName('Bixby Creek Overlook')).toBe('Bixby Creek Overlook');
   });
 
   it('replans a restored journey whose path no longer fits its pack, arrival included', () => {
