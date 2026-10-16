@@ -83,21 +83,11 @@ A new behaviour has to hold for a short time before it is applied (4 s for check
 
 The your-turn stop is off by default. It is a host setting (`vibetour.yourTurn.*` in VS Code, `--your-turn-stop <s>` for the CLI) because every display shows the same car.
 
-## Moments and cues (`src/core/moments.ts`, `src/webview/ui/cues.ts`)
+## Moments (`src/core/moments.ts`)
 
 Each snapshot lists the **moments** that hold right now, such as `thinking`, `problems` and `your-turn` together. They are the rows of the [signal map](signal-map.md): `no-journey`, `parked`, `arrived`, `final-approach`, `agent-problem`, `build-failing`, `agent-waiting`, `verifying`, `agent-working`, `coding`, `thinking`, `idle`, `heads-up`, `problems`, `checks-failing`, `your-turn`.
 
-Each display turns moments into **cues** through one table, so the cockpit code never decides what a light means:
-
-| Cue | Lit by |
-| --- | --- |
-| Check engine | `checks-failing` |
-| Warnings | `problems` |
-| Hazard | `agent-problem`, `build-failing` |
-| Agent waiting | `agent-waiting` |
-| Your turn (blue, off unless the display's Your-turn cue is on) | `your-turn` |
-
-A future dashboard designer only needs to edit that table per display.
+Displays react to them through the stop pill, the bells, the gauges and the sound. There are no warning lights.
 
 ## Journey Engine (`src/core/journey.ts`)
 

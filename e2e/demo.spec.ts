@@ -54,12 +54,15 @@ test('switches between Tour, Dashboard and Work modes from the keyboard', async 
   await expect(page.getByRole('meter', { name: 'Tool calls in the last minute' })).toBeVisible();
   // Crew agents have their own dial now, not the side mirrors.
   await expect(page.locator('.side-mirror')).toHaveCount(0);
+  // The glovebox is a handle to pull, with the demo's pill on its corner.
+  await expect(page.getByRole('button', { name: 'Glovebox: project docs' })).toBeVisible();
+  await expect(page.locator('.glovebox-wrap .demo-pill')).toBeVisible();
 });
 
 test('the demo story drives the cockpit: agent work, tests and a scenic stop', async ({ page }) => {
   await page.goto('/?fresh&autopilot=0');
   await bookFirstJourney(page);
-  await page.locator('.demo-panel summary').click();
+  await page.locator('.demo-pill').click();
   await page.getByRole('button', { name: 'Agent edits' }).click();
   await expect(page.locator('.recent-list')).toContainText('Agent edited');
   await page.getByRole('button', { name: 'Tests pass' }).click();
@@ -82,7 +85,8 @@ test('the demo story drives the cockpit: agent work, tests and a scenic stop', a
   await expect(page.locator('.mirror-wrap .mirror')).toBeVisible();
   await expect(page.locator('.mirror-wrap .mirror')).toHaveText('');
   await expect(page.locator('.mirror-wrap .alert-bell')).toBeVisible();
-  await expect(page.locator('.light-agent')).toHaveClass(/on/);
+  // No warning lights: the pill and the bell say it.
+  await expect(page.locator('.lights')).toHaveCount(0);
   await pill.click();
   await expect(page.locator('.toast')).toContainText('In VS Code this takes you to Claude.');
   // The top bell opens the Alerts tab, which lists it too.
@@ -99,7 +103,7 @@ test('the Changes gauge counts uncommitted files and opens Source Control', asyn
   const gauge = page.getByRole('button', { name: /Open Source Control/ });
   await expect(gauge).toHaveAttribute('aria-label', /Nothing to commit/);
   await expect(page.locator('.gauge-digital')).not.toHaveClass(/gauge-lit/);
-  await page.locator('.demo-panel summary').click();
+  await page.locator('.demo-pill').click();
   await page.getByRole('button', { name: 'Agent edits' }).click();
   await expect(gauge).toHaveAttribute('aria-label', /^1 file changed, not committed, 1 commit to push/);
   await expect(page.locator('.gauge-digital')).toHaveClass(/gauge-lit/);
@@ -134,9 +138,9 @@ test('the Alerts bell sits on the mirror glass and in the middle of its tab, and
   const icon = await page.locator('.tab-alerts .icon').boundingBox();
   expect(Math.abs(icon!.x + icon!.width / 2 - (tab!.x + tab!.width / 2))).toBeLessThan(1.5);
   // Twelve changed files: the Files column scrolls on its own and fades while more is below.
-  await page.locator('.demo-panel summary').click();
+  await page.locator('.demo-pill').click();
   for (let i = 0; i < 12; i++) await page.getByRole('button', { name: 'Agent edits' }).click();
-  await page.locator('.demo-panel summary').click();
+  await page.locator('.demo-pill').click();
   await page.locator('.tab-alerts').click();
   const files = page.locator('.alerts-files');
   await expect(files).toContainText('Changed · 12');
@@ -224,7 +228,7 @@ test('ending or replacing a journey that has not arrived takes a second click', 
 test('a test run started before "Go idle" still finishes', async ({ page }) => {
   await page.goto('/?fresh&autopilot=0&speed=10');
   await bookFirstJourney(page);
-  await page.locator('.demo-panel summary').click();
+  await page.locator('.demo-pill').click();
   await page.getByRole('button', { name: 'Tests pass' }).click();
   await expect(page.locator('.console .proc.running')).toContainText('npm test');
   await page.getByRole('button', { name: 'Go idle' }).click();
@@ -232,20 +236,15 @@ test('a test run started before "Go idle" still finishes', async ({ page }) => {
   await expect(page.locator('.console .proc.running')).toHaveCount(0);
 });
 
-test('an agent finishing its turn can pull over and light this display\'s your-turn cue', async ({ page }) => {
+test('an agent finishing its turn can pull over, and lights the bells orange', async ({ page }) => {
   // 10× time with a 30 s pull-over: the stop comes about 3 s after the turn ends.
   await page.goto('/?fresh&autopilot=0&speed=10&turnStop=30');
   await bookFirstJourney(page);
-  await expect(page.locator('.light-turn')).toHaveClass(/unused/);
-  await page.keyboard.press('s');
-  await page.getByRole('group', { name: 'Your-turn cue' }).getByRole('button', { name: 'Blue light' }).click();
-  await page.keyboard.press('Escape');
-  await expect(page.locator('.light-turn')).not.toHaveClass(/unused/);
-  await expect(page.locator('.light-turn')).not.toHaveClass(/\bon\b/);
+  await expect(page.locator('.alert-bell')).not.toHaveClass(/lit-moderate/);
 
-  await page.locator('.demo-panel summary').click();
+  await page.locator('.demo-pill').click();
   await page.getByRole('button', { name: 'Go idle' }).click();
-  await expect(page.locator('.light-turn')).toHaveClass(/\bon\b/);
+  await expect(page.locator('.alert-bell')).toHaveClass(/lit-moderate/);
   const turn = page.locator('.stop-card.show .alert');
   await expect(turn).toHaveText('↩Claude finished · your turnReply or get back to work to drive on.', { timeout: 15_000 });
   await expect(turn).toHaveClass(/alert-moderate/);
@@ -255,7 +254,11 @@ test('an agent finishing its turn can pull over and light this display\'s your-t
 
   await page.getByRole('button', { name: 'Answer', exact: true }).click();
   await expect(page.locator('.stop-card')).not.toHaveClass(/show/);
-  await expect(page.locator('.light-turn')).not.toHaveClass(/\bon\b/);
+  await expect(page.locator('.alert-bell')).not.toHaveClass(/lit-moderate/);
+  // The demo's panel closes with its ×.
+  await page.locator('.demo-close').click();
+  await expect(page.locator('.demo-panel')).toBeHidden();
+  await expect(page.locator('.demo-pill')).toHaveAttribute('aria-expanded', 'false');
 });
 
 test('arriving stamps the passport', async ({ page }) => {
@@ -286,7 +289,7 @@ test('refuelling after arriving stops for fuel, then drives the same route again
   await expect(page.locator('.stop-card.show')).toContainText('Refuelling at a Carmel Highlands gas station');
   // Keep coding through the stop: at 8× the 20 s that counts as coding is 2.5 s, so
   // without it the car could drive off already in "thinking" and say so instead.
-  await page.locator('.demo-panel summary').click();
+  await page.locator('.demo-pill').click();
   const typing = setInterval(() => void page.getByRole('button', { name: 'Type code' }).click().catch(() => undefined), 400);
   try {
     await expect(page.locator('.stop-card')).not.toHaveClass(/show/, { timeout: 15_000 });
@@ -347,7 +350,7 @@ test('the radio: CB has the agents, FM needs a real host, and the lights follow 
   await page.keyboard.press('m');
   await expect.poll(litPixels, { timeout: 15_000 }).toBeGreaterThan(0);
   // CB: the agents.
-  await page.locator('.demo-panel summary').click();
+  await page.locator('.demo-pill').click();
   await page.getByRole('button', { name: 'Agent asks' }).click();
   await page.getByRole('button', { name: 'CB', exact: true }).click();
   await expect(page.locator('.deck-cb')).toContainText('Claude');
@@ -387,7 +390,7 @@ test('the context and battery gauges follow Settings', async ({ page }) => {
   await expect(context).toHaveAttribute('aria-valuetext', /No agent has reported/);
   await expect(battery).toBeHidden();
 
-  await page.locator('.demo-panel summary').click();
+  await page.locator('.demo-pill').click();
   await page.getByRole('button', { name: 'Agent edits' }).click();
   await expect(context).toHaveAttribute('aria-valuetext', /percent of the agent context window left/);
 

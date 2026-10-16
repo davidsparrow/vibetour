@@ -238,8 +238,6 @@ export interface ClientPrefs {
   batteryGauge: boolean;
   /** Show a gauge for the files changed and not yet committed. */
   changesGauge: boolean;
-  /** Dashboard cue for the your-turn moment on this display. */
-  yourTurnCue: 'none' | 'light';
   /** Which kinds of alert this display lists in its Alerts tab and lights its bells for. */
   hudAlerts: Record<AlertKind, boolean>;
   /** Uncommitted files light the bells blue. */
@@ -264,7 +262,6 @@ export const DEFAULT_PREFS: ClientPrefs = {
   contextGauge: true,
   batteryGauge: false,
   changesGauge: true,
-  yourTurnCue: 'none',
   hudAlerts: Object.fromEntries(ALERT_KINDS.map((k) => [k, true])) as Record<AlertKind, boolean>,
   alertOnChanges: true,
   captureIncludeProject: false,

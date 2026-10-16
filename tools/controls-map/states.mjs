@@ -45,9 +45,8 @@ export const STATES = [
       { sel: '.gauge[aria-label="Agent context window left"]', name: 'Context', fed: "How much of your agent's context window is left, as Claude Code reports it. Red under 25%.", click: NONE },
       { sel: '.gauge-btn', name: 'Changes', fed: 'Files changed and not committed, from Git, like the Source Control badge. ↑N: commits to push. Red past 20 files.', click: 'Opens Source Control in VS Code.' },
       { sel: '.gauge[aria-label="Temperature: warnings and errors"]', name: 'Issues', fed: 'Errors and warnings in Problems, and failing checks. Red past three issues.', click: NONE },
-      { sel: '.lights', name: 'Warning lights', fed: 'Check engine (a failing test, build or lint), warnings, hazard (pulled over), agent waiting, your turn (if you chose the blue light), headlights (dusk, night, rain, fog).', click: NONE },
       { sel: '.gear', name: 'Gear', fed: '*P* stopped, *R* reviewing a diff, *N* thinking, *D* coding, an agent at work or verifying. The hint beside it says which.', click: NONE },
-      { sel: '.glovebox', name: 'Glovebox', fed: "Your project's docs: README, CONTRIBUTING, CHANGELOG and docs/.", click: 'Lists the docs; picking one opens it in VS Code, Markdown in its preview.' },
+      { sel: '.glovebox', name: 'Glovebox', fed: "Your project's docs: README, CONTRIBUTING, CHANGELOG and docs/. Pull the handle.", click: 'Lists the docs; picking one opens it in VS Code, Markdown in its preview. Hidden on a phone.' },
     ],
   },
   {
@@ -68,7 +67,6 @@ export const STATES = [
       { sel: '.stop-card.show .alert', name: 'Stop pill', fed: 'Why the car stopped, coloured like the bells, and what resumes the drive: a question, a plan or approval, an agent that stopped, a failing build, your turn, a breather, refuelling, or parked. A long message wraps and the pill grows taller.', click: "Takes you where you act: the agent's terminal (else the editor), the PR on GitHub, or Problems. When parked, *Resume journey* sits under it." },
       { ...WINDSHIELD, fed: 'The town or landmark the car stopped in, if it stopped in one. The pill above says why.' },
       { sel: '.gauge[aria-label="Speedometer: development activity"]', name: 'Stop pins', fed: 'Activity reads 0 while stopped. Each dial on the left leaves a white pin where its needle stood when the car stopped, until the drive resumes.', click: NONE },
-      { sel: '.light-agent', name: 'Agent waiting light', fed: 'An agent waiting for you.', click: NONE },
       { sel: '.gear', name: 'Gear', fed: '*P* while stopped.', click: NONE },
     ],
   },

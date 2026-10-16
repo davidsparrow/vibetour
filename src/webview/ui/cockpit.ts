@@ -5,10 +5,9 @@ import type { PullRequestSnapshot, TourSnapshot } from '../../core/protocol';
 import { ROLE_LABEL, STATUS_LABEL } from './agents';
 import { alertLevel, alertPill, AlertsPane, bell, lightBell, notePill, shownAlerts } from './alerts';
 import type { AppContext } from './context';
-import { CUES, cueTable, litCues, type Cue } from './cues';
 import { clear, formatDuration, formatElapsed, h, renderKeyed, text, timeAgo, toggle } from './dom';
 import { Gauge, RED_ZONE_FROM } from './gauges';
-import { branchIcon } from './icons';
+import { branchIcon, gloveboxArt } from './icons';
 import { RouteMap } from './map';
 import type { RadioDeck } from './radioDeck';
 
@@ -32,10 +31,6 @@ const STATE_LABEL: Record<string, string> = {
 export type Tab = 'nav' | 'radio' | 'prs' | 'trip' | 'console' | 'alerts';
 const TABS: Tab[] = ['nav', 'radio', 'prs', 'trip', 'console', 'alerts'];
 const TAB_LABEL: Record<Tab, string> = { nav: 'Nav', radio: 'Radio', prs: 'PRs', trip: 'Trip', console: 'Console', alerts: 'Alerts' };
-
-function light(name: string, label: string): HTMLElement {
-  return h('span', { class: `light light-${name}`, title: label, 'aria-label': label, role: 'img' }, h('i'), h('b', {}, label));
-}
 
 export class Cockpit {
   readonly root: HTMLElement;
@@ -65,15 +60,16 @@ export class Cockpit {
   private readonly changesGauge = new Gauge({ label: 'Changes', size: 'small', tone: 'blue', ticks: 5, needle: false, zone: 'high', icon: branchIcon(), ariaLabel: 'Uncommitted changes' });
   private readonly changesButton = h('button', { class: 'gauge-btn', onclick: () => this.openSourceControl() }, this.changesGauge.el);
   private readonly miniGauges = h('div', { class: 'mini-gauges' }, this.fuel.el, this.contextGauge.el, this.batteryGauge.el, this.changesButton, this.temp.el);
-  private readonly lights = h(
+  /** The glovebox: its handle opens the project's docs. The browser demo hangs its Demo pill here. */
+  private readonly glovebox = h(
     'div',
-    { class: 'lights' },
-    light('check', 'Check engine'),
-    light('warn', 'Warnings'),
-    light('hazard', 'Hazard'),
-    light('agent', 'Agent waiting'),
-    light('turn', 'Your turn'),
-    light('head', 'Headlights'),
+    { class: 'glovebox-wrap' },
+    h(
+      'button',
+      { class: 'glovebox', 'aria-label': 'Glovebox: project docs', title: 'Glovebox: project docs (also in the command palette)', onclick: () => this.ctx.send({ type: 'openDocs' }) },
+      gloveboxArt(),
+      h('span', { class: 'glovebox-label', 'aria-hidden': 'true' }, 'glovebox'),
+    ),
   );
   private readonly gear = h('div', { class: 'gear', 'aria-label': 'Gear selector' }, ...['P', 'R', 'N', 'D'].map((g) => h('span', { 'data-gear': g }, g)));
   private readonly gearHint = h('div', { class: 'gear-hint' });
@@ -135,9 +131,8 @@ export class Cockpit {
         'div',
         { class: 'cluster cluster-right' },
         this.miniGauges,
-        this.lights,
         h('div', { class: 'gear-wrap' }, this.gear, this.gearHint),
-        h('button', { class: 'glovebox', onclick: () => this.ctx.send({ type: 'openDocs' }), title: 'Glovebox: project docs (also in the command palette)' }, 'Glovebox'),
+        this.glovebox,
       ),
     );
 
@@ -157,6 +152,11 @@ export class Cockpit {
       this.work,
     );
     this.setTab('nav');
+  }
+
+  /** The browser demo's Demo pill, on the glovebox's lower-left corner. */
+  addDemoButton(el: HTMLElement): void {
+    this.glovebox.append(el);
   }
 
   showTab(t: Tab): void {
@@ -237,26 +237,6 @@ export class Cockpit {
     this.miniGauges.dataset.count = String([...this.miniGauges.children].filter((g) => !(g as HTMLElement).hidden).length);
     const issues = snap.ide.diagnostics.errors;
     this.temp.set(issuesDial(a.errorIntensity), String(issues), `${issues} errors, ${snap.ide.diagnostics.warnings} warnings`);
-    const setLight = (name: string, on: boolean, title?: string) => {
-      const el = this.lights.querySelector(`.light-${name}`)!;
-      toggle(el, 'on', on);
-      if (title) el.setAttribute('title', title);
-    };
-    // Warning lights follow the moments through this display's cue table.
-    const table = cueTable(this.ctx.prefs);
-    const lit = litCues(table, snap.moments);
-    const titles: Partial<Record<Cue, string>> = {
-      check: a.checkEngine.reason ?? 'Check engine: build/test failures',
-      warn: `${snap.ide.diagnostics.errors} errors, ${snap.ide.diagnostics.warnings} warnings`,
-      agent: a.waitingAgent ? `${a.waitingAgent} is waiting for you` : 'Agent waiting',
-      turn: a.yourTurnAgent ? `${a.yourTurnAgent} finished: your turn` : 'Your turn',
-    };
-    for (const cue of CUES) {
-      setLight(cue, lit.has(cue), titles[cue]);
-      // A cue no moment can switch on stays off the panel.
-      toggle(this.lights.querySelector(`.light-${cue}`)!, 'unused', table[cue].length === 0);
-    }
-    setLight('head', !!j && (j.timeOfDay === 'night' || j.timeOfDay === 'dusk' || j.weather === 'rain' || j.weather === 'fog'));
     for (const el of this.gear.children) toggle(el, 'on', (el as HTMLElement).dataset.gear === a.gear);
     text(this.gearHint, { P: 'Paused', R: 'Review', N: 'Thinking', D: 'Build / edit' }[a.gear]);
 

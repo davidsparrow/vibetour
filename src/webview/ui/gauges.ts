@@ -154,12 +154,16 @@ export class Gauge {
 
   /**
    * Marks where the needle stood, e.g. when the car stopped and the dial fell to zero, so you
-   * can see what it read before. Null takes the mark away; so does a reading of almost nothing.
+   * can see what it read before. The mark takes the colour of the scale where it sits. Null
+   * takes it away; so does a reading of almost nothing.
    */
   pin(value: number | null): void {
     const on = value !== null && value > 0.02;
     this.el.classList.toggle('gauge-pinned', on);
-    if (on) this.pinMark.style.transform = `rotate(${START + SWEEP * Math.min(1, value)}deg)`;
+    if (!on) return;
+    this.pinMark.style.transform = `rotate(${START + SWEEP * Math.min(1, value)}deg)`;
+    // Red in the red zone, the dial's own colour elsewhere.
+    this.pinMark.classList.toggle('hot', zoneSplit(value, this.zone).inZone);
   }
 
   /** No reading yet: an empty dial with a dash and no needle. */

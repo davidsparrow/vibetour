@@ -606,10 +606,33 @@ button.alert:focus-visible {
   transform-origin: 50px 50px;
   transform-box: view-box;
 }
+/* The pin takes the colour of the scale where it sits: the dial's own, or red in its red zone. */
 .gauge-pin line {
-  stroke: rgba(255, 255, 255, 0.78);
-  stroke-width: 2;
+  stroke: var(--pin, rgba(255, 255, 255, 0.78));
+  stroke-width: 2.2;
   stroke-linecap: round;
+  filter: drop-shadow(0 0 2px var(--pin, transparent));
+}
+.tone-amber {
+  --pin: var(--amber);
+}
+.tone-cyan {
+  --pin: var(--cyan);
+}
+.tone-violet {
+  --pin: var(--violet);
+}
+.tone-green {
+  --pin: var(--green);
+}
+.tone-blue {
+  --pin: var(--blue);
+}
+.tone-red {
+  --pin: var(--red);
+}
+.gauge-pin.hot {
+  --pin: #ff4a3d;
 }
 .gauge-pinned .gauge-pin {
   display: inline;
@@ -742,69 +765,6 @@ button.alert:focus-visible {
   outline-offset: 2px;
 }
 
-.lights {
-  display: flex;
-  gap: 8px;
-}
-.light {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 22px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--line);
-}
-.light b {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-}
-.light i {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.12);
-}
-.light-check.on i {
-  background: var(--amber);
-  box-shadow: 0 0 10px var(--amber);
-}
-.light-warn.on i {
-  background: #ffd25c;
-  box-shadow: 0 0 10px #ffd25c;
-  border-radius: 50%;
-}
-.light-hazard.on i {
-  background: var(--red);
-  animation: blink 1s steps(2, start) infinite;
-}
-.light-agent.on i {
-  background: var(--cyan);
-  box-shadow: 0 0 10px var(--cyan);
-  border-radius: 50%;
-}
-.light-turn.on i {
-  background: var(--blue);
-  box-shadow: 0 0 10px var(--blue);
-  border-radius: 50%;
-}
-.light.unused {
-  display: none;
-}
-.light-head.on i {
-  background: #9ed0ff;
-  box-shadow: 0 0 8px #9ed0ff;
-}
-@keyframes blink {
-  to {
-    visibility: hidden;
-  }
-}
-
 .gear-wrap {
   display: flex;
   align-items: center;
@@ -836,19 +796,72 @@ button.alert:focus-visible {
   text-transform: uppercase;
   width: 7em;
 }
+/* The glovebox: a drawing of its lid and chrome handle, which opens the project's docs. */
+.glovebox-wrap {
+  position: relative;
+  line-height: 0;
+}
 .glovebox {
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--ink-dim);
-  border-radius: 8px;
-  padding: 3px 12px;
-  font-size: 0.78em;
-  letter-spacing: 0.12em;
+  position: relative;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.glovebox-art {
+  display: block;
+  width: clamp(140px, 13vw, 184px);
+  height: auto;
+  overflow: visible;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
+}
+.glovebox .gb-lid {
+  stroke: rgba(255, 255, 255, 0.09);
+  stroke-width: 1;
+  transition: stroke 0.2s;
+}
+.glovebox .gb-handle {
+  transition: filter 0.2s;
+}
+.glovebox:hover .gb-lid,
+.glovebox:focus-visible .gb-lid {
+  stroke: rgba(111, 211, 255, 0.55);
+}
+.glovebox:hover .gb-handle {
+  filter: brightness(1.18);
+}
+.glovebox:focus-visible {
+  outline: none;
+}
+.glovebox-label {
+  position: absolute;
+  right: 9px;
+  bottom: 6px;
+  font-size: 9.5px;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  color: rgba(240, 236, 226, 0.72);
+}
+/* The browser demo's pill, on the lid's lower-left corner. */
+.glovebox-wrap .demo-pill {
+  position: absolute;
+  left: 7px;
+  bottom: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 179, 92, 0.55);
+  background: rgba(255, 179, 92, 0.12);
+  color: var(--amber);
+  font: 600 9.5px/1.3 var(--font);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   cursor: pointer;
 }
-.glovebox:hover {
-  color: var(--ink);
+.glovebox-wrap .demo-pill:hover,
+.glovebox-wrap .demo-pill.on {
+  background: rgba(255, 179, 92, 0.28);
+  border-color: var(--amber);
 }
 
 /* infotainment */
@@ -1320,6 +1333,11 @@ button.pr-row:hover {
   background: var(--amber);
   animation: blink 1s steps(2) infinite;
 }
+@keyframes blink {
+  to {
+    visibility: hidden;
+  }
+}
 .deck-live.is-error {
   color: var(--amber);
 }
@@ -1602,8 +1620,7 @@ button.pr-row:hover {
   opacity: 0;
   pointer-events: none;
 }
-.idle.mode-tour:not(.overlay-open) .topbar,
-.idle.mode-tour:not(.overlay-open) .demo-panel:not([open]) {
+.idle.mode-tour:not(.overlay-open) .topbar {
   opacity: 0;
 }
 .brand-mini {
@@ -2499,23 +2516,48 @@ button.problem:hover {
 }
 .demo-panel {
   position: absolute;
-  top: 12px;
-  left: 14px;
-  width: min(300px, calc(100vw - 28px));
-  padding: 8px 12px;
+  right: 16px;
+  bottom: calc(var(--dash-h) + 14px);
+  width: min(300px, calc(100vw - 32px));
+  padding: 10px 12px 12px;
   border-radius: 14px;
   background: var(--glass);
   border: 1px solid var(--line);
   backdrop-filter: blur(14px);
   z-index: 20;
-  transition: opacity 0.6s;
 }
-.demo-panel summary {
-  cursor: pointer;
-  font-size: 0.82em;
+/* Where the dashboard is down, the panel sits in the corner itself. */
+.mode-work .demo-panel,
+.mode-tour:not(:has(.car-stopped)) .demo-panel {
+  bottom: 16px;
+}
+.demo-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.demo-head strong {
+  font-size: 0.78em;
+  font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--ink-dim);
+}
+.demo-head .demo-close {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.demo-close:hover {
+  background: rgba(255, 255, 255, 0.14);
 }
 .demo-buttons {
   display: flex;
@@ -2625,10 +2667,11 @@ button.problem:hover {
     align-items: center;
     gap: 4px;
   }
+  /* No room on a phone for the glovebox, or for the demo's controls. */
   .gear-hint,
-  .glovebox,
-  .cluster-right .lights {
-    display: none;
+  .glovebox-wrap,
+  .demo-panel {
+    display: none !important;
   }
   .gauge-large .gauge-svg {
     width: 84px;
@@ -2673,9 +2716,6 @@ button.problem:hover {
   }
   .brand-mini {
     display: none;
-  }
-  .demo-panel {
-    top: 62px;
   }
   .work-grid {
     grid-template-columns: 1fr;

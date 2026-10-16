@@ -46,7 +46,7 @@ How hook events map onto the journey:
 | `Notification` (`permission_prompt`) | co-pilot *needs your approval to use* the tool it was about to run | Scenic stop until you reply; alert on the stop card and in the Alerts tab |
 | `Notification` (MCP input requests: `elicitation_dialog`, `elicitation_url_dialog`, `agent_needs_input`) | co-pilot *needs your input* | Scenic stop until you reply; alert on the stop card and in the Alerts tab |
 | `Notification` (`idle_prompt`, `auth_success` and other notices that ask nothing) | ignored: the co-pilot is still *finished* | — |
-| `Stop` | co-pilot *finished — your turn*; crew whose task never reported back leave | Normal travel while you review, with a *your turn* alert. Optionally pulls over after N quiet seconds (`vibetour.yourTurn.pullOver`) and lights a blue your-turn cue |
+| `Stop` | co-pilot *finished — your turn*; crew whose task never reported back leave | Normal travel while you review, with a *your turn* alert that lights the bells orange. Optionally pulls over after N quiet seconds (`vibetour.yourTurn.pullOver`) |
 | `StopFailure` | the turn ended on an API error: co-pilot *stopped: rate limit* (or *API overloaded*, *billing problem*…). Only the error's kind is forwarded, never its details | Pulls onto the shoulder with hazards; alert on the stop card and in the Alerts tab |
 | `SessionEnd` | co-pilot leaves the cockpit | — |
 

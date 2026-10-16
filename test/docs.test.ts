@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_ACTIVITY_CONFIG } from '../src/core/activity';
 import { MOMENTS } from '../src/core/moments';
 import { DEFAULT_MOTION_CONFIG } from '../src/core/motion';
-import { cueTable, CUES } from '../src/webview/ui/cues';
 
 const signalMap = readFileSync(new URL('../docs/signal-map.md', import.meta.url), 'utf8');
 const readme = readFileSync(new URL('../README.md', import.meta.url), 'utf8');
@@ -23,11 +22,6 @@ function rowFor(key: string): string {
 describe('docs/signal-map.md', () => {
   it('lists every moment', () => {
     for (const m of MOMENTS) expect(signalMap, `missing moment ${m}`).toContain(`\`${m}\``);
-  });
-
-  it('lists every moment that lights a warning light', () => {
-    const table = cueTable({ yourTurnCue: 'light' });
-    for (const cue of CUES) for (const m of table[cue]) expect(signalMap, `no cue row for ${m}`).toMatch(new RegExp(`Cue table:[^|]*\`${m}\``));
   });
 
   it('gives the activity timings the engine uses', () => {

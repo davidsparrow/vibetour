@@ -81,7 +81,6 @@ Not in the standard yet:
   | Changes | Files changed and not committed, like the Source Control badge; click it to open Source Control |
   | Battery | Laptop battery, where the browser reports it (off by default) |
   | Temperature | Warnings and errors |
-  | Check-engine light | Failing builds or tests |
   | Alerts (bell) | What needs you now: a question, a plan, an approval, an agent that stopped, a failing build, your turn, a PR of yours with failing CI, a conflict or requested changes, and changed files. The bells light red, orange or blue; the Alerts tab lists them, and the alert that stopped the car rides on the stop card. One click goes there |
   | Radio | Internet radio and your agents on CB |
   | PRs | The repository's open pull requests, with a lit branch on the ones on your branch (after you connect GitHub) |
@@ -154,7 +153,6 @@ Inside the view: `T` `D` `W` switch modes, `G` destinations, `P` passport, `C` c
 
 Each display also has its own settings for these:
 
-- the **Your-turn cue**: none, or a blue light
 - the **Context** gauge: on by default
 - the **Battery** gauge: off by default
 - the **Changes** gauge: on by default
