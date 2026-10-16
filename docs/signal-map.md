@@ -4,6 +4,8 @@ Every signal VibeTour listens to, the moment it turns into, and what that moment
 
 `test/docs.test.ts` keeps this page in step with the code: it fails if a moment or a timing here no longer matches. Captions use the California Coast journey as an example.
 
+To see where each object is, the [Controls Map](site/controls-map.html) has a numbered picture of every screen, with what feeds each control and what a click or a key does.
+
 ## The path of a signal
 
 ```mermaid
