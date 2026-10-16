@@ -1,0 +1,366 @@
+# VibeTour: continuation prompt — California Coast: the last low-res sprint, the IDE test, then hi-res
+
+Updated 16 October 2026. Committed to the repo from 16 October (the repo is public: no secrets or balances here).
+Replaces the 14 October prompt, which is kept as docs/sample-videos/handoff-history-14oct-prompt.txt (gitignored). That file holds the full notes of the four 14 October
+footage sittings: grand tourer, seated height, cut stops, dials, radio screen, mirrors, gas pull-off, sign, mist, costs.
+Older history: handoff-history-13oct-prompt.txt and handoff-history-13oct.txt, beside it.
+
+## The plan to release (the user's, 15 October)
+
+1. **One last big low-res sprint.** The user reviews fx-20 (below) and sends one list. Stay at preview resolution.
+2. **Test the final low-res tour in the real project, in the IDE.** That means VibeTour in VS Code on a real coding
+   session, with the tour playing in the panel, not the composited mp4 in a video player. See "Blocker for step 2" below.
+3. **Pre-hi-res adjustments** from that test.
+4. **Retest once in low-res**, in the IDE.
+5. **Last adjustments.**
+6. **Render the hi-res version** (1080p). Spend nothing on hi-res before step 6, and ask before it.
+
+## Your job in this session
+
+Take the user's list for step 1 and work through it. The footage edits from their fx-20 review haven't been sent yet.
+The dashboard edits e1–e5 (sent 15 October) are done: e1–e4 are in PR #12, and e5 needed nothing (see below). The
+dashboard edits of round 2 (sent 16 October: the windshield line, red zones on three gauges) are to do. Also to do: the
+controls map. Still open: decisions A (how to build the renderer) and B (where the instruments go on the photo car).
+The user is weighing the options set out below. Read this file first. Then read `.claude/skills/journey-footage/SKILL.md`
+and the `prompts.md` beside it, then these sections of the standard (`docs/journey-video-standard.md`): The cockpit layer,
+How much to make, Review checklist. Load the skill (`journey-footage`). Check the branch and both budgets. Show the user
+review images as clickable workspace links (SendUserFile doesn't reach them in VS Code).
+
+## Blocker for step 2: VibeTour can't play video packs yet
+
+The standard says so (status line, and "Engine work this standard assumes"). The tours so far are mp4s that
+`build_trip.sh` and `composite.sh` render offline. Playing the tour in the IDE needs some engine work first:
+- a Video Director that turns the `motion` and `journey` snapshot into a playlist (cruise clips, stop sets, transitions,
+  dissolves, playback rate from speed);
+- the cockpit layer in the webview;
+- packs loaded from disk (today packs are bundled at build time, in `src/packs/index.ts`), with `localResourceRoots` and a
+  static route on the companion server;
+- the `media` block in `JourneyPack` and its validator;
+- a codec check for H.264 in VS Code webviews.
+
+**Decision A: awaiting the user's confirmation.** On 16 October the user answered "B." where this decision was asked,
+next to "Hybrid (B)" for decision B. That may mean option 2 below (live from the start) or may only have labelled
+decision B. Confirm before starting the renderer. How to build the renderer: Both options are the same
+architecture up to the last layer. The Director, packs from disk, the schema, the codec check and the dashboard over
+the video are shared, and they are most of the work. The options differ only in where the car is drawn:
+- **Baked first.** `composite.sh` bakes plate, car, wheel, dials, mirrors, glass and screens into each clip offline, and
+  the Director plays those clips. This is milestone 1 of the real renderer, not a fork: milestone 2 swaps baked clips
+  for plates plus the live compositor, and the Director doesn't change. A baked test is real for:
+  - footage playing in a VS Code webview (codec, two video elements, decode cost);
+  - the Director's logic (stops when an agent waits, refuel, scenes, dissolves);
+  - how the drive feels while coding, and how the dashboard reads over video;
+  - the radio in VS Code.
+
+  It does not test:
+  - the live compositor's GPU and battery cost in the webview;
+  - picking a car;
+  - the radio face showing the real station (a baked clip shows the stand-in from `headunit.py`; an HTML overlay on
+    `screens.console` would fix that).
+
+  A baked pack is also one car only, against the standard's rule that packs ship plates only.
+- **Live from the start.** Build the standard's renderer in full first (port `composite.sh`'s graph to WebGL). That
+  means more engine work before any IDE test.
+- **Either way**, some of what the standard calls "at play time" is too heavy to run live in a webview: the mirror
+  feed's traffic tracking and painting out (`traffic.py`, `mirrorfeed.py`), the spray (`spray.py`) and the sign fix.
+  Those get computed when the pack is built and shipped with each clip (a mirror plate, tracks), in both options.
+- **Suggested fit with the user's plan:** step 2 tests milestone 1 (baked). The live compositor is built during step 3,
+  and step 4's retest uses it, so the release is tested on the real pipeline. Step 6's hi-res is then plates at 1080p
+  and the car at 2K, with nothing to bake.
+- The user decides. This is app work: give it its own branch and PR (e.g. `feat/video-renderer`), apart from the
+  footage branch.
+
+**Decision B: decided on 16 October, option 3, the hybrid.** Where the dashboard's instruments go on the photo car. On the 3D dashboard they are an HTML band
+along the bottom. On the photo car the bottom of the frame is a real dash: wheel, cluster, centre screen. The cluster's
+dials already show the car's own speed and revs, which match the footage. Instruments to place:
+- Activity and Agents & Tools: the 3D dash's speedometer and tach.
+- Journey, Context, Changes and Issues.
+- The warning lights, PRND, the Glovebox, and the console tabs (Nav, Radio, PRs, Trip, Console, Alerts).
+- The crew agents. The 3D dash shows them in the side mirrors; the photo car's door mirror shows the road behind.
+
+The options:
+1. **Built into the car.** Each instrument takes over a real part of the photo: speedometer for Activity, rev counter
+   for Agents & Tools, the cluster display for the small gauges, tell-tales for the warning lights, the shifter for
+   PRND, the glovebox door for the Glovebox, the centre screen for the tabs.
+   - Pro: the car looks real, and nothing covers the cabin or the view.
+   - Note (16 October): the red zones of dashboard round 2 apply to whatever shows Agents & Tools, Changes and Issues
+     on the photo car too.
+   - Con: the car's dials stop showing the car's speed. The needle would jump with coding activity while the car
+     cruises steadily, which breaks the physical plausibility the user ranks first.
+   - Con: the cluster display is about 78×68 px, which is small to read.
+   - Con: every car needs every spot mapped in `car.json`, and the hands cover parts of the dash on turns.
+2. **Today's dashboard laid over the photo.**
+   - Pro: readable, the same for every car, and already built.
+   - Con: it covers the interior that was paid for, and shows two sets of gauges (the car's and ours).
+   - Con: it looks like a game HUD stuck on a photo.
+3. **Hybrid (the user's choice).**
+   - The car's dials keep showing the car.
+   - Things with a natural home move in: the Alerts bell on the mirror's glass; warning lights as cluster tell-tales;
+     a few readings (Journey, Context, Issues) on the cluster display; the radio face and console tabs on the centre
+     screen.
+   - Everything else (Activity, Agents & Tools, Changes, PRND, Glovebox, the crew) lives in the full panel that slides
+     up over the lower dash on a tap or a key, as in the radio spec.
+   - The modes could split it: Tour shows the clean car, Dash slides the panel up, Work keeps today's panels.
+   - Con: Activity and the rest aren't always in view in Tour mode.
+
+The user's rule from #10 holds in every option: keep the rear-view mirror, no HUD elements on it, and the Alerts bell
+on its top-right corner, on the glass (see e2 below). On the photo car it sits inside the car's mirror box.
+
+## Branch and PRs (16 October)
+
+- Everything is on GitHub. PRs #1–#11 are merged; #11 (the car radio, from `feat/radio`) merged on 15 October with CI
+  green, and main is `b7c96a2`.
+- **PR #12 merged on 16 October** (`feat/dash-polish`, the dashboard edits e1–e4); main is `0f41510`.
+- Dashboard round 2 is being built on `feat/dash-round2`, in the `../vibetour-context` worktree, with the controls map
+  after it. Check `gh pr list` for their PRs.
+- `handoff.txt` is committed on `footage/carmel-coast-final` from 16 October, at the user's request, so the phone
+  session can read it. The repo is public, so keep secrets and account balances out of it.
+- This checkout is on `footage/carmel-coast-final`. The cloud session made it from main after #9, and on 15 October it
+  was fast-forwarded to main (`b7c96a2`, radio included) and pushed. Step 1's footage work goes here. Commit, push and open a PR only when the user asks.
+  Commit messages end with the Co-Authored-By line from the session's attribution reminder; PR bodies end with the
+  Claude Code line.
+- `../vibetour-context` is a second worktree, on `feat/radio`. Its `node_modules` is a symlink to this checkout's,
+  which is why git lists it as untracked there. Leave it.
+- The user also works from their phone, through a cloud Claude Code session (claude.ai/code). On 14–15 October it merged
+  #7–#10 and sent this checkout cross-session messages. Its history isn't on this Mac. Run `git fetch` and
+  `gh pr list` before trusting this file.
+- If an e2e test is flaky on CI, re-run it with `gh run rerun <id> --failed`.
+
+## What main has now
+
+- **Footage (#9).** The `cars/grand-tourer` default car (cognac and ivory nappa, burl, wood-and-leather wheel, a screen
+  in the dash). Seated-height stills and plates. Stops are cut, not driven (`ramp.py`). Live dials. A lit night dash. The
+  head unit face and the cluster temperature (`headunit.py`). Mirrors from tracked traffic (`traffic.py`,
+  `mirrorfeed.py`). The gas stop as a pull-off (`gas-side-*`). The southbound sign (`sign.py`). Sea mist (`spray.py`).
+- **Dashboard (#10).** An Alerts tab, a Changes gauge, a PRs tab, and the stop card says why the car stopped. The
+  rear-view mirror is plain glass with the Alerts bell on its top-right corner; the HUD keeps only the location and
+  caption.
+- **Radio (#11).** The Radio tab is a head unit:
+  - FM plays internet radio (SomaFM presets, stations near the journey, Radio Browser search), with tone controls,
+    presets and equalizer lights.
+  - CB lists the agents.
+  - Streams go through the companion server's `/radio/stream`. `vibetour.radio.enabled` / `--no-radio` turn it off.
+  - Not yet checked by hand: playback inside a VS Code webview (F5) with Power as the user gesture, an SSH/WSL remote
+    window, and how the tone controls sound. Do these in step 2.
+
+## Review for step 1
+
+Start with these, in `docs/sample-videos/review/`:
+
+| File | Shows |
+| --- | --- |
+| fx-20-california-coast-full-trip-v4.mp4 (+ fx-20-full-trip-v4-every-10s.png) | The current tour, 5 min 13 s |
+| fx-21-mirrors-gas-stop.png, fx-21-gas-stop-every-2s.png, fx-21-sign-approach.png, fx-21-sea-mist.png | Close-ups from fx-20 |
+| fx-19, fx-18, fx-17, fx-12 … fx-16, fx-10, fx-01 … fx-11 | Earlier rounds (described in the 14 October prompt) |
+| 34-, 35-, 36-radio-merged-dashboard-*.png | The 3D dashboard after the radio merge: FM, CB, Alerts and the mirror bell |
+| 37- … 40-dash-polish-*.png | The dashboard edits of PR #12: before and after, 12 files, departure HUD, phone |
+
+Known flaws in fx-20, already reported to the user. Fold them into the sprint unless the user says otherwise:
+- The sign fades into the next clip instead of being driven past. The sign clip turns to the sea after 8 s, so it was
+  trimmed there.
+- The sea mist covers only the one sign clip (`MIST=cliffs-sign`). Other spray clips can be added to `MIST`.
+- After the gas-stop pull-out, the mirror still shows the pickup at its pump, though it left earlier.
+- A faint lens-flare orb shows late in `gas-side-out`.
+- The car ends the creep to the pump turned about 6° toward the station.
+- At night, the vehicles drawn into the mirrors have no lit taillights.
+
+Also still from the old, higher stills: the transitions (`to-cliffs`, `to-coast`), the tree-tunnel checkpoint set and the
+variants (rain, night, sunset, fog). If they're in the release, remake them with the SEAT block in this sprint
+(8 to 12 US dollars per variant). Ask the user which variants ship.
+
+Every earlier list (the mirror, height, the gas stop, the interior and wheel, the top rows, live dials, temperature,
+stops, the night dash, the radio screen) is done.
+
+## Dashboard edits (the user's E list, 15 October): done, PR #12
+
+From `docs/sample-videos/review/36-radio-merged-dashboard-alerts.png`, the 3D dashboard after the radio merge. Done on
+`feat/dash-polish` (PR #12). See before and after in `39-dash-polish-before-after.png`, the 12-file Alerts tab in
+`37-dash-polish-alerts-12-files.png`, the departure HUD in `38-dash-polish-departing.png`, and the phone bell in
+`40-dash-polish-phone.png`. To screenshot the demo: `PORT=5177 node scripts/serve-demo.mjs`, then Playwright at
+1280×760. The notes below are kept for reference.
+
+- **Done in #12:**
+  - e1: the bell is centred in its tab.
+  - e2: the bell is a glyph on the mirror glass, keeping its disc where the mirror hides.
+  - e3: the user chose "hide when it repeats" (`hudLocationLine()` in `cockpit.ts`).
+  - e4: the user chose scrolling. Each column scrolls with a fade; one column on a phone.
+- **e5:** the user is happy with the normal VS Code editor tab, which already opens on a click. No reader is wanted.
+
+- **e1. Centre the bell in the Alerts tab.** It hugs the left edge of the tab's blue underline. Cause: the 46 px tab
+  (`.tab.tab-alerts` in `src/webview/styles.css`) holds the icon as a block element, which `text-align` doesn't centre.
+  Fix with `display: grid; place-items: center` on the tab, or `margin: 0 auto` on its icon.
+- **e2. Put the mirror's bell on the glass**, inside the upper-right corner, like a HUD reading on the mirror. Today
+  `.alert-bell` is a 38 px dark disc hung off the corner (`top: -10px; right: -14px`). Move it inside `.mirror-glass`'s
+  area, smaller, with no disc: a glowing glyph on the glass, lit red, orange or blue as now, and still a button that
+  opens the Alerts tab. Check it on a phone width too (the media rules near line 2770 move the bell).
+- **e3. Remove "LEAVING MONTEREY" from the windshield**: the caption under it already says "Departing Monterey". The
+  line is `.hud-location`, fed by `Journey.location()` in `src/core/journey.ts`. It reads "Leaving X" only for the
+  first 6% of the trip. After that it says "Near Carmel", "Approaching Big Sur", "Final approach to …" or
+  "Arrived in …", while the caption says only "Cruising". Suggested: hide it while it repeats the caption (the
+  departure), and keep it after. Confirm with the user, who has also asked for fewer HUD elements and may want the line
+  gone for good. The Nav tab and the status bar show the location either way.
+- **e4. More changed files than fit in the Alerts tab.** The user's first choice is (a) scrolling. If scrolling can't
+  work, (b) two sub-tabs, Alerts and Files, with pills that shrink to fit more. Today `.pane` already has
+  `overflow: auto`, so the whole pane should scroll. Test with many changed files. Better: let each column scroll on
+  its own, with a fade at the bottom edge so it's clear there's more. (b) isn't needed if (a) works.
+- **e5. Clicking a file pill opens it in VS Code.** This already works in VS Code: the pills are buttons that send
+  `openFile`, and the extension opens the file in an editor tab (`openWorkspaceFile` in
+  `src/extension/displayCommands.ts`). The user's screenshot came from the browser demo, where pills can't open files
+  and so aren't buttons. Tell the user. Their bigger idea, reading the file inside the dashboard, comes in two
+  versions: (1) a focused reader that dims the tour and shows the document alone, with font-size controls and a reading
+  font, or (2) a floating, resizable window. Neither is crazy, but both break the README's promise that VibeTour
+  "reads metadata only … never source code". Before building either, ask the user:
+  - Which files: docs only, or code too? VS Code's Markdown preview already gives docs a clean reader; the Glovebox
+    uses it.
+  - Where: only in the VS Code panel, or on the Companion Display too, which would send file contents over the local
+    server?
+  - The promise: switch it off in Streaming Mode, and reword the README's privacy sentence.
+
+  Suggested: (1) for Markdown and text files, in the VS Code panel only, on click only, off in Streaming Mode; code
+  files keep opening in VS Code.
+
+## Dashboard edits, round 2 (the user's list, 16 October)
+
+Seen in `37-dash-polish-alerts-12-files.png`. App work, on `feat/dash-round2` from main (after #12 merged). The
+windshield items replace #12's e3 rule. The user's decisions on 16 October:
+- **At a stop**, the line names just the place ("Bixby Creek Overlook"); the stop card says why.
+- **A checkpoint with no tunnel** shows its line only if the car stops there; otherwise nothing.
+- **Towns along the route** show "Approaching Carmel" (and "Leaving Monterey" at the start) as the car nears them.
+- **Red zones** are always marked faintly on the dial, like a real tachometer's redline, and saturate when the needle
+  reaches them. They apply to Agents & Tools, Activity, Changes and Issues (a deeper red on Issues, which is already
+  red).
+- **Rescale** Changes (20 files at 75%) and Issues (a score of 4 at 75%).
+- **Context** gets a red zone at the low end: under 25% left. Journey doesn't.
+
+1. **The windshield line shows only when something is happening.** Nothing at the bottom of the windshield while
+   cruising. Show it only:
+   - when the car is stopped (a scenic stop, pulled over, refuelling, parked);
+   - going through a tunnel;
+   - departing or arriving at a town or city on the route.
+
+   No "Steady autopilot cruise — agent at work": the Agents & Tools dial says that already. Captions today
+   (`caption()` in `src/core/session.ts`):
+
+   | Caption | Shows? |
+   | --- | --- |
+   | Cruising, Steady autopilot cruise — agent at work, Easy pace — reviewing changes, Gentle cruising — thinking time, Slowing down — taking a breather | Hidden |
+   | Departing Monterey, Final approach to …, Arrived in … | Shown |
+   | Scenic stop at … — …, Pulled over safely — …, Refuelling at …, Parked … | Shown, as one short line (see 2) |
+   | Through the tunnel — verification running | Shown, as "Through the tunnel" |
+   | Checkpoint — verification running (no tunnel) | Probably hidden; ask the user |
+
+   Towns along the way: `Journey.location()` already knows "Approaching X" (within 7% of a waypoint) and "Leaving X"
+   (the start). Show those as the line while they hold, if the user agrees.
+
+   Change only the windshield. The full caption still feeds the screen reader's announcements, the VS Code status bar,
+   the tour strip and the Work panel; don't take it from them.
+2. **One line, not two.** Keep the bold line (`.hud-caption`) and drop the small all-caps line (`.hud-location`). The
+   one line names the place when that's the news: "Departing Monterey", "Approaching Carmel", "Through the tunnel",
+   "Arrived in Big Sur". At a stop, the stop card already says why the car stopped, so the line should be short, e.g.
+   "Bixby Creek Overlook" or "Scenic stop · Bixby Creek Overlook", not the full caption with the reason (ask the user
+   which). This replaces #12's `hudLocationLine()` rule; update its tests and the Signal Map's HUD row.
+3. **A red zone on Agents & Tools.** The last 25% of the dial is red: the arc is the gauge's colour (cyan) up to 75%
+   and red past it, "75% blue, 25% red". Where a gauge is already red (Issues), its zone is a deeper, brighter red.
+   The gauge (`src/webview/ui/gauges.ts`) draws one SVG value arc today, filled by `strokeDashoffset`. Give `Gauge` a
+   `redline` option (from 0.75) that splits the value arc into two: the tone colour up to the redline, red past it.
+   Ask the user whether the zone should also be marked faintly on the track all the time, like a real tachometer's
+   redline, or only turn red when the needle gets there.
+4. **The same on the Changes ring, from 20 files.** Today the ring is full at 20 files (`files / 20` in
+   `updateChangesGauge`), so 75% is 15. Rescale so 20 files sits at 75% (full at about 27), and red covers 21 and up.
+   Proposed; confirm.
+5. **The same on Issues, from "above 3".** The dial is `errorIntensity = 1 − e^(−score/5)` in `src/core/activity.ts`.
+   The score counts each error as 1, each warning as 0.2, and adds 2 for a failing check. So 75% is a score of about
+   7 today; 3 errors read 45%. To put "above 3" in the red, rescale to `k ≈ 2.9`, so a score of 4 sits at 75%. That
+   changes how the dial reads everywhere. Since `errorIntensity` may feed other things (grep it), add a separate value
+   for the dial rather than change the engine's. Proposed; confirm.
+
+## Controls map (the user's request, 15–16 October)
+
+The user wants a visual map of every control: each element numbered on a picture, with a key below giving its input
+source (what feeds it) and its click behaviour (what it opens or reveals, and its key, if any). The first request
+probably went to the phone's cloud session; this is the full version.
+- **One picture per state.** Each console tab: Nav, Radio FM, Radio CB, PRs, Trip, Console, Alerts. Also:
+  - the windshield cruising (after round 2: clear) and stopped (the stop card and its alert pill);
+  - the mirror bell lit;
+  - Tour, Dash and Work modes;
+  - other states reached from a tab, if possible.
+- **Radio FM with music playing:**
+  - the station and song from the stream (ICY), LIVE, and the equalizer lights moving;
+  - presets 1–6 (tap to tune, hold to save), power, previous/play/next, volume, bass, treble, fader, balance,
+    surround, ST MIX;
+  - local stations and search;
+  - the input source: SomaFM presets and the Radio Browser directory, streamed through the companion server's
+    `/radio/stream`;
+  - the behaviour: it plays on its own volume, stops when the panel closes, and keeps playing on the Companion Display.
+
+  The demo can't play FM ("needs the VS Code extension or the CLI"). For these pictures run the CLI companion
+  (`npm run companion`, radio on) and point Playwright at its URL.
+- **Make it reproducible:** a Playwright script (e.g. `tools/controls-map/`) that sets each state, screenshots it and
+  draws numbered markers, so the map can be re-made after UI changes.
+- **Where it lives (the user's choice, 16 October):** an HTML page in `docs/site/` (like `footage-study.html`),
+  published as a shareable page too, with the PNGs in `docs/images/controls/`, and a link from the Signal Map. Keep
+  `test/docs.test.ts` in step if the Signal Map changes.
+- A photo-car version follows once decision B is made.
+
+## Decisions of 16 October
+
+The user answered every question put on 16 October:
+- #12: merge it, and do round 2 on a new branch (done: merged).
+- The windshield line: see round 2 above.
+- Red zones: always marked, saturating when reached; Activity and Context's low end too; rescale Changes and Issues.
+- Controls map: the shareable page plus PNGs in the repo.
+- Decision B: the hybrid.
+- Commit `handoff.txt`: done.
+- Decision A: to confirm (see above).
+
+## Other open items
+
+1. The pack's `approach` slot is now a ramped cruise plate (`coast-3-stop`); the schema may want a name for a re-timed clip.
+2. The app's refuel flow (PR #8) should play the pump set: Fillup (new thread) and Quick-stop (compact context).
+3. Hi-res (step 6): a 2K cockpit is in `docs/sample-videos/cars-src/`. The clips need regenerating (about 20 to 30 US
+   dollars). HeyGen bills 1080p at 3× its 768p price, and its launch price ends with October.
+4. The 12 October work queue (GitHub Pages, brand, engine work) is unchanged. Real car logos: trademark risk, flagged
+   earlier; no logos for now.
+
+## Radio on the photo car: spec for the video renderer
+
+The user chose this on 14 October. Today's radio is the Radio tab of the console panel at the bottom centre of the 3D
+dashboard (`src/webview/ui/radioDeck.ts`). When a video pack plays, the dashboard is a photo of a car (`cars/<id>`), and
+that bottom-centre spot is the steering wheel. Each car gives the radio a screen instead.
+
+- **Where.** `car.json` `screens.console` is the screen's glass, `[x, y, w, h]` in the car still's pixels (1200×896; the
+  view shows rows 0–675, scaled to the panel's width). Grand tourer: `[902, 472, 164, 154]`, about 175×165 px at 1280×720.
+  The face sits under the wheel-and-hands layer: the right hand passes in front of the screen's left edge on turns.
+- **Two sizes.**
+  - The **face** is always on while the car is shown. It has the deck's head only: FM|CB, LIVE, equalizer lights,
+    station, song (artist and title on two lines), power, previous, play/pause, next, and presets 1–6. No SET, volume,
+    tone controls or lists. Text sizes: station about 15/190 of the screen's width, song 9.5/190, band and LIVE 8/190.
+    `tools/footage/headunit.py` is the stand-in (see fx-19).
+  - The **full radio** is the whole deck, in a panel that slides up from the bottom over the lower dashboard, right of
+    centre, with the road still in view (fx-18 mockup C). A click on the face (not on a transport or preset button) or
+    R opens it; R, Esc or a click outside closes it. It can keep the console's tabs, which makes the screen the
+    console's home in the photo car.
+- **Lights.** The equalizer lights run whenever the face is on screen, not only on the Radio tab (`Cockpit.syncRadio`
+  today). Reduced motion still stills them.
+- **CB on the face.** The co-pilot's name and status, and a dot per crew agent, amber while one waits or needs help.
+- **Night.** Screens dim to 0.55 + 0.45 × the cabin light (about 70% at night).
+- **Cluster display.** `screens.cluster` (grand tourer `[562, 458, 78, 68]`) shows the station and band, and the water
+  temperature as a bar from C to H that warms to half over the first 45 s. The temperature is the car's, not the radio's.
+
+## Money
+
+- Check both OpenRouter limits before a batch: `GET /api/v1/key` (`limit_remaining`) and `/api/v1/credits`.
+- HeyGen: the CLI has no stored credential. Export `HG` from `.env.local`
+  (`grep '^HEYGEN_API_KEY=' .env.local | cut -d= -f2- | tr -d "\"' "`) and pass it in headers, as the pack's submit
+  scripts do. Check `GET /v2/user/remaining_quota`.
+- Prices: stills 10 US cents (2K); Seedance 91 cents per 10 s; HeyGen 18 cents per 12 s (768p); Veo Lite 24 cents per 8 s.
+- Spend rule: up to 5 US dollars per batch without asking; report costs.
+
+## Tools reminder
+
+- `PYTHON=docs/sample-videos/.venv/bin/python`.
+- `CAR=cars/<id>` picks the car (default grand-tourer).
+- In `tools/footage/`: `still.sh`, `session.sh`, `composite.sh`, `drift.py`, `vp.py` (`CENTRE=1` for stop stills),
+  `sheet.py`, `car-build.sh`, `mirror.py`, `headunit.py`, `speed.py`, `ramp.py`, `traffic.py`, `mirrorfeed.py`,
+  `spray.py`, `sign.py`.
+- `build_trip.sh <out>` in the pack (`docs/sample-videos/pack-california-coast/`) builds the whole tour in road order.
+- Clean up with literal paths. In skill files, write prices without a dollar sign before a digit.
