@@ -7,7 +7,7 @@ import { alertLevel, alertPill, AlertsPane, bell, lightBell, shownAlerts } from 
 import type { AppContext } from './context';
 import { CUES, cueTable, litCues, type Cue } from './cues';
 import { clear, formatDuration, formatElapsed, h, renderKeyed, text, timeAgo, toggle } from './dom';
-import { Gauge } from './gauges';
+import { Gauge, RED_ZONE_FROM } from './gauges';
 import { branchIcon } from './icons';
 import { RouteMap } from './map';
 import type { RadioDeck } from './radioDeck';
@@ -41,7 +41,7 @@ export class Cockpit {
   readonly root: HTMLElement;
   /** What just happened, newest first: in the Console tab now the rear-view mirror is gone. */
   private readonly recent = h('ul', { class: 'recent-list', 'aria-label': 'Recent' });
-  private readonly hudLocation = h('div', { class: 'hud-location', 'aria-hidden': 'true' });
+  /** The windshield's one line, shown only when there's news: a stop, a tunnel, a town, departing, arriving. */
   private readonly hudCaption = h('div', { class: 'hud-caption', 'aria-hidden': 'true' });
   private readonly stopCard = h('div', { class: 'stop-card', role: 'status' });
   /** The alert that stopped the car, riding on the stop card's top edge. */
@@ -52,14 +52,14 @@ export class Cockpit {
   private readonly alertsPane: AlertsPane;
   private readonly sideLeft = h('div', { class: 'side-mirror left', 'aria-label': 'Side mirror: background agents' });
   private readonly sideRight = h('div', { class: 'side-mirror right', 'aria-label': 'Side mirror: background agents' });
-  private readonly speedo = new Gauge({ label: 'Activity', tone: 'amber', ariaLabel: 'Speedometer: development activity' });
-  private readonly tacho = new Gauge({ label: 'Agents & tools', tone: 'cyan', ariaLabel: 'Tachometer: agent and tool activity' });
+  private readonly speedo = new Gauge({ label: 'Activity', tone: 'amber', zone: 'high', ariaLabel: 'Speedometer: development activity' });
+  private readonly tacho = new Gauge({ label: 'Agents & tools', tone: 'cyan', zone: 'high', ariaLabel: 'Tachometer: agent and tool activity' });
   private readonly fuel = new Gauge({ label: 'Journey', size: 'small', tone: 'green', ends: ['E', 'F'], ticks: 5, ariaLabel: 'Fuel gauge: journey left' });
-  private readonly contextGauge = new Gauge({ label: 'Context', size: 'small', tone: 'cyan', ends: ['E', 'F'], ticks: 5, ariaLabel: 'Agent context window left' });
+  private readonly contextGauge = new Gauge({ label: 'Context', size: 'small', tone: 'cyan', ends: ['E', 'F'], ticks: 5, zone: 'low', ariaLabel: 'Agent context window left' });
   private readonly batteryGauge = new Gauge({ label: 'Battery', size: 'small', tone: 'green', ends: ['E', 'F'], ticks: 5, ariaLabel: 'Battery' });
-  private readonly temp = new Gauge({ label: 'Issues', size: 'small', tone: 'red', ends: ['C', 'H'], ticks: 5, ariaLabel: 'Temperature: warnings and errors' });
+  private readonly temp = new Gauge({ label: 'Issues', size: 'small', tone: 'red', ends: ['C', 'H'], ticks: 5, zone: 'high', ariaLabel: 'Temperature: warnings and errors' });
   /** Files changed and not committed, like the editor's Source Control badge; clicking opens it. */
-  private readonly changesGauge = new Gauge({ label: 'Changes', size: 'small', tone: 'blue', ticks: 5, needle: false, icon: branchIcon(), ariaLabel: 'Uncommitted changes' });
+  private readonly changesGauge = new Gauge({ label: 'Changes', size: 'small', tone: 'blue', ticks: 5, needle: false, zone: 'high', icon: branchIcon(), ariaLabel: 'Uncommitted changes' });
   private readonly changesButton = h('button', { class: 'gauge-btn', onclick: () => this.openSourceControl() }, this.changesGauge.el);
   private readonly miniGauges = h('div', { class: 'mini-gauges' }, this.fuel.el, this.contextGauge.el, this.batteryGauge.el, this.changesButton, this.temp.el);
   private readonly lights = h(
@@ -161,7 +161,7 @@ export class Cockpit {
       h('div', { class: 'mirror-wrap' }, h('div', { class: 'mirror', 'aria-hidden': 'true' }, h('div', { class: 'mirror-glass' })), this.topBell),
       // The alerts are for everyone; the rest of the HUD repeats what the screen reader already hears.
       // The HUD keeps only where you are and what the car is doing; alerts live in the Alerts tab.
-      h('div', { class: 'hud', 'aria-hidden': 'true' }, this.hudLocation, this.hudCaption),
+      h('div', { class: 'hud', 'aria-hidden': 'true' }, this.hudCaption),
       this.stopCard,
       this.sideLeft,
       this.sideRight,
@@ -232,11 +232,9 @@ export class Cockpit {
     }
     if (!snap.ide.history.length) this.recent.append(h('li', { class: 'empty' }, 'Open road behind you'));
 
-    // HUD: where we are and what the car is doing. The location line steps aside when the caption says it already.
-    const where = hudLocationLine(j ? j.location.label : '', snap.motion.caption);
-    text(this.hudLocation, where);
-    this.hudLocation.hidden = !where;
-    text(this.hudCaption, snap.motion.caption);
+    // HUD: one line, and only when there's news. While the car just drives the windshield stays clear.
+    text(this.hudCaption, snap.motion.windshield);
+    this.hudCaption.hidden = !snap.motion.windshield;
 
     this.updateAlerts(snap);
     this.updateStopCard(snap, pack);
@@ -252,7 +250,7 @@ export class Cockpit {
     this.updateChangesGauge(snap);
     this.miniGauges.dataset.count = String([...this.miniGauges.children].filter((g) => !(g as HTMLElement).hidden).length);
     const issues = snap.ide.diagnostics.errors;
-    this.temp.set(a.errorIntensity, String(issues), `${issues} errors, ${snap.ide.diagnostics.warnings} warnings`);
+    this.temp.set(issuesDial(a.errorIntensity), String(issues), `${issues} errors, ${snap.ide.diagnostics.warnings} warnings`);
     const setLight = (name: string, on: boolean, title?: string) => {
       const el = this.lights.querySelector(`.light-${name}`)!;
       toggle(el, 'on', on);
@@ -321,8 +319,8 @@ export class Cockpit {
     ]
       .filter(Boolean)
       .join(', ');
-    // The ring fills toward twenty files; the number is the count.
-    this.changesGauge.set(Math.min(1, files / 20), String(files), said);
+    // The number is the count; the ring reaches its red zone past twenty files.
+    this.changesGauge.set(changesDial(files), String(files), said);
     this.changesGauge.setNote(g.ahead ? `↑${g.ahead}` : '');
     toggle(this.changesGauge.el, 'gauge-lit', files > 0);
     const canOpen = !!this.ctx.host?.capabilities.openScm;
@@ -486,7 +484,8 @@ export class Cockpit {
   private renderNav(j: NonNullable<TourSnapshot['journey']>, pack: JourneyPack, capped: boolean, canArrive: boolean): void {
     this.navInfo.append(
       h('div', { class: 'nav-route' }, h('strong', {}, pack.title), h('span', {}, ` · ${pack.route.name}`)),
-      h('div', { class: 'nav-loc' }, `${j.location.label} · ${j.scene.label}`),
+      // Where, and the scene, unless they say the same thing ("Leaving Monterey" twice at the start).
+      h('div', { class: 'nav-loc' }, j.scene.label === j.location.label ? j.location.label : `${j.location.label} · ${j.scene.label}`),
       h(
         'div',
         { class: 'nav-meta' },
@@ -622,15 +621,19 @@ export class Cockpit {
   }
 }
 
+/** The Changes ring: twenty files sit at the start of its red zone (75%), so 21 and up are in the red. */
+export function changesDial(files: number): number {
+  return Math.min(1, (files * RED_ZONE_FROM) / 20);
+}
+
 /**
- * The windshield's location line, or '' when the caption under it already names
- * the place: "Leaving Monterey" over "Departing Monterey", or "Arrived in Big Sur"
- * twice. "Near Carmel" over "Cruising" stays.
+ * The Issues dial, from the engine's error intensity (1 − e^(−score/5), a score of one
+ * per error, 0.2 per warning, 2 for a failing check). Re-scaled so a score of 4, more
+ * than three issues, reaches the red zone at 75%: 1 − e^(−score/k) with k = 4 / ln 4.
  */
-export function hudLocationLine(location: string, caption: string): string {
-  const place = location.replace(/^(Leaving|Near|Approaching|Final approach to|Arrived in) /, '').trim();
-  if (!place) return '';
-  return caption.toLowerCase().includes(place.toLowerCase()) ? '' : location;
+export function issuesDial(errorIntensity: number): number {
+  const ei = Math.max(0, Math.min(1, errorIntensity));
+  return 1 - Math.pow(1 - ei, (5 * Math.log(4)) / 4);
 }
 
 /** When a PR was opened, exactly: "Oct 14, 3:12 PM", with the year when it isn't this one. */
