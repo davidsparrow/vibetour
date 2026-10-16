@@ -1,6 +1,6 @@
 # VibeTour: continuation prompt — California Coast: the last low-res sprint, the IDE test, then hi-res
 
-Updated 16 October 2026. Committed to the repo from 16 October (the repo is public: no secrets or balances here).
+Updated 16 October 2026 (round 3, PR #16). Committed to the repo from 16 October (the repo is public: no secrets or balances here).
 Replaces the 14 October prompt, which is kept as docs/sample-videos/handoff-history-14oct-prompt.txt (gitignored). That file holds the full notes of the four 14 October
 footage sittings: grand tourer, seated height, cut stops, dials, radio screen, mirrors, gas pull-off, sign, mist, costs.
 Older history: handoff-history-13oct-prompt.txt and handoff-history-13oct.txt, beside it.
@@ -33,14 +33,15 @@ State on 16 October, evening:
   - the dashboard edits e1–e4 (#12);
   - dashboard round 2: the windshield line and red zones (#13);
   - the Controls Map (#14).
-- **Open:** PR #15 trims Tour mode's strip; it waits for the user's OK to merge. The question on the strip's lights is
-  below.
+- **Open:** PR #16 (`feat/dash-round3`), dashboard round 3 (below). It is built on #15 (`feat/tour-strip-trim`), so
+  merging #16 merges #15 too; #16 removes the strip entirely, which settles the strip-lights question. Both wait for
+  the user's OK to merge.
 - **Decided:**
   - decision A, the renderer, staged (below);
   - decision B, the hybrid photo car.
 
 What to do next, in order. Ask the user which to start if they haven't said.
-1. **PR #15**: merge it when the user says so, and settle the strip-lights question (under "Questions open" below).
+1. **PRs #16 and #15**: merge #16 when the user says so (it carries #15). Then take round 3's follow-ups (below).
 2. **Step 1, footage:** the user's fx-20 review list hasn't come yet. When it does, work through it on
    `footage/carmel-coast-final`.
 3. **Renderer milestone 1 (decision A)** is the long pole for step 2, the IDE test. It's app work, so it can run
@@ -333,6 +334,25 @@ windshield items replace #12's e3 rule. The user's decisions on 16 October:
    changes how the dial reads everywhere. Since `errorIntensity` may feed other things (grep it), add a separate value
    for the dial rather than change the engine's. Proposed; confirm.
 
+## Dashboard round 3 (the user's list, 16 October): PR #16, open
+
+From the Controls Map. Review images: `docs/sample-videos/review/45-round3-dash-moving.png`, `46-round3-stopped.png`,
+`47-round3-tour-stopped.png`, `48-round3-phone.png`. The shared map was republished (version 3).
+- **Stop card → one pill**: the alert, then what resumes the drive (*Answer to resume your journey.*), at most 440 px
+  wide, wrapping taller. Stops with no alert (parked, refuel, breather) get the same kind of pill.
+- **Mirror bell**: 20 px like the Alerts tab's, 10 px from the mirror's right end, centred top to bottom, 32 px target.
+- **Agents & Tools split**: *Agents* = agents at work now, crew included, 0–8, red from 6 (usage goes fastest);
+  *Tools* = tool calls (`PreToolUse`) and commands started in the last minute, full at 30, no red zone (a busy agent
+  is no fault). Activity, Agents and Tools are one size, side by side. Snapshot: `activity.agentsWorking`,
+  `activity.toolCalls`.
+- **Activity reads 0 while stopped**; each left dial leaves a white pin where it stood when the car stopped.
+- **Side mirrors**: no crew list any more (the Agents dial and CB have it).
+- **Windshield**: empty unless stopped in a town or at a landmark on the route (`JourneyEngine.town()`, ±2.5% of the
+  trip), or arrived. Nothing while moving, nothing while refuelling. Tour mode: no strip at all.
+- Found on the way: scenic stops' names are picked at random from the pack's list, not by position (the demo stopped
+  at 1% near Monterey as "Cliffside café in Big Sur"). The windshield now uses the route's waypoints instead; the
+  caption and the refuel pill still use the stop name. Follow-up to offer: give each scenic stop an `at` on the route.
+
 ## Controls map (the user's request, 15–16 October): merged, PR #14
 
 Done. The page is `docs/site/controls-map.html`, published to share (privately, until the user shares it) at
@@ -391,11 +411,8 @@ probably went to the phone's cloud session; this is the full version.
 
 ## Questions open
 
-1. **The strip's status lights in Tour mode** (Verifying, ⚠, N errors, N agents working, the gear). By the guiding rule
-   they are distractions while the car just drives. Anything that needs the user stops the car and lights the bell
-   anyway, and a failing build pulls over. Suggested: drop them in Tour mode, keeping the route and the progress. Ask
-   before changing; the user hasn't decided.
-2. **Merging #15:** ask, unless the user has said.
+1. **The strip's status lights in Tour mode:** settled by round 3. The whole strip goes (#16).
+2. **Merging #16 (and with it #15):** ask, unless the user has said.
 3. **Renderer milestone 1:** start now, alongside the footage review, or after it? Plan it with the user first.
 
 ## Other open items
