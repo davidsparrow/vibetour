@@ -27,8 +27,8 @@ test('opens on "Where do you want to go today?" with every destination', async (
 test('departs on a journey and renders the drive', async ({ page }) => {
   await page.goto('/?fresh&autopilot=0');
   await bookFirstJourney(page);
-  // One line on the windshield, and only while there's news: here, the departure.
-  await expect(page.locator('.hud-caption')).toHaveText('Departing Monterey');
+  // The windshield stays clear while the car moves, even on the way out of town.
+  await expect(page.locator('.hud-caption')).toBeHidden();
   await expect(page.locator('.nav-objective')).toContainText('Onboarding flow');
   await expect.poll(() => page.evaluate(() => (window as any).vibetour.renderer.renderer.info.render.frame), { timeout: 20_000 }).toBeGreaterThan(3);
   await expect(page.locator('.nav-route')).toContainText('California Coast');
@@ -40,16 +40,19 @@ test('switches between Tour, Dashboard and Work modes from the keyboard', async 
   const root = page.locator('.vt');
   await page.keyboard.press('t');
   await expect(root).toHaveClass(/mode-tour/);
-  await expect(page.locator('.tour-strip')).toBeVisible();
-  // On the road the strip shows the route and the progress, no caption: the windshield line has the news.
-  await expect(page.locator('.strip-title')).toHaveText('Monterey → Big Sur');
-  await expect(page.locator('.strip-loc')).toBeHidden();
+  // Tour mode keeps the lower windshield empty: no strip, no line while the car drives.
+  await expect(page.locator('.tour-strip')).toHaveCount(0);
+  await expect(page.locator('.hud-caption')).toBeHidden();
   await page.keyboard.press('w');
   await expect(root).toHaveClass(/mode-work/);
   await expect(page.locator('.work-panel h3', { hasText: 'Problems' })).toBeVisible();
   await page.keyboard.press('d');
   await expect(root).toHaveClass(/mode-dashboard/);
   await expect(page.getByRole('meter', { name: /Speedometer/ })).toBeVisible();
+  await expect(page.getByRole('meter', { name: 'Agents at work' })).toBeVisible();
+  await expect(page.getByRole('meter', { name: 'Tool calls in the last minute' })).toBeVisible();
+  // Crew agents have their own dial now, not the side mirrors.
+  await expect(page.locator('.side-mirror')).toHaveCount(0);
 });
 
 test('the demo story drives the cockpit: agent work, tests and a scenic stop', async ({ page }) => {
@@ -61,10 +64,13 @@ test('the demo story drives the cockpit: agent work, tests and a scenic stop', a
   await page.getByRole('button', { name: 'Tests pass' }).click();
   await expect(page.locator('.console')).toContainText('npm test');
   await page.getByRole('button', { name: 'Agent asks' }).click();
-  // The card says why the car stopped, with the alert that stopped it on its top edge, in red.
-  await expect(page.locator('.stop-card.show')).toContainText('Claude has a question for you. The journey resumes when you answer.', { timeout: 20_000 });
-  const pill = page.locator('.stop-pill').getByRole('button', { name: 'Claude has a question' });
+  // One pill says why the car stopped and what resumes it, in red; no second card repeats it.
+  const pill = page.locator('.stop-card.show').getByRole('button', { name: 'Claude has a question' });
+  await expect(pill).toContainText('Answer to resume your journey.', { timeout: 20_000 });
+  await expect(page.locator('.stop-card.show .alert')).toHaveCount(1);
   await expect(pill).toHaveClass(/alert-blocking/);
+  // Activity is the speedometer: zero while stopped.
+  await expect(page.getByRole('meter', { name: /Speedometer/ })).toHaveAttribute('aria-valuenow', '0');
   await expect(page.locator('.alert-bell')).toHaveClass(/lit-blocking/);
   // The rear-view mirror is a plain mirror; the bell on its corner is its only display.
   await expect(page.locator('.mirror-wrap .mirror')).toBeVisible();
@@ -76,7 +82,7 @@ test('the demo story drives the cockpit: agent work, tests and a scenic stop', a
   // The top bell opens the Alerts tab, which lists it too.
   await page.locator('.alert-bell').click();
   await expect(page.getByRole('region', { name: 'Needs you' }).getByRole('button', { name: 'Claude has a question' })).toBeVisible();
-  await page.getByRole('button', { name: 'Answer' }).click();
+  await page.getByRole('button', { name: 'Answer', exact: true }).click();
   await expect(page.locator('.stop-card')).not.toHaveClass(/show/, { timeout: 20_000 });
   await expect(page.getByRole('region', { name: 'Needs you' })).not.toContainText('Claude has a question');
 });
@@ -234,14 +240,14 @@ test('an agent finishing its turn can pull over and light this display\'s your-t
   await page.locator('.demo-panel summary').click();
   await page.getByRole('button', { name: 'Go idle' }).click();
   await expect(page.locator('.light-turn')).toHaveClass(/\bon\b/);
-  await expect(page.locator('.stop-card.show')).toContainText('Claude finished its turn', { timeout: 15_000 });
-  await expect(page.locator('.stop-pill .alert')).toHaveText('↩Claude finished · your turn');
-  await expect(page.locator('.stop-pill .alert')).toHaveClass(/alert-moderate/);
-  // The windshield names just the place, and shows while stopped; the stop card above says why.
-  await expect(page.locator('.hud-caption')).not.toContainText('your turn');
+  const turn = page.locator('.stop-card.show .alert');
+  await expect(turn).toHaveText('↩Claude finished · your turnReply or get back to work to drive on.', { timeout: 15_000 });
+  await expect(turn).toHaveClass(/alert-moderate/);
+  // Stopped just out of Monterey: the windshield names the town, not why the car stopped.
+  await expect(page.locator('.hud-caption')).toHaveText('Monterey');
   await expect.poll(() => page.locator('.hud-caption').evaluate((el) => Number(getComputedStyle(el).opacity))).toBeGreaterThan(0.5);
 
-  await page.getByRole('button', { name: 'Answer' }).click();
+  await page.getByRole('button', { name: 'Answer', exact: true }).click();
   await expect(page.locator('.stop-card')).not.toHaveClass(/show/);
   await expect(page.locator('.light-turn')).not.toHaveClass(/\bon\b/);
 });
@@ -277,11 +283,11 @@ test('refuelling after arriving stops for fuel, then drives the same route again
   await page.locator('.demo-panel summary').click();
   const typing = setInterval(() => void page.getByRole('button', { name: 'Type code' }).click().catch(() => undefined), 400);
   try {
-    await expect(page.locator('.hud-caption')).toContainText('Departing Monterey', { timeout: 15_000 });
+    await expect(page.locator('.stop-card')).not.toHaveClass(/show/, { timeout: 15_000 });
   } finally {
     clearInterval(typing);
   }
-  await expect(page.locator('.stop-card')).not.toHaveClass(/show/);
+  await expect(page.locator('.hud-caption')).toBeHidden();
   await page.keyboard.press('p');
   await expect(page.locator('.passport.show .stamp')).toHaveCount(1);
 });

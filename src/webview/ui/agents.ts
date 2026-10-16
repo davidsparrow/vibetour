@@ -1,6 +1,6 @@
 import type { AgentSnapshot } from '../../core/protocol';
 
-/** How the cockpit names agents' roles and states (side mirrors, the radio's CB band, Work mode). */
+/** How the cockpit names agents' roles and states (the radio's CB band, Work mode). */
 
 export const ROLE_LABEL: Record<AgentSnapshot['role'], string> = {
   copilot: 'CO-PILOT',

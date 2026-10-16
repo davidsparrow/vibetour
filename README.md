@@ -73,15 +73,15 @@ Not in the standard yet:
 
   | Instrument | Shows |
   | --- | --- |
-  | Speedometer | Development activity |
-  | Tachometer | Agent and tool activity |
+  | Activity (speedometer) | Your coding; zero while the car is stopped |
+  | Agents | How many agents are at work, crew included |
+  | Tools | Tool calls and commands in the last minute |
   | Fuel | Journey left |
   | Context | How much of your agent's context window is left |
   | Changes | Files changed and not committed, like the Source Control badge; click it to open Source Control |
   | Battery | Laptop battery, where the browser reports it (off by default) |
   | Temperature | Warnings and errors |
   | Check-engine light | Failing builds or tests |
-  | Side mirrors | Background (crew) agents |
   | Alerts (bell) | What needs you now: a question, a plan, an approval, an agent that stopped, a failing build, your turn, a PR of yours with failing CI, a conflict or requested changes, and changed files. The bells light red, orange or blue; the Alerts tab lists them, and the alert that stopped the car rides on the stop card. One click goes there |
   | Radio | Internet radio and your agents on CB |
   | PRs | The repository's open pull requests, with a lit branch on the ones on your branch (after you connect GitHub) |
@@ -182,7 +182,7 @@ Run `node dist/cli.js --help` for options (`--port`, `--no-open`, `--scope`, `--
 
 ### Claude Code (and other agents)
 
-VibeTour shows your agents in the cockpit. The main agent is your co-pilot on the radio's CB band, and sub-agents appear in the side mirrors as crew. When an agent asks a question, shows a plan to approve or waits for permission, the car pulls into a scenic stop that says which, and the Alerts bell on the rear-view mirror's glass lights up and takes you to it with one click. If a turn ends on an API error, such as a rate limit, the car pulls onto the shoulder and says so. Run **VibeTour: Copy Claude Code Hook Configuration** and paste the result into `.claude/settings.json`. The hooks also feed the Context gauge with how full Claude's context window is, and an optional status line makes it exact. See [docs/agent-integration.md](docs/agent-integration.md) for the hook forwarder, the status line, Codex `notify`, and the provider-neutral HTTP API.
+VibeTour shows your agents in the cockpit. The main agent is your co-pilot on the radio's CB band, and the Agents dial counts it and its sub-agents, the crew. When an agent asks a question, shows a plan to approve or waits for permission, the car pulls into a scenic stop that says which, and the Alerts bell on the rear-view mirror's glass lights up and takes you to it with one click. If a turn ends on an API error, such as a rate limit, the car pulls onto the shoulder and says so. Run **VibeTour: Copy Claude Code Hook Configuration** and paste the result into `.claude/settings.json`. The hooks also feed the Context gauge with how full Claude's context window is, and an optional status line makes it exact. See [docs/agent-integration.md](docs/agent-integration.md) for the hook forwarder, the status line, Codex `notify`, and the provider-neutral HTTP API.
 
 ## Development
 

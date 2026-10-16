@@ -121,9 +121,7 @@ body {
 .cockpit button,
 .cockpit .screen,
 .cockpit .stop-card,
-.cockpit .work,
-.cockpit .tour-strip,
-.cockpit .side-mirror {
+.cockpit .work {
   pointer-events: auto;
 }
 .frame .roof {
@@ -218,15 +216,15 @@ body {
   pointer-events: none;
 }
 
-/* The Alerts bell, on the mirror's glass in its top-right corner, like a reading shown in a real mirror. */
+/* The Alerts bell, on the mirror's glass near its right end, centred top to bottom, like a reading shown in a real mirror. */
 .alert-bell {
   position: absolute;
-  top: 8px;
-  right: 20px;
+  top: 11px;
+  right: 10px;
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -238,11 +236,8 @@ body {
     color 0.3s,
     filter 0.3s;
 }
-.alert-bell .icon {
-  display: block;
-  width: 18px;
-  height: 18px;
-}
+/* The same size as the bell on the screen's Alerts tab. */
+.alert-bell .icon,
 .tab-alerts .icon {
   display: block;
   width: 20px;
@@ -340,9 +335,9 @@ body {
   transition: bottom 0.5s ease, opacity 0.4s;
 }
 .mode-tour .hud {
-  bottom: 118px;
+  bottom: 56px;
 }
-/* One line, only when there's news: a stop, a tunnel, a town, departing, arriving. */
+/* One line, only while the car is stopped somewhere with a name: the place. */
 .hud-caption {
   font-size: 1.32em;
   font-weight: 500;
@@ -425,18 +420,18 @@ button.alert:focus-visible {
 
 /* --------------------------------------------------------------- stop card */
 
+/* Why the car stopped: one pill, like the alert pills, kept narrow enough to read; it wraps and grows taller. */
 .stop-card {
   position: absolute;
   top: 17vh;
   left: 50%;
   transform: translate(-50%, -8px);
-  width: min(520px, 90vw);
-  padding: 16px 20px;
-  border-radius: var(--radius);
-  background: var(--glass);
-  border: 1px solid var(--line);
-  backdrop-filter: blur(14px);
-  text-align: center;
+  width: max-content;
+  max-width: min(440px, 88vw);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
   opacity: 0;
   pointer-events: none !important;
   transition:
@@ -448,102 +443,37 @@ button.alert:focus-visible {
   transform: translate(-50%, 0);
   pointer-events: auto !important;
 }
-/* The alert that stopped the car, straddling the card's top edge. */
-.stop-pill {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  white-space: nowrap;
-}
-.stop-pill:empty {
-  display: none;
-}
-.stop-card.has-pill {
-  padding-top: 24px;
-}
-.stop-pill .alert {
+.stop-card .alert {
+  max-width: 100%;
+  padding: 9px 20px 9px 9px;
+  border-radius: 26px;
+  font-size: 1em;
+  text-align: left;
   background: rgba(10, 12, 18, 0.82);
 }
-.stop-line {
-  color: var(--ink);
+.stop-card button.alert:hover {
+  background: rgba(10, 12, 18, 0.9);
 }
-.stop-detail {
-  margin-top: 4px;
-  font-size: 0.86em;
+.alert-glyph,
+.alert .icon {
+  flex: none;
+}
+/* An alert with a second sentence: the alert, then what resumes the drive, quieter. */
+.alert-words {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  line-height: 1.3;
+}
+.alert-note {
+  font-size: 0.88em;
+  font-weight: 400;
   color: var(--ink-dim);
-}
-.stop-card .btn {
-  margin-top: 12px;
 }
 .mode-work .stop-card,
 .overlay-open .stop-card {
   display: none;
-}
-
-/* ------------------------------------------------------------ side mirrors */
-
-.side-mirror {
-  position: absolute;
-  bottom: calc(var(--dash-h) + 18px);
-  display: none;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px 12px;
-  min-width: 150px;
-  background: linear-gradient(180deg, rgba(22, 26, 35, 0.86), rgba(8, 10, 14, 0.9));
-  border: 1px solid var(--line);
-  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.4);
-}
-.side-mirror.show {
-  display: flex;
-}
-.side-mirror.left {
-  left: 3vw;
-  border-radius: 18px 26px 26px 12px;
-}
-.side-mirror.right {
-  right: 3vw;
-  border-radius: 26px 18px 12px 26px;
-}
-.mode-tour .side-mirror {
-  bottom: 120px;
-}
-.mode-work .side-mirror,
-.overlay-open .side-mirror {
-  display: none !important;
-}
-.crew {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.85em;
-}
-.crew-role {
-  font-size: 0.72em;
-  letter-spacing: 0.14em;
-  padding: 1px 6px;
-  border-radius: 6px;
-  background: rgba(111, 211, 255, 0.14);
-  color: var(--cyan);
-}
-.crew .dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  margin-left: auto;
-  background: var(--ink-faint);
-}
-.status-working .dot,
-.status-tool .dot {
-  background: var(--cyan);
-  box-shadow: 0 0 8px var(--cyan);
-}
-.status-waiting .dot {
-  background: var(--amber);
-}
-.status-error .dot {
-  background: var(--red);
 }
 
 /* ------------------------------------------------------------------- dash */
@@ -588,6 +518,14 @@ button.alert:focus-visible {
 .cluster-right {
   flex-direction: column;
   gap: 8px;
+}
+/* Activity, Agents and Tools: three dials of one size, side by side. */
+.cluster-left {
+  gap: clamp(6px, 1vw, 16px);
+}
+.cluster-left .gauge-svg {
+  width: clamp(72px, min(12.5vh, 7.6vw), 120px);
+  height: clamp(72px, min(12.5vh, 7.6vw), 120px);
 }
 .mini-gauges {
   display: flex;
@@ -653,6 +591,19 @@ button.alert:focus-visible {
   transform-box: view-box;
   transition: transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
+.gauge-pin {
+  display: none;
+  transform-origin: 50px 50px;
+  transform-box: view-box;
+}
+.gauge-pin line {
+  stroke: rgba(255, 255, 255, 0.78);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.gauge-pinned .gauge-pin {
+  display: inline;
+}
 .gauge-needle line {
   stroke: #fff;
   stroke-width: 1.6;
@@ -702,6 +653,10 @@ button.alert:focus-visible {
 }
 .tone-blue .gauge-value {
   stroke: var(--blue);
+}
+.tone-violet .gauge-value {
+  stroke: var(--violet);
+  filter: drop-shadow(0 0 4px rgba(183, 156, 255, 0.6));
 }
 /* The red zone, like a tachometer's redline: a faint band on the scale all the time, saturated red where the value reaches it. */
 .gauge-zone {
@@ -1614,109 +1569,6 @@ button.pr-row:hover {
   to {
     transform: rotate(360deg);
   }
-}
-
-/* ------------------------------------------------------------- tour strip */
-
-.tour-strip {
-  position: absolute;
-  left: 50%;
-  bottom: 22px;
-  transform: translateX(-50%);
-  width: min(820px, calc(100vw - 32px));
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.6fr) auto;
-  gap: 18px;
-  align-items: center;
-  padding: 12px 18px;
-  border-radius: 999px;
-  background: var(--glass);
-  border: 1px solid var(--line);
-  backdrop-filter: blur(14px);
-  transition: opacity 0.5s, transform 0.5s;
-}
-.mode-dashboard .tour-strip,
-.mode-work .tour-strip,
-.overlay-open .tour-strip {
-  opacity: 0;
-  transform: translate(-50%, 20px);
-  pointer-events: none;
-}
-.strip-title {
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.strip-loc {
-  font-size: 0.8em;
-  color: var(--ink-dim);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.strip-track {
-  position: relative;
-  height: 4px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.14);
-}
-.strip-fill {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  border-radius: 4px;
-  background: linear-gradient(90deg, var(--cyan), var(--amber));
-  transition: width 1.2s ease;
-}
-.strip-car {
-  position: absolute;
-  top: 50%;
-  width: 12px;
-  height: 12px;
-  margin: -6px 0 0 -6px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.8);
-  transition: left 1.2s ease;
-}
-.strip-ticks i {
-  position: absolute;
-  top: -3px;
-  width: 2px;
-  height: 10px;
-  margin-left: -1px;
-  background: rgba(255, 255, 255, 0.3);
-}
-.strip-lights {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-.ind {
-  font-size: 0.76em;
-  padding: 2px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  white-space: nowrap;
-}
-.ind.verify {
-  color: var(--cyan);
-}
-.ind.bad {
-  color: var(--red);
-}
-.ind.agent {
-  color: var(--cyan);
-}
-.ind.gear {
-  font-family: var(--mono);
-  font-weight: 700;
-  color: var(--amber);
-}
-.tour-strip.empty .strip-track {
-  opacity: 0.2;
 }
 
 /* ----------------------------------------------------------------- topbar */
@@ -2766,6 +2618,17 @@ button.problem:hover {
     width: 84px;
     height: 84px;
   }
+  .cluster-left {
+    gap: 2px;
+  }
+  .cluster-left .gauge-svg {
+    width: 54px;
+    height: 54px;
+  }
+  .cluster-left .gauge-label {
+    font-size: 0.6em;
+    letter-spacing: 0.06em;
+  }
   .gauge-small .gauge-svg {
     width: 60px;
     height: 60px;
@@ -2784,16 +2647,8 @@ button.problem:hover {
     font-size: 0.6em;
     letter-spacing: 0.06em;
   }
-  .tour-strip {
-    grid-template-columns: 1fr;
-    border-radius: 18px;
-    gap: 8px;
-  }
-  .strip-lights {
-    display: none;
-  }
   .mode-tour .hud {
-    bottom: 132px;
+    bottom: 40px;
   }
   .topbar {
     left: 14px;

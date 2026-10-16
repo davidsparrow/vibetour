@@ -102,9 +102,8 @@ export interface LocationInfo {
 }
 
 const MAX_FILES = 2_000;
-/** How close to a town on the route the windshield names it: the last stretch before it, and just after. */
-const PASSING_BEFORE = 0.025;
-const PASSING_AFTER = 0.012;
+/** How close to a town on the route the car counts as in it, either side, for the windshield at a stop. */
+export const IN_TOWN = 0.025;
 
 export class JourneyEngine {
   constructor(
@@ -298,20 +297,12 @@ export class JourneyEngine {
   }
 
   /**
-   * The town the car is passing, for the one line on the windshield: "Approaching
-   * Carmel-by-the-Sea" over the last stretch before it, "Leaving Carmel-by-the-Sea" just
-   * after. Undefined the rest of the way, at the destination (arriving says that) and
-   * on a free drive.
+   * The town on the route the car is in, if any: within IN_TOWN of a waypoint, either side.
+   * The windshield names it when the car stops there. Undefined on a free drive.
    */
-  passing(): string | undefined {
-    if (this.isFreeDrive || !this.moving) return undefined;
-    const wps = this.pack.route.waypoints;
+  town(): string | undefined {
+    if (this.isFreeDrive) return undefined;
     const p = this.record.progress;
-    for (let i = 0; i < wps.length - 1; i++) {
-      const ahead = wps[i].at - p;
-      if (i > 0 && ahead >= 0 && ahead < PASSING_BEFORE) return `Approaching ${wps[i].name}`;
-      if (ahead < 0 && -ahead < PASSING_AFTER) return `Leaving ${wps[i].name}`;
-    }
-    return undefined;
+    return this.pack.route.waypoints.find((w) => Math.abs(w.at - p) < IN_TOWN)?.name;
   }
 }

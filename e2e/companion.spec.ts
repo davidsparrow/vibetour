@@ -58,7 +58,7 @@ test('a browser companion follows a project and its coding agent', async ({ page
 
   await page.locator('.card', { hasText: 'Tokyo After Dark' }).getByRole('button', { name: /Get ticket/ }).click();
   await page.getByRole('button', { name: 'Depart now' }).click();
-  await expect(page.locator('.hud-caption')).toContainText('Shibuya');
+  await expect(page.locator('.nav-loc')).toContainText('Shibuya');
 
   writeFileSync(join(project, 'feature.ts'), 'export const answer = 42;\n');
   await expect(page.locator('.recent-list')).toContainText('feature.ts', { timeout: 15_000 });
