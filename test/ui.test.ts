@@ -5,6 +5,7 @@ import { DEFAULT_PREFS, mergePrefs } from '../src/core/protocol';
 import { alertClickable, alertLevel, shownAlerts } from '../src/webview/ui/alerts';
 import { batteryHiddenReason, batteryStatus } from '../src/webview/ui/battery';
 import { CUES, cueTable, litCues } from '../src/webview/ui/cues';
+import { hudLocationLine } from '../src/webview/ui/cockpit';
 import { formatDuration, formatElapsed } from '../src/webview/ui/dom';
 
 describe('duration labels', () => {
@@ -92,5 +93,21 @@ describe('HUD alerts', () => {
     expect(alertClickable(alert('p', 'pr'), host({ openLinks: true }))).toBe(true);
     expect(alertClickable(alert('p', 'pr'), undefined)).toBe(false);
     expect(alertClickable({ ...alert('b', 'build'), target: { type: 'problems' } }, host({ openFiles: true }))).toBe(true);
+  });
+});
+
+describe('the windshield location line', () => {
+  it('steps aside when the caption already names the place', () => {
+    expect(hudLocationLine('Leaving Monterey', 'Departing Monterey')).toBe('');
+    expect(hudLocationLine('Final approach to Big Sur', 'Final approach to Big Sur')).toBe('');
+    expect(hudLocationLine('Arrived in Big Sur', 'Arrived in Big Sur')).toBe('');
+    expect(hudLocationLine('', 'Where do you want to go today?')).toBe('');
+  });
+
+  it('stays when it says something the caption does not', () => {
+    expect(hudLocationLine('Near Carmel', 'Cruising')).toBe('Near Carmel');
+    expect(hudLocationLine('Approaching Big Sur', 'Steady autopilot cruise — agent at work')).toBe('Approaching Big Sur');
+    expect(hudLocationLine('Leaving Monterey', 'Steady autopilot cruise — agent at work')).toBe('Leaving Monterey');
+    expect(hudLocationLine('Free drive · California Coast', 'Cruising')).toBe('Free drive · California Coast');
   });
 });

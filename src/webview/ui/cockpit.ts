@@ -116,7 +116,7 @@ export class Cockpit {
     this.panes.set('prs', h('div', { class: 'pane' }, this.prs));
     this.panes.set('trip', h('div', { class: 'pane' }, this.trip));
     this.panes.set('console', h('div', { class: 'pane' }, this.console, h('h4', { class: 'recent-title' }, 'Recent'), this.recent));
-    this.panes.set('alerts', h('div', { class: 'pane' }, this.alertsPane.el));
+    this.panes.set('alerts', h('div', { class: 'pane pane-alerts' }, this.alertsPane.el));
 
     this.arriveButton = h(
       'button',
@@ -232,8 +232,10 @@ export class Cockpit {
     }
     if (!snap.ide.history.length) this.recent.append(h('li', { class: 'empty' }, 'Open road behind you'));
 
-    // HUD: where we are, what is happening, current file and task.
-    text(this.hudLocation, j ? j.location.label : 'Where do you want to go today?');
+    // HUD: where we are and what the car is doing. The location line steps aside when the caption says it already.
+    const where = hudLocationLine(j ? j.location.label : '', snap.motion.caption);
+    text(this.hudLocation, where);
+    this.hudLocation.hidden = !where;
     text(this.hudCaption, snap.motion.caption);
 
     this.updateAlerts(snap);
@@ -618,6 +620,17 @@ export class Cockpit {
       jp.append(h('p', { class: 'muted' }, 'No journey in progress.'));
     }
   }
+}
+
+/**
+ * The windshield's location line, or '' when the caption under it already names
+ * the place: "Leaving Monterey" over "Departing Monterey", or "Arrived in Big Sur"
+ * twice. "Near Carmel" over "Cruising" stays.
+ */
+export function hudLocationLine(location: string, caption: string): string {
+  const place = location.replace(/^(Leaving|Near|Approaching|Final approach to|Arrived in) /, '').trim();
+  if (!place) return '';
+  return caption.toLowerCase().includes(place.toLowerCase()) ? '' : location;
 }
 
 /** When a PR was opened, exactly: "Oct 14, 3:12 PM", with the year when it isn't this one. */
