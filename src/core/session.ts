@@ -543,8 +543,9 @@ export class VibeTourSession {
 
   /**
    * The windshield's one line. Nothing while the car just drives: the dials say how busy
-   * you and your agents are. It names the place when that is the news: a stop (the stop
-   * card says why), a tunnel, a town on the route, the departure and the arrival. The
+   * you and your agents are. It names the place when that is the news: a stop, the
+   * shoulder or a parked car (the stop card says why), a tunnel, a town on the route,
+   * the departure and the arrival. The
    * full caption still goes to the screen reader, the status bar and the tour strip.
    */
   private windshield(motion: MotionReading, stopName?: string): string {
@@ -554,9 +555,9 @@ export class VibeTourSession {
       case 'scenic-stop':
         return stopName ? placeName(stopName) : 'Scenic stop';
       case 'pull-over':
-        return 'Pulled over safely';
       case 'parked':
-        return 'Parked';
+        // Where the car stands; the stop card says why.
+        return j.location().label;
       case 'approach':
         return `Final approach to ${j.pack.route.to}`;
       case 'arrived':

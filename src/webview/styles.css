@@ -423,10 +423,6 @@ button.alert:focus-visible {
   opacity: 0;
 }
 
-.stopped .hud-caption {
-  opacity: 0;
-}
-
 /* --------------------------------------------------------------- stop card */
 
 .stop-card {

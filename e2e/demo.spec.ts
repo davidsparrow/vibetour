@@ -234,9 +234,9 @@ test('an agent finishing its turn can pull over and light this display\'s your-t
   await expect(page.locator('.stop-card.show')).toContainText('Claude finished its turn', { timeout: 15_000 });
   await expect(page.locator('.stop-pill .alert')).toHaveText('↩Claude finished · your turn');
   await expect(page.locator('.stop-pill .alert')).toHaveClass(/alert-moderate/);
-  // The windshield names just the place; the stop card above says why.
-  await expect(page.locator('.hud-caption')).toBeVisible();
+  // The windshield names just the place, and shows while stopped; the stop card above says why.
   await expect(page.locator('.hud-caption')).not.toContainText('your turn');
+  await expect.poll(() => page.locator('.hud-caption').evaluate((el) => Number(getComputedStyle(el).opacity))).toBeGreaterThan(0.5);
 
   await page.getByRole('button', { name: 'Answer' }).click();
   await expect(page.locator('.stop-card')).not.toHaveClass(/show/);
