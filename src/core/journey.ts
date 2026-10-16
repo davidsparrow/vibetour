@@ -102,6 +102,9 @@ export interface LocationInfo {
 }
 
 const MAX_FILES = 2_000;
+/** How close to a town on the route the windshield names it: the last stretch before it, and just after. */
+const PASSING_BEFORE = 0.025;
+const PASSING_AFTER = 0.012;
 
 export class JourneyEngine {
   constructor(
@@ -292,5 +295,23 @@ export class JourneyEngine {
     else if (next && next.at - p < 0.07) label = `Approaching ${next.name}`;
     else label = `Near ${wps[idx].name}`;
     return { label, waypointIndex: idx, next: next?.name };
+  }
+
+  /**
+   * The town the car is passing, for the one line on the windshield: "Approaching
+   * Carmel-by-the-Sea" over the last stretch before it, "Leaving Carmel-by-the-Sea" just
+   * after. Undefined the rest of the way, at the destination (arriving says that) and
+   * on a free drive.
+   */
+  passing(): string | undefined {
+    if (this.isFreeDrive || !this.moving) return undefined;
+    const wps = this.pack.route.waypoints;
+    const p = this.record.progress;
+    for (let i = 0; i < wps.length - 1; i++) {
+      const ahead = wps[i].at - p;
+      if (i > 0 && ahead >= 0 && ahead < PASSING_BEFORE) return `Approaching ${wps[i].name}`;
+      if (ahead < 0 && -ahead < PASSING_AFTER) return `Leaving ${wps[i].name}`;
+    }
+    return undefined;
   }
 }

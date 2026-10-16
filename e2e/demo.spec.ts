@@ -27,9 +27,8 @@ test('opens on "Where do you want to go today?" with every destination', async (
 test('departs on a journey and renders the drive', async ({ page }) => {
   await page.goto('/?fresh&autopilot=0');
   await bookFirstJourney(page);
-  // "Leaving Monterey" would repeat the caption, so the location line steps aside.
+  // One line on the windshield, and only while there's news: here, the departure.
   await expect(page.locator('.hud-caption')).toHaveText('Departing Monterey');
-  await expect(page.locator('.hud-location')).toBeHidden();
   await expect(page.locator('.nav-objective')).toContainText('Onboarding flow');
   await expect.poll(() => page.evaluate(() => (window as any).vibetour.renderer.renderer.info.render.frame), { timeout: 20_000 }).toBeGreaterThan(3);
   await expect(page.locator('.nav-route')).toContainText('California Coast');
@@ -235,7 +234,9 @@ test('an agent finishing its turn can pull over and light this display\'s your-t
   await expect(page.locator('.stop-card.show')).toContainText('Claude finished its turn', { timeout: 15_000 });
   await expect(page.locator('.stop-pill .alert')).toHaveText('↩Claude finished · your turn');
   await expect(page.locator('.stop-pill .alert')).toHaveClass(/alert-moderate/);
-  await expect(page.locator('.hud-caption')).toContainText('Claude finished, your turn');
+  // The windshield names just the place; the stop card above says why.
+  await expect(page.locator('.hud-caption')).toBeVisible();
+  await expect(page.locator('.hud-caption')).not.toContainText('your turn');
 
   await page.getByRole('button', { name: 'Answer' }).click();
   await expect(page.locator('.stop-card')).not.toHaveClass(/show/);

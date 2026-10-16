@@ -342,16 +342,10 @@ body {
 .mode-tour .hud {
   bottom: 118px;
 }
-.hud-location {
-  font-size: 0.78em;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: var(--ink-dim);
-}
+/* One line, only when there's news: a stop, a tunnel, a town, departing, arriving. */
 .hud-caption {
   font-size: 1.32em;
   font-weight: 500;
-  margin-top: 2px;
 }
 /* Alert pills: one glowing pill per thing that needs you, coloured by how loud it is. */
 .alert {
@@ -712,6 +706,32 @@ button.alert:focus-visible {
 }
 .tone-blue .gauge-value {
   stroke: var(--blue);
+}
+/* The red zone, like a tachometer's redline: a faint band on the scale all the time, saturated red where the value reaches it. */
+.gauge-zone {
+  fill: none;
+  stroke: rgba(255, 82, 70, 0.5);
+  stroke-width: 2.2;
+}
+.gauge-hot {
+  fill: none;
+  stroke: #ff4a3d;
+  stroke-width: 5;
+  filter: drop-shadow(0 0 5px rgba(255, 74, 61, 0.85));
+  transition: stroke-dashoffset 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+/* Issues is red already: its zone burns a deeper, brighter red. */
+.tone-red .gauge-hot {
+  stroke: #ff1f2d;
+  filter: drop-shadow(0 0 7px rgba(255, 31, 45, 1));
+}
+.gauge-in-zone .gauge-zone {
+  stroke: rgba(255, 82, 70, 0.9);
+}
+/* A gauge that runs out (Context) turns its whole arc red under a quarter. */
+.gauge-zone-low.gauge-in-zone .gauge-value {
+  stroke: #ff4a3d;
+  filter: drop-shadow(0 0 5px rgba(255, 74, 61, 0.85));
 }
 /* A digital dial: dark until there is something to count, then a lit ring and a big white number. */
 .gauge-digital .gauge-readout {
