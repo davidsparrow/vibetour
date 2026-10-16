@@ -15,14 +15,46 @@ Older history: handoff-history-13oct-prompt.txt and handoff-history-13oct.txt, b
 5. **Last adjustments.**
 6. **Render the hi-res version** (1080p). Spend nothing on hi-res before step 6, and ask before it.
 
+## The guiding rule for everything on screen (the user's, 16 October)
+
+"The less distractions the better, so users can just sit back and enjoy the scenery, only interrupted when their input
+is required, or when a work chunk or phase has finished and the car is paused, waiting to start the next chunk, the next
+session or a new thread."
+
+Apply it to every screen and every car: the 3D dashboard, the photo car of decision B, Tour mode above all. Nothing
+on the windshield or the strip while the car just drives. Speak up when input is needed (the car stops, the stop card
+says why, the bell lights) and when a phase ends (your turn, arrived, refuel). Dials and tabs are there when someone
+looks for them, and don't call for attention.
+
 ## Your job in this session
 
-Take the user's list for step 1 and work through it. The footage edits from their fx-20 review haven't been sent yet.
-The dashboard edits e1–e5 (sent 15 October) are done: e1–e4 are in PR #12, merged, and e5 needed nothing (see below).
-Dashboard round 2 (the windshield line, red zones) is built in PR #13, and the controls map in PR #14, stacked on it;
-both wait for the user to merge. Decision B is the hybrid. Still open: decision A (how to build the renderer); see
-there.
-The user is weighing the options set out below. Read this file first. Then read `.claude/skills/journey-footage/SKILL.md`
+State on 16 October, evening:
+- **Done and merged:**
+  - the dashboard edits e1–e4 (#12);
+  - dashboard round 2: the windshield line and red zones (#13);
+  - the Controls Map (#14).
+- **Open:** PR #15 trims Tour mode's strip; it waits for the user's OK to merge. The question on the strip's lights is
+  below.
+- **Decided:**
+  - decision A, the renderer, staged (below);
+  - decision B, the hybrid photo car.
+
+What to do next, in order. Ask the user which to start if they haven't said.
+1. **PR #15**: merge it when the user says so, and settle the strip-lights question (under "Questions open" below).
+2. **Step 1, footage:** the user's fx-20 review list hasn't come yet. When it does, work through it on
+   `footage/carmel-coast-final`.
+3. **Renderer milestone 1 (decision A)** is the long pole for step 2, the IDE test. It's app work, so it can run
+   alongside the footage review, on its own branch (`feat/video-renderer`). The milestone:
+   - the Video Director;
+   - packs from disk;
+   - the `media` schema and its validator;
+   - the codec check;
+   - baked clips;
+   - the hybrid photo-car dashboard over the video.
+
+   Plan it with the user before building. It is the biggest piece of work left.
+
+Read this file first. Then read `.claude/skills/journey-footage/SKILL.md`
 and the `prompts.md` beside it, then these sections of the standard (`docs/journey-video-standard.md`): The cockpit layer,
 How much to make, Review checklist. Load the skill (`journey-footage`). Check the branch and both budgets. Show the user
 review images as clickable workspace links (SendUserFile doesn't reach them in VS Code).
@@ -39,9 +71,14 @@ The standard says so (status line, and "Engine work this standard assumes"). The
 - the `media` block in `JourneyPack` and its validator;
 - a codec check for H.264 in VS Code webviews.
 
-**Decision A: awaiting the user's confirmation.** On 16 October the user answered "B." where this decision was asked,
-next to "Hybrid (B)" for decision B. That may mean option 2 below (live from the start) or may only have labelled
-decision B. Confirm before starting the renderer. How to build the renderer: Both options are the same
+**Decision A: decided on 16 October, staged, as recommended.** Asked again, the user said "build Hybrid version per your
+own recommendation". That recommendation is the "suggested fit" below:
+- Milestone 1 plays baked clips, and step 2's IDE test uses it.
+- The live compositor is built during step 3, and step 4's retest runs on it.
+- Hi-res is then plates at 1080p and the car at 2K.
+
+If the user meant something else by "Hybrid" for A, they'll say; the reply on 16 October stated this reading. The
+options, as set out to them: both are the same
 architecture up to the last layer. The Director, packs from disk, the schema, the codec check and the dashboard over
 the video are shared, and they are most of the work. The options differ only in where the car is drawn:
 - **Baked first.** `composite.sh` bakes plate, car, wheel, dials, mirrors, glass and screens into each clip offline, and
@@ -64,11 +101,12 @@ the video are shared, and they are most of the work. The options differ only in 
 - **Either way**, some of what the standard calls "at play time" is too heavy to run live in a webview: the mirror
   feed's traffic tracking and painting out (`traffic.py`, `mirrorfeed.py`), the spray (`spray.py`) and the sign fix.
   Those get computed when the pack is built and shipped with each clip (a mirror plate, tracks), in both options.
-- **Suggested fit with the user's plan:** step 2 tests milestone 1 (baked). The live compositor is built during step 3,
+- **Suggested fit with the user's plan (chosen):** step 2 tests milestone 1 (baked). The live compositor is built during step 3,
   and step 4's retest uses it, so the release is tested on the real pipeline. Step 6's hi-res is then plates at 1080p
   and the car at 2K, with nothing to bake.
-- The user decides. This is app work: give it its own branch and PR (e.g. `feat/video-renderer`), apart from the
-  footage branch.
+- This is app work: give it its own branch and PR (e.g. `feat/video-renderer`), apart from the footage branch.
+- Milestone 1's dashboard is the hybrid photo car (decision B, below). Use the radio spec at the end of this file, the
+  red zones of round 2, and the guiding rule above: in Tour mode, the clean car.
 
 **Decision B: decided on 16 October, option 3, the hybrid.** Where the dashboard's instruments go on the photo car. On the 3D dashboard they are an HTML band
 along the bottom. On the photo car the bottom of the frame is a real dash: wheel, cluster, centre screen. The cluster's
@@ -110,18 +148,21 @@ on its top-right corner, on the glass (see e2 below). On the photo car it sits i
 
 - Everything is on GitHub. PRs #1–#11 are merged; #11 (the car radio, from `feat/radio`) merged on 15 October with CI
   green, and main is `b7c96a2`.
-- **PR #12 merged on 16 October** (`feat/dash-polish`, the dashboard edits e1–e4); main is `0f41510`.
-- **PR #13 is open** (`feat/dash-round2`, CI green): dashboard round 2. **PR #14 is open** (`feat/controls-map`),
-  stacked on #13 with its base set to `feat/dash-round2`: after #13 merges, switch #14's base to `main`
-  (`gh pr edit 14 --base main`). Both were made in the `../vibetour-context` worktree, which is on `feat/controls-map`.
-  The user hasn't said whether to merge them; ask.
+- On 16 October these merged:
+  - #12 (`feat/dash-polish`, the dashboard edits e1–e4);
+  - #13 (`feat/dash-round2`, dashboard round 2);
+  - #14 (`feat/controls-map`, the Controls Map).
+- Main is `1e616c9`.
+- **PR #15 is open** (`feat/tour-strip-trim`): Tour mode's strip trimmed to the route and the progress. Tests pass
+  locally; merge it when the user says so.
+- These were made in the `../vibetour-context` worktree, which is on `feat/tour-strip-trim`.
 - `handoff.txt` is committed on `footage/carmel-coast-final` from 16 October, at the user's request, so the phone
   session can read it. The repo is public, so keep secrets and account balances out of it.
 - This checkout is on `footage/carmel-coast-final`. The cloud session made it from main after #9, and on 15 October it
   was fast-forwarded to main (`b7c96a2`, radio included) and pushed. Step 1's footage work goes here. Commit, push and open a PR only when the user asks.
   Commit messages end with the Co-Authored-By line from the session's attribution reminder; PR bodies end with the
   Claude Code line.
-- `../vibetour-context` is a second worktree, on `feat/radio`. Its `node_modules` is a symlink to this checkout's,
+- `../vibetour-context` is a second worktree, used for the app branches. Its `node_modules` is a symlink to this checkout's,
   which is why git lists it as untracked there. Leave it.
 - The user also works from their phone, through a cloud Claude Code session (claude.ai/code). On 14–15 October it merged
   #7–#10 and sent this checkout cross-session messages. Its history isn't on this Mac. Run `git fetch` and
@@ -221,7 +262,7 @@ From `docs/sample-videos/review/36-radio-merged-dashboard-alerts.png`, the 3D da
   Suggested: (1) for Markdown and text files, in the VS Code panel only, on click only, off in Streaming Mode; code
   files keep opening in VS Code.
 
-## Dashboard edits, round 2 (the user's list, 16 October): built, PR #13
+## Dashboard edits, round 2 (the user's list, 16 October): merged, PR #13
 
 Seen in `37-dash-polish-alerts-12-files.png`. App work, on `feat/dash-round2` from main (after #12 merged). The
 windshield items replace #12's e3 rule. The user's decisions on 16 October:
@@ -247,8 +288,8 @@ windshield items replace #12's e3 rule. The user's decisions on 16 October:
   - `zoneSplit()` in `gauges.ts`; `changesDial()` and `issuesDial()` in `cockpit.ts`. Issues is rescaled from
     `errorIntensity` without touching the engine.
 - Also: the Nav tab no longer says "Leaving Monterey · Leaving Monterey".
-- **Open question for the user:** Tour mode's strip still shows the full caption ("Leaving Monterey · Steady
-  autopilot cruise — agent at work"), since Tour mode hides the dials. Keep it, or trim it like the windshield?
+- **Tour mode's strip:** the user chose to trim it like the windshield (16 October). PR #15: on the road the strip shows
+  just the route and the progress, since the windshield line above carries the news.
 
 1. **The windshield line shows only when something is happening.** Nothing at the bottom of the windshield while
    cruising. Show it only:
@@ -292,7 +333,7 @@ windshield items replace #12's e3 rule. The user's decisions on 16 October:
    changes how the dial reads everywhere. Since `errorIntensity` may feed other things (grep it), add a separate value
    for the dial rather than change the engine's. Proposed; confirm.
 
-## Controls map (the user's request, 15–16 October): built, PR #14
+## Controls map (the user's request, 15–16 October): merged, PR #14
 
 Done. The page is `docs/site/controls-map.html`, published to share (privately, until the user shares it) at
 https://claude.ai/artifact/UXJK2Ed8zA9G8CDKv3E8J4.
@@ -302,6 +343,10 @@ https://claude.ai/artifact/UXJK2Ed8zA9G8CDKv3E8J4.
   the page without its wrapper; republish that file to the same artifact URL.
 - The data is in `tools/controls-map/states.mjs`; `--only <ids>` re-takes just those pictures.
 - A photo-car version is still to come, after the renderer.
+- Tooling to-do: a full run re-takes every picture, and the scene is animated, so all 13 PNGs change each time (about
+  2.7 MB of churn). Let `--only` rewrite the page from a saved list of each picture's numbered controls (e.g.
+  `docs/site/images/controls/map.json`), so a change to one screen re-takes one picture.
+- The shared page was republished on 16 October with the trimmed strip (version 2).
 
 The request, as it was specified:
 
@@ -333,14 +378,25 @@ probably went to the phone's cloud session; this is the full version.
 
 ## Decisions of 16 October
 
-The user answered every question put on 16 October:
-- #12: merge it, and do round 2 on a new branch (done: merged).
-- The windshield line: see round 2 above.
-- Red zones: always marked, saturating when reached; Activity and Context's low end too; rescale Changes and Issues.
-- Controls map: the shareable page plus PNGs in the repo.
-- Decision B: the hybrid.
-- Commit `handoff.txt`: done.
-- Decision A: to confirm (see above). Asked again on 16 October; no answer yet.
+- #12, #13 and #14 merged at the user's word; #15 waits for it.
+- The windshield line: news only, one line; at a stop, the place. A checkpoint shows only if the car stops there. Towns
+  show as the car nears and leaves them.
+- Red zones: always marked, saturating at 75%, on Activity, Agents & Tools, Changes (rescaled so 20 files sit at 75%)
+  and Issues (more than three issues). Context turns red under 25% left.
+- Tour mode's strip trimmed like the windshield (#15).
+- The guiding rule: as few distractions as possible (see the top of this file).
+- The Controls Map: a shareable page, plus PNGs in the repo.
+- Decision A: staged, as recommended. Decision B: the hybrid.
+- `handoff.txt` is committed, so the phone session can read it.
+
+## Questions open
+
+1. **The strip's status lights in Tour mode** (Verifying, ⚠, N errors, N agents working, the gear). By the guiding rule
+   they are distractions while the car just drives. Anything that needs the user stops the car and lights the bell
+   anyway, and a failing build pulls over. Suggested: drop them in Tour mode, keeping the route and the progress. Ask
+   before changing; the user hasn't decided.
+2. **Merging #15:** ask, unless the user has said.
+3. **Renderer milestone 1:** start now, alongside the footage review, or after it? Plan it with the user first.
 
 ## Other open items
 
