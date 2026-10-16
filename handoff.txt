@@ -18,9 +18,10 @@ Older history: handoff-history-13oct-prompt.txt and handoff-history-13oct.txt, b
 ## Your job in this session
 
 Take the user's list for step 1 and work through it. The footage edits from their fx-20 review haven't been sent yet.
-The dashboard edits e1–e5 (sent 15 October) are done: e1–e4 are in PR #12, and e5 needed nothing (see below). The
-dashboard edits of round 2 (sent 16 October: the windshield line, red zones on three gauges) are to do. Also to do: the
-controls map. Still open: decisions A (how to build the renderer) and B (where the instruments go on the photo car).
+The dashboard edits e1–e5 (sent 15 October) are done: e1–e4 are in PR #12, merged, and e5 needed nothing (see below).
+Dashboard round 2 (the windshield line, red zones) is built in PR #13, and the controls map in PR #14, stacked on it;
+both wait for the user to merge. Decision B is the hybrid. Still open: decision A (how to build the renderer); see
+there.
 The user is weighing the options set out below. Read this file first. Then read `.claude/skills/journey-footage/SKILL.md`
 and the `prompts.md` beside it, then these sections of the standard (`docs/journey-video-standard.md`): The cockpit layer,
 How much to make, Review checklist. Load the skill (`journey-footage`). Check the branch and both budgets. Show the user
@@ -110,8 +111,10 @@ on its top-right corner, on the glass (see e2 below). On the photo car it sits i
 - Everything is on GitHub. PRs #1–#11 are merged; #11 (the car radio, from `feat/radio`) merged on 15 October with CI
   green, and main is `b7c96a2`.
 - **PR #12 merged on 16 October** (`feat/dash-polish`, the dashboard edits e1–e4); main is `0f41510`.
-- Dashboard round 2 is being built on `feat/dash-round2`, in the `../vibetour-context` worktree, with the controls map
-  after it. Check `gh pr list` for their PRs.
+- **PR #13 is open** (`feat/dash-round2`, CI green): dashboard round 2. **PR #14 is open** (`feat/controls-map`),
+  stacked on #13 with its base set to `feat/dash-round2`: after #13 merges, switch #14's base to `main`
+  (`gh pr edit 14 --base main`). Both were made in the `../vibetour-context` worktree, which is on `feat/controls-map`.
+  The user hasn't said whether to merge them; ask.
 - `handoff.txt` is committed on `footage/carmel-coast-final` from 16 October, at the user's request, so the phone
   session can read it. The repo is public, so keep secrets and account balances out of it.
 - This checkout is on `footage/carmel-coast-final`. The cloud session made it from main after #9, and on 15 October it
@@ -218,7 +221,7 @@ From `docs/sample-videos/review/36-radio-merged-dashboard-alerts.png`, the 3D da
   Suggested: (1) for Markdown and text files, in the VS Code panel only, on click only, off in Streaming Mode; code
   files keep opening in VS Code.
 
-## Dashboard edits, round 2 (the user's list, 16 October)
+## Dashboard edits, round 2 (the user's list, 16 October): built, PR #13
 
 Seen in `37-dash-polish-alerts-12-files.png`. App work, on `feat/dash-round2` from main (after #12 merged). The
 windshield items replace #12's e3 rule. The user's decisions on 16 October:
@@ -230,6 +233,22 @@ windshield items replace #12's e3 rule. The user's decisions on 16 October:
   red).
 - **Rescale** Changes (20 files at 75%) and Issues (a score of 4 at 75%).
 - **Context** gets a red zone at the low end: under 25% left. Journey doesn't.
+
+**What PR #13 does** (screenshots `41-` … `44-round2-*.png` in `docs/sample-videos/review/`):
+- The snapshot carries the line as `motion.windshield`, from `VibeTourSession.windshield()` and `JourneyEngine.passing()`.
+  Towns show over the last 2.5% of the trip before them and the first 1.2% after. Stops show the place, without its
+  article ("Carmel Highlands gas station"). Pulled over or parked shows where the car stands ("Near Garrapata").
+- An old rule hid the line while stopped; it's gone, so the place shows at the bottom while the stop card sits at the
+  top.
+- The screen reader, the status bar, the tour strip and the Work panel keep the full caption.
+- Red zones:
+  - `Gauge` takes `zone: 'high' | 'low'`. A faint redline band is painted on the scale, and a second, saturated arc
+    fills the zone.
+  - `zoneSplit()` in `gauges.ts`; `changesDial()` and `issuesDial()` in `cockpit.ts`. Issues is rescaled from
+    `errorIntensity` without touching the engine.
+- Also: the Nav tab no longer says "Leaving Monterey · Leaving Monterey".
+- **Open question for the user:** Tour mode's strip still shows the full caption ("Leaving Monterey · Steady
+  autopilot cruise — agent at work"), since Tour mode hides the dials. Keep it, or trim it like the windshield?
 
 1. **The windshield line shows only when something is happening.** Nothing at the bottom of the windshield while
    cruising. Show it only:
@@ -273,7 +292,18 @@ windshield items replace #12's e3 rule. The user's decisions on 16 October:
    changes how the dial reads everywhere. Since `errorIntensity` may feed other things (grep it), add a separate value
    for the dial rather than change the engine's. Proposed; confirm.
 
-## Controls map (the user's request, 15–16 October)
+## Controls map (the user's request, 15–16 October): built, PR #14
+
+Done. The page is `docs/site/controls-map.html`, published to share (privately, until the user shares it) at
+https://claude.ai/artifact/UXJK2Ed8zA9G8CDKv3E8J4.
+- It has 13 pictures, in `docs/site/images/controls/`, 2.7 MB: dashboard, stopped, Nav, Radio FM playing, FM nearby,
+  FM search, Radio CB, PRs, Trip, Console, Alerts, Tour, Work.
+- `npm run controls-map` re-makes it. Put `--fragment <file>` after `node tools/controls-map/capture.mjs` to also write
+  the page without its wrapper; republish that file to the same artifact URL.
+- The data is in `tools/controls-map/states.mjs`; `--only <ids>` re-takes just those pictures.
+- A photo-car version is still to come, after the renderer.
+
+The request, as it was specified:
 
 The user wants a visual map of every control: each element numbered on a picture, with a key below giving its input
 source (what feeds it) and its click behaviour (what it opens or reveals, and its key, if any). The first request
@@ -310,7 +340,7 @@ The user answered every question put on 16 October:
 - Controls map: the shareable page plus PNGs in the repo.
 - Decision B: the hybrid.
 - Commit `handoff.txt`: done.
-- Decision A: to confirm (see above).
+- Decision A: to confirm (see above). Asked again on 16 October; no answer yet.
 
 ## Other open items
 
