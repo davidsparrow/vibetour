@@ -8,7 +8,7 @@ const NONE = 'Nothing to press.';
 
 /** The top bar, the same in Dash and Tour mode. */
 const TOP_BAR = [
-  { sel: '.topbar .modes', name: 'Display mode', fed: 'Your choice. Each screen remembers its own.', click: '*Tour*: the view, with a strip of the trip. *Dash*: this dashboard. *Work*: your work panels; in VS Code it takes you back to the editor. Keys `T` `D` `W`.' },
+  { sel: '.topbar .modes', name: 'Display mode', fed: 'Your choice. Each screen remembers its own.', click: '*Tour*: the view, with nothing in front of it. *Dash*: this dashboard. *Work*: your work panels; in VS Code it takes you back to the editor. Keys `T` `D` `W`.' },
   { sel: '.top-btn[aria-label="Destinations"]', name: 'Destinations', fed: 'The journey packs.', click: 'Opens the destination board, to pick or change a journey. Key `G`.' },
   { sel: '.top-btn[aria-label="Passport"]', name: 'Passport', fed: 'Your trips, stamps and travel memories.', click: 'Opens your Passport. Key `P`.' },
   { sel: '.top-btn[aria-label="Capture my workplace"]', name: 'Capture my workplace', fed: 'The view and the dashboard as they are now.', click: 'Saves a picture, with private details left out. Key `C`.' },
