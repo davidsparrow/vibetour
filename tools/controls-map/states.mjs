@@ -288,7 +288,7 @@ export const STATES = [
     short: 'Tour mode',
     group: 'mode',
     title: 'Tour mode',
-    intro: 'The view, with the trip on a strip along the bottom. The top bar shows when you move the mouse and fades after a few seconds. Press `T`.',
+    intro: 'The view, with as little in front of it as possible: the route and your progress on a strip along the bottom, and a windshield line only when there is news. The top bar shows when you move the mouse and fades after a few seconds. Press `T`.',
     async setup(page) {
       await depart(page);
       await demo(page, 'Agent edits');
@@ -300,8 +300,7 @@ export const STATES = [
       { sel: '.topbar', name: 'Top bar', fed: 'The same buttons as on the dashboard.', click: 'See *The dashboard*, 1–6.' },
       BELL,
       WINDSHIELD,
-      { sel: '.strip-title', name: 'Route', fed: 'Where from and where to.', click: NONE },
-      { sel: '.strip-loc', name: 'Where you are', fed: 'The place, and what the car is doing.', click: NONE },
+      { sel: '.strip-title', name: 'Route', fed: 'Where from and where to. No caption under it on the road: the windshield line above has the news.', click: NONE },
       { sel: '.strip-track', name: 'Progress', fed: 'How far along the route, with a tick at each town.', click: NONE },
       { sel: '.strip-lights', name: 'Status', fed: 'Verifying, ⚠ check engine, the number of errors and of agents working, and the gear.', click: NONE },
     ],

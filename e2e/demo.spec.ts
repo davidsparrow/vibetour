@@ -41,6 +41,9 @@ test('switches between Tour, Dashboard and Work modes from the keyboard', async 
   await page.keyboard.press('t');
   await expect(root).toHaveClass(/mode-tour/);
   await expect(page.locator('.tour-strip')).toBeVisible();
+  // On the road the strip shows the route and the progress, no caption: the windshield line has the news.
+  await expect(page.locator('.strip-title')).toHaveText('Monterey → Big Sur');
+  await expect(page.locator('.strip-loc')).toBeHidden();
   await page.keyboard.press('w');
   await expect(root).toHaveClass(/mode-work/);
   await expect(page.locator('.work-panel h3', { hasText: 'Problems' })).toBeVisible();

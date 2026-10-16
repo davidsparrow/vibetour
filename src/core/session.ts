@@ -546,7 +546,7 @@ export class VibeTourSession {
    * you and your agents are. It names the place when that is the news: a stop, the
    * shoulder or a parked car (the stop card says why), a tunnel, a town on the route,
    * the departure and the arrival. The
-   * full caption still goes to the screen reader, the status bar and the tour strip.
+   * full caption still goes to the screen reader, the status bar and the Work panel.
    */
   private windshield(motion: MotionReading, stopName?: string): string {
     const j = this.journey;
