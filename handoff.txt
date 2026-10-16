@@ -349,6 +349,10 @@ From the Controls Map. Review images: `docs/sample-videos/review/45-round3-dash-
 - **Side mirrors**: no crew list any more (the Agents dial and CB have it).
 - **Windshield**: empty unless stopped in a town or at a landmark on the route (`JourneyEngine.town()`, ±2.5% of the
   trip), or arrived. Nothing while moving, nothing while refuelling. Tour mode: no strip at all.
+- Follow-up on the same PR (the user's review of 47/48): in Tour mode the dashboard comes up while the car is stopped
+  (class `car-stopped` on the cockpit) and goes when it drives on; the stop pill is centred top to bottom in the
+  window; on a phone the three dials sit in one centred row, the four gauges centred under them, then the gear.
+  Images 49-round3b-tour-stopped.png, 50-round3b-phone.png. Map republished (version 4).
 - Found on the way: scenic stops' names are picked at random from the pack's list, not by position (the demo stopped
   at 1% near Monterey as "Cliffside café in Big Sur"). The windshield now uses the route's waypoints instead; the
   caption and the refuel pill still use the stop name. Follow-up to offer: give each scenic stop an `at` on the route.
