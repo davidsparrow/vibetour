@@ -218,27 +218,31 @@ body {
   pointer-events: none;
 }
 
-/* The Alerts bell, on the mirror's top-right corner. */
+/* The Alerts bell, on the mirror's glass in its top-right corner, like a reading shown in a real mirror. */
 .alert-bell {
   position: absolute;
-  top: -10px;
-  right: -14px;
+  top: 8px;
+  right: 20px;
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
+  width: 28px;
+  height: 28px;
   padding: 0;
+  border: 0;
   border-radius: 50%;
-  color: var(--ink-faint);
-  background: rgba(11, 13, 19, 0.86);
-  border: 1px solid var(--line);
-  backdrop-filter: blur(12px);
+  color: rgba(232, 240, 250, 0.55);
+  background: none;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
   cursor: pointer;
   transition:
     color 0.3s,
-    box-shadow 0.3s;
+    filter 0.3s;
 }
-.alert-bell .icon,
+.alert-bell .icon {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
 .tab-alerts .icon {
   display: block;
   width: 20px;
@@ -257,18 +261,14 @@ body {
 .alert-bell:is(.lit-blocking, .lit-moderate, .lit-general) {
   color: rgb(var(--lit));
   border-color: rgba(var(--lit), 0.7);
-  box-shadow:
-    0 0 18px rgba(var(--lit), 0.45),
-    inset 0 0 10px rgba(var(--lit), 0.18);
+  filter: drop-shadow(0 0 4px rgba(var(--lit), 0.9)) drop-shadow(0 0 10px rgba(var(--lit), 0.5));
 }
 .alert-bell.lit-blocking {
   animation: bell-pulse 1.6s ease-in-out infinite;
 }
 @keyframes bell-pulse {
   50% {
-    box-shadow:
-      0 0 26px rgba(var(--lit), 0.7),
-      inset 0 0 12px rgba(var(--lit), 0.3);
+    filter: drop-shadow(0 0 6px rgba(var(--lit), 1)) drop-shadow(0 0 16px rgba(var(--lit), 0.75));
   }
 }
 .alert-bell:focus-visible {
@@ -903,9 +903,11 @@ button.alert:focus-visible {
   color: var(--cyan);
   box-shadow: inset 0 -2px 0 var(--cyan);
 }
-/* Alerts is a bell, not a word: a narrow tab at the far right, lit like the top bell. */
+/* Alerts is a bell, not a word: a narrow tab at the far right, lit like the top bell, the bell in its middle. */
 .tab.tab-alerts {
   flex: 0 0 46px;
+  display: grid;
+  place-items: center;
 }
 .tab-alerts:is(.lit-blocking, .lit-moderate, .lit-general) {
   color: rgb(var(--lit));
@@ -918,10 +920,15 @@ button.alert:focus-visible {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
 }
-@media (max-width: 520px) {
-  .alerts-pane {
-    grid-template-columns: 1fr;
-  }
+.pane.pane-alerts.active {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.pane-alerts .alerts-pane {
+  flex: 1;
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr);
 }
 .alerts-list,
 .alerts-files {
@@ -930,6 +937,32 @@ button.alert:focus-visible {
   align-items: flex-start;
   gap: 6px;
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.alerts-list > *,
+.alerts-files > * {
+  flex-shrink: 0;
+}
+.alerts-list.more-below,
+.alerts-files.more-below {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+}
+/* One column on a phone: the pane scrolls as a whole. */
+@media (max-width: 520px) {
+  .alerts-pane {
+    grid-template-columns: 1fr;
+  }
+  .pane.pane-alerts.active {
+    display: block;
+    overflow: auto;
+  }
+  .alerts-list,
+  .alerts-files {
+    overflow: visible;
+  }
 }
 .alerts-pane h4 {
   margin: 4px 0 0;
@@ -2678,6 +2711,16 @@ button.problem:hover {
   .mode-tour .mirror-wrap .mirror {
     display: none;
   }
+  /* Without the mirror the bell stands alone, on its own dark disc. */
+  .mode-tour .alert-bell {
+    top: -10px;
+    right: -14px;
+    width: 38px;
+    height: 38px;
+    background: rgba(11, 13, 19, 0.86);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(12px);
+  }
 }
 
 @media (max-width: 860px) {
@@ -2776,6 +2819,11 @@ button.problem:hover {
   }
   .alert-bell {
     position: static;
+    width: 38px;
+    height: 38px;
+    background: rgba(11, 13, 19, 0.86);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(12px);
   }
   .pane-nav.active {
     grid-template-columns: 1fr;

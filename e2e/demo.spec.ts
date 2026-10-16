@@ -27,7 +27,9 @@ test('opens on "Where do you want to go today?" with every destination', async (
 test('departs on a journey and renders the drive', async ({ page }) => {
   await page.goto('/?fresh&autopilot=0');
   await bookFirstJourney(page);
-  await expect(page.locator('.hud-location')).toHaveText(/Monterey/);
+  // "Leaving Monterey" would repeat the caption, so the location line steps aside.
+  await expect(page.locator('.hud-caption')).toHaveText('Departing Monterey');
+  await expect(page.locator('.hud-location')).toBeHidden();
   await expect(page.locator('.nav-objective')).toContainText('Onboarding flow');
   await expect.poll(() => page.evaluate(() => (window as any).vibetour.renderer.renderer.info.render.frame), { timeout: 20_000 }).toBeGreaterThan(3);
   await expect(page.locator('.nav-route')).toContainText('California Coast');
@@ -99,6 +101,36 @@ test('the Changes gauge counts uncommitted files and opens Source Control', asyn
   await page.getByLabel(/Changes gauge/).uncheck();
   await page.getByRole('button', { name: 'Done' }).click();
   await expect(gauge).toBeHidden();
+});
+
+test('the Alerts bell sits on the mirror glass and in the middle of its tab, and a long file list scrolls', async ({ page }) => {
+  await page.goto('/?fresh&autopilot=0');
+  await bookFirstJourney(page);
+  await page.keyboard.press('d');
+  await expect(page.locator('.vt')).toHaveClass(/mode-dashboard/);
+  // The top bell is on the mirror's glass, inside its top-right corner.
+  const glass = await page.locator('.mirror-glass').boundingBox();
+  const bell = await page.locator('.mirror-wrap .alert-bell').boundingBox();
+  expect(bell!.x).toBeGreaterThan(glass!.x + glass!.width / 2);
+  expect(bell!.x + bell!.width).toBeLessThanOrEqual(glass!.x + glass!.width);
+  expect(bell!.y).toBeGreaterThanOrEqual(glass!.y);
+  expect(bell!.y + bell!.height).toBeLessThanOrEqual(glass!.y + glass!.height);
+  // The tab's bell is centred in its tab.
+  const tab = await page.locator('.tab-alerts').boundingBox();
+  const icon = await page.locator('.tab-alerts .icon').boundingBox();
+  expect(Math.abs(icon!.x + icon!.width / 2 - (tab!.x + tab!.width / 2))).toBeLessThan(1.5);
+  // Twelve changed files: the Files column scrolls on its own and fades while more is below.
+  await page.locator('.demo-panel summary').click();
+  for (let i = 0; i < 12; i++) await page.getByRole('button', { name: 'Agent edits' }).click();
+  await page.locator('.demo-panel summary').click();
+  await page.locator('.tab-alerts').click();
+  const files = page.locator('.alerts-files');
+  await expect(files).toContainText('Changed · 12');
+  await expect(files.locator('.file-pill:not(.file-active)')).toHaveCount(12);
+  await expect(files).toHaveClass(/more-below/);
+  await files.evaluate((el) => el.scrollTo(0, el.scrollHeight));
+  await expect(files).not.toHaveClass(/more-below/);
+  await expect(page.locator('.alerts-list')).not.toHaveClass(/more-below/);
 });
 
 test('the PRs tab lists open pull requests, lights the ones on this branch and raises an alert', async ({ page }) => {

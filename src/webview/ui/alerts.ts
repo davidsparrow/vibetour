@@ -1,7 +1,7 @@
 import { loudest, severityOf, type AlertKind, type AlertSeverity, type Attention } from '../../core/attention';
 import type { ClientPrefs, HostInfo, TourSnapshot } from '../../core/protocol';
 import type { AppContext } from './context';
-import { h, renderKeyed } from './dom';
+import { h, renderKeyed, toggle } from './dom';
 import { bellIcon, pullRequestIcon } from './icons';
 
 /** What each switch in Settings › Alerts covers. */
@@ -68,6 +68,11 @@ export function lightBell(el: HTMLElement, level: AlertSeverity | undefined, cou
   el.title = 'Alerts';
 }
 
+/** Fades a column's bottom edge while more of it is below, out of sight. */
+function moreBelow(col: HTMLElement): void {
+  toggle(col, 'more-below', col.scrollHeight - col.scrollTop - col.clientHeight > 2);
+}
+
 /**
  * The Alerts tab: everything that needs you on the left, the file you're in
  * and the files changed on the right.
@@ -79,6 +84,7 @@ export class AlertsPane {
 
   constructor(private readonly ctx: AppContext) {
     this.el.append(this.list, this.files);
+    for (const col of [this.list, this.files]) col.addEventListener('scroll', () => moreBelow(col), { passive: true });
   }
 
   update(snap: TourSnapshot): void {
@@ -110,6 +116,8 @@ export class AlertsPane {
       for (const path of files) wrap.append(this.filePill(path, path.split('/').pop() ?? path, openable));
       if (files.length) this.files.append(wrap);
     });
+    moreBelow(this.list);
+    moreBelow(this.files);
   }
 
   private filePill(path: string, name: string, openable: boolean, extra = ''): HTMLElement {

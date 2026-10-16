@@ -57,6 +57,12 @@ const FILES = [
   'src/components/Button.tsx',
   'src/hooks/useProfile.ts',
   'tests/onboarding.test.ts',
+  'src/onboarding/WelcomeScreen.tsx',
+  'src/onboarding/ProfileStep.tsx',
+  'src/api/profile.ts',
+  'src/styles/onboarding.css',
+  'src/i18n/en.json',
+  'tests/profile.test.ts',
 ];
 
 interface Phase {
