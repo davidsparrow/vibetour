@@ -33,15 +33,21 @@ State on 16 October, evening:
   - the dashboard edits e1–e4 (#12);
   - dashboard round 2: the windshield line and red zones (#13);
   - the Controls Map (#14).
-- **Open:** PR #16 (`feat/dash-round3`), dashboard round 3 (below). It is built on #15 (`feat/tour-strip-trim`), so
-  merging #16 merges #15 too; #16 removes the strip entirely, which settles the strip-lights question. Both wait for
-  the user's OK to merge.
+- **Merged 16 October:** #16 (dashboard round 3) and #15 with it.
+- **Open:** PR #17 (`feat/stops-on-route`): California's scenic stops placed on the route (`at`), a stop named only
+  where the car really stops (else "a turnout"), stop diamonds on the Nav map, the windshield line removed for good,
+  and the Controls Map shot over a 2K footage still (`tools/controls-map/backdrop.jpg`; whole views JPEG, 3.4 MB).
+  Merge when the user says so.
 - **Decided:**
   - decision A, the renderer, staged (below);
   - decision B, the hybrid photo car.
 
 What to do next, in order. Ask the user which to start if they haven't said.
-1. **PRs #16 and #15**: merge #16 when the user says so (it carries #15). Then take round 3's follow-ups (below).
+1. **PR #17**: merge when the user says so.
+2. **Signs in the California footage** (the user's choice, 16 October; see "Signs and stops" below). Start when the
+   user says go; it spends (estimate 2–4 US dollars, under the 5-dollar batch rule).
+3. **Photo car** decisions of 16 October are below ("Photo car, refined"). The user wants to see the slide-up panel
+   running once before signing off.
 2. **Step 1, footage:** the user's fx-20 review list hasn't come yet. When it does, work through it on
    `footage/carmel-coast-final`.
 3. **Renderer milestone 1 (decision A)** is the long pole for step 2, the IDE test. It's app work, so it can run
@@ -334,7 +340,47 @@ windshield items replace #12's e3 rule. The user's decisions on 16 October:
    changes how the dial reads everywhere. Since `errorIntensity` may feed other things (grep it), add a separate value
    for the dial rather than change the engine's. Proposed; confirm.
 
-## Dashboard round 3 (the user's list, 16 October): PR #16, open
+## Signs and stops (the user's answers, 16 October)
+
+- The user does not like the low-poly 3D world ("that 3D fake world"); the Controls Map now shows a footage still
+  behind the dashboard. They thought the 3D scene was a static picture: explain the two worlds plainly if it comes up
+  (3D = what VS Code draws live today; footage = the release, needs renderer milestone 1).
+- When an agent needs you, the car stops at once; a stop is named only where the pack places one (PR #17).
+- No windshield line at all; names live on signs outside and on the Nav screen.
+- Signs go in the **footage**, California first, made like the distance sign (paste on the still with
+  `sign.py paste`, let the model drive up, `sign.py fix` repaints the face; extend sign.py for new kinds):
+  - keep the green distance signs on two wooden posts ("Big Sur 19 / San Simeon 85": true distances, facing south);
+  - town signs at each town or landmark on the route;
+  - scenic-stop signs: an advance sign (Vista Point / Bixby Creek Overlook, 1 mi) and the stop's own sign;
+  - blue services signs ("Gas · Food · Lodging", next exit) where they're real (the Monterey/Carmel freeway part);
+  - a gas price board at the gas stop;
+  - billboards **only where real ones stand** (around Monterey at the start); the Big Sur coast bans them. Fictional
+    local businesses only (accident lawyer, plumber, radio station, fast food), a "Welcome to …" tourism ad, and
+    road-safety messages ("Don't drink and drive", "Speeding kills"). No real names, brands or phone numbers.
+  - The user's references: `docs/sample-videos/sample-road-signs/new-*` (billboards, gas prices, next-exit services,
+    rest area) beside the older ones.
+- Every name must agree: signs, the Nav map's stop diamonds, the stop pill and caption, and later the Director's choice
+  of stop set (gas station vs Bixby overlook) by position.
+- Open: the refuel stop is named "a Carmel Highlands gas station" while the car is at Big Sur/Monterey; give Big Sur a
+  gas stop or name the refuel by position too. Pfeiffer Beach sits just past Big Sur village (placed at 0.98).
+
+## Photo car, refined (the user's answers on 56/57, 16 October)
+
+Mocks: `docs/sample-videos/review/58-photo-car-mock-driving.png` and `59-photo-car-mock-panel.png` (scripts and parts in
+`docs/sample-videos/photo-car-mock/`, gitignored).
+1. Rear-view mirror: the Alerts bell on its glass, top right. Yes.
+2. The car's own speedometer and rev counter keep showing the car. Yes.
+3. Cluster display: the **Context** reading, and the **Alerts bell only when lit**. Journey and Issues are not there.
+4. Centre screen: the radio face plus the console tabs (Nav, Radio, PRs, Trip, Console, Alerts), and the **glovebox
+   handle under the screen**.
+5. Slide-up panel (Activity, Agents, Tools, Journey, Changes, Issues, gear): keep it to the right part of the screen,
+   right of the cluster, unless it truly needs more; the user must see it running once before signing off.
+6. Cluster lamps: no blue dots. Proposed (mocked in 58): the bell (when lit) plus only the warm lamps that say
+   something the bell doesn't: check engine (amber: a failing test, build or lint) and warnings (yellow: errors in
+   Problems). Hazard is dropped because the red bell says the car pulled over. Awaiting the user's OK. Add the lamps to
+   the photo-car Controls Map when it's made.
+
+## Dashboard round 3 (the user's list, 16 October): PR #16, merged
 
 From the Controls Map. Review images: `docs/sample-videos/review/45-round3-dash-moving.png`, `46-round3-stopped.png`,
 `47-round3-tour-stopped.png`, `48-round3-phone.png`. The shared map was republished (version 3).
