@@ -2,7 +2,7 @@ import type { PullRequestRef } from '../core/events';
 
 /**
  * The repository's open pull requests from GitHub's GraphQL API: number,
- * title, branches, author, CI, review and merge state, and how far each
+ * title, branches, author, CI, the latest deployment, review and merge state, and how far each
  * branch is ahead of and behind its base. Metadata only: no diffs, no
  * comments. Shared by the VS Code extension and the standalone CLI, which
  * each bring their own sign-in.
@@ -58,7 +58,7 @@ export const LIST_QUERY = `query VibeTourPullRequests($owner: String!, $name: St
         baseRefName
         isCrossRepository
         author { login }
-        commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
+        commits(last: 1) { nodes { commit { statusCheckRollup { state } deployments(last: 1) { nodes { environment latestStatus { state } } } } } }
       }
     }
   }
@@ -119,6 +119,20 @@ function ciOf(state: unknown): PullRequestRef['ci'] {
   }
 }
 
+/** A deployment's latest status, as the dashboard reads it. No status yet counts as pending. */
+function deployOf(state: unknown): PullRequestRef['deploy'] {
+  switch (state) {
+    case 'SUCCESS':
+    case 'INACTIVE':
+      return 'ok';
+    case 'FAILURE':
+    case 'ERROR':
+      return 'failing';
+    default:
+      return 'pending';
+  }
+}
+
 function reviewOf(decision: unknown): PullRequestRef['review'] {
   if (decision === 'APPROVED') return 'approved';
   if (decision === 'CHANGES_REQUESTED') return 'changes-requested';
@@ -139,6 +153,8 @@ export function parsePullRequests(data: unknown): { viewer?: string; items: Pull
     if (!Number.isInteger(number) || !url?.startsWith('https://github.com/') || !Number.isFinite(createdAt)) continue;
     const commitNodes = obj(n.commits).nodes;
     const head = Array.isArray(commitNodes) ? obj(commitNodes[0]) : {};
+    const deployNodes = obj(obj(obj(head).commit).deployments).nodes;
+    const deployment = Array.isArray(deployNodes) && deployNodes.length ? obj(deployNodes[0]) : undefined;
     items.push({
       number: number as number,
       title: (str(n.title) ?? '').slice(0, 200),
@@ -150,6 +166,7 @@ export function parsePullRequests(data: unknown): { viewer?: string; items: Pull
       createdAt,
       crossRepo: n.isCrossRepository === true,
       ci: ciOf(obj(obj(obj(head).commit).statusCheckRollup).state),
+      ...(deployment ? { deploy: deployOf(obj(deployment.latestStatus).state), deployEnv: str(deployment.environment)?.slice(0, 60) } : {}),
       review: reviewOf(n.reviewDecision),
       conflict: n.mergeable === 'CONFLICTING',
     });

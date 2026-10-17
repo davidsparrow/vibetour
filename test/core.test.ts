@@ -64,6 +64,19 @@ describe('ActivityEngine', () => {
     expect(engine.evaluate(65_000).toolCalls).toBe(0);
   });
 
+  it('lights check engine for the branch\'s failing CI or failed deployment on GitHub', () => {
+    const { engine, feed } = setup();
+    const pr = (over: object) => ({ number: 17, title: 'Stops', url: 'https://github.com/o/r/pull/17', branch: 'feat/stops', base: 'main', draft: false, createdAt: 0, crossRepo: false, ci: 'passing' as const, review: 'none' as const, conflict: false, ...over });
+    feed({ type: 'git', branch: 'feat/stops', changes: 0, staged: 0, ahead: 0, behind: 0, at: 1_000 });
+    feed({ type: 'github.prs', state: 'ok', repo: 'o/r', items: [pr({ ci: 'failing' })], at: 2_000 });
+    expect(engine.evaluate(3_000).checkEngine).toEqual({ on: true, reason: 'CI failing on #17' });
+    feed({ type: 'github.prs', state: 'ok', repo: 'o/r', items: [pr({ deploy: 'failing', deployEnv: 'Preview' })], at: 4_000 });
+    expect(engine.evaluate(5_000).checkEngine).toEqual({ on: true, reason: 'Deployment failed on #17 (Preview)' });
+    // Another branch's PR is not this car's engine.
+    feed({ type: 'github.prs', state: 'ok', repo: 'o/r', items: [pr({ branch: 'feat/other', ci: 'failing' })], at: 6_000 });
+    expect(engine.evaluate(7_000).checkEngine).toEqual({ on: false, reason: undefined });
+  });
+
   it('shows WARNING over thinking when there are errors', () => {
     const { engine, feed } = setup();
     feed({ type: 'editor.edit', file: fileRef('a.ts'), origin: 'user', magnitude: 5, at: 1_000 });
