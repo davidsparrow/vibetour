@@ -380,6 +380,21 @@ Mocks: `docs/sample-videos/review/58-photo-car-mock-driving.png` and `59-photo-c
    Problems). Hazard is dropped because the red bell says the car pulled over. Awaiting the user's OK. Add the lamps to
    the photo-car Controls Map when it's made.
 
+Round 2 (the user's tweaks, 16 October; mocks 60–63 in `docs/sample-videos/review/`, script `mock2.mjs`):
+- Cluster display: lamps grouped in a top band, room for four (bell when lit, check engine, warnings); below it the
+  Context dial on the left and a **mini gear selector** (P R N D) on the right, its bottom edge level with the dial's;
+  labels CONTEXT and BUILD / EDIT on one line each (never wrap). The gear leaves the panel.
+- Check engine also lights for failing GitHub CI and failed deployments on the branch's PR (built in PR #17).
+- The dial panel (Activity, Agents, Tools, Journey, Changes, Issues) is a **HUD on the windshield**, glass like the
+  stop pill, centred in the window; a stop pill rises above it while both show. The solid black slide-up panel was
+  "too stark" and is dropped. (b2, the alternative: widen the centre screen over the vent and show the dials inside
+  it.)
+- The solid lower-right panel style is fine for the **glovebox opening**, at about 60% of that height: it lists the
+  project docs (click one to open it in VS Code).
+- Closing any panel: the grab bar at the top centre (a button) and a white "X  Esc" at the top left; Esc closes. No
+  "Esc or click outside" hint.
+- Still to sign off: the user wants to see it running once.
+
 ## Dashboard round 3 (the user's list, 16 October): PR #16, merged
 
 From the Controls Map. Review images: `docs/sample-videos/review/45-round3-dash-moving.png`, `46-round3-stopped.png`,
