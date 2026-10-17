@@ -1,6 +1,6 @@
-# VibeTour: continuation prompt — California Coast: the last low-res sprint, the IDE test, then hi-res
+# VibeTour: continuation prompt — California Coast: signs in the footage (step 1), then the IDE test and hi-res
 
-Updated 16 October 2026 (round 3, PR #16). Committed to the repo from 16 October (the repo is public: no secrets or balances here).
+Updated 17 October 2026 (after PR #17; next thread: the footage signs). Committed to the repo from 16 October (the repo is public: no secrets or balances here).
 Replaces the 14 October prompt, which is kept as docs/sample-videos/handoff-history-14oct-prompt.txt (gitignored). That file holds the full notes of the four 14 October
 footage sittings: grand tourer, seated height, cut stops, dials, radio screen, mirrors, gas pull-off, sign, mist, costs.
 Older history: handoff-history-13oct-prompt.txt and handoff-history-13oct.txt, beside it.
@@ -22,49 +22,81 @@ is required, or when a work chunk or phase has finished and the car is paused, w
 session or a new thread."
 
 Apply it to every screen and every car: the 3D dashboard, the photo car of decision B, Tour mode above all. Nothing
-on the windshield or the strip while the car just drives. Speak up when input is needed (the car stops, the stop card
+on the windshield while the car just drives. Speak up when input is needed (the car stops, the stop pill
 says why, the bell lights) and when a phase ends (your turn, arrived, refuel). Dials and tabs are there when someone
 looks for them, and don't call for attention.
 
-## Your job in this session
+## Your job in this session: signs in the California footage
 
-State on 16 October, evening:
-- **Done and merged:**
-  - the dashboard edits e1–e4 (#12);
-  - dashboard round 2: the windshield line and red zones (#13);
-  - the Controls Map (#14).
-- **Merged 16 October:** #16 (dashboard round 3) and #15 with it.
-- **Open:** PR #17 (`feat/stops-on-route`): California's scenic stops placed on the route (`at`), a stop named only
-  where the car really stops (else "a turnout"), stop diamonds on the Nav map, the windshield line removed for good,
-  and the Controls Map shot over a 2K footage still (`tools/controls-map/backdrop.jpg`; whole views JPEG, 3.4 MB).
-  Merge when the user says so.
-- **Decided:**
-  - decision A, the renderer, staged (below);
-  - decision B, the hybrid photo car.
+The user asked (17 October) for this to start in a fresh thread. Everything app-side is merged; this thread is
+footage work on `footage/carmel-coast-final`, at preview resolution (step 1 of the release plan).
 
-What to do next, in order. Ask the user which to start if they haven't said.
-1. **PR #17**: merge when the user says so.
-2. **Signs in the California footage** (the user's choice, 16 October; see "Signs and stops" below). Start when the
-   user says go; it spends (estimate 2–4 US dollars, under the 5-dollar batch rule).
-3. **Photo car** decisions of 16 October are below ("Photo car, refined"). The user wants to see the slide-up panel
-   running once before signing off.
-2. **Step 1, footage:** the user's fx-20 review list hasn't come yet. When it does, work through it on
-   `footage/carmel-coast-final`.
-3. **Renderer milestone 1 (decision A)** is the long pole for step 2, the IDE test. It's app work, so it can run
-   alongside the footage review, on its own branch (`feat/video-renderer`). The milestone:
-   - the Video Director;
-   - packs from disk;
-   - the `media` schema and its validator;
-   - the codec check;
-   - baked clips;
-   - the hybrid photo-car dashboard over the video.
+State on 17 October:
+- **Merged:** #12–#17. Main is `c95141d`. `footage/carmel-coast-final` has main merged in (`84c7fe5`), so it has the
+  scenic stops placed on the route, the Cockpit Map (renamed) and the Customization Guide.
+- **Decided:** decision A (renderer staged), decision B (hybrid photo car, refined in four mock rounds, below).
+- **Not started, and not for this thread unless the user asks:** renderer milestone 1 (it builds the photo car).
 
-   Plan it with the user before building. It is the biggest piece of work left.
+### The task
 
-Read this file first. Then read `.claude/skills/journey-footage/SKILL.md`
-and the `prompts.md` beside it, then these sections of the standard (`docs/journey-video-standard.md`): The cockpit layer,
-How much to make, Review checklist. Load the skill (`journey-footage`). Check the branch and both budgets. Show the user
-review images as clickable workspace links (SendUserFile doesn't reach them in VS Code).
+Put real-looking roadside signs and billboards into the California tour's footage, so the world outside holds
+together: every name on a sign must match the pack (`packs/california-coast/manifest.json`: waypoints and the scenic
+stops' `at` positions), the Nav map and the stop pill. The windshield shows no names any more; signs and the Nav do.
+
+What to add (the user's list, 16 October):
+1. **Keep** the green distance sign on two wooden posts (`cliffs-sign`: "Big Sur 19 / San Simeon 85"). Distances true
+   from where each sign stands, facing south, nearest place first.
+2. **Town signs** at each town or landmark the tour passes (e.g. a Carmel-by-the-Sea city-limit sign; Garrapata State
+   Park, Bixby Creek Bridge, Point Sur, Big Sur as Caltrans brown or green signs, as the real road has them).
+3. **Scenic-stop signs:** an advance sign before a stop (e.g. "Vista Point 1/2 mile" before Bixby Creek Overlook) and
+   the stop's own sign where the car pulls in.
+4. **Blue services signs** ("Gas · Food · Lodging", next exit) only where they're real: the Monterey/Carmel freeway
+   part at the start.
+5. **A gas price board** at the gas stop (`gas-side-*`), a fictional brand.
+6. **Billboards only where real ones stand:** around Monterey at the start. The Big Sur coast bans them, and the user
+   wants the real road's look. Fictional local businesses only (an accident lawyer, a plumber, a radio station, a
+   fast-food place), a "Welcome to Monterey County"-style tourism ad, and road-safety messages ("Don't drink and
+   drive", "Speeding kills"). No real names, brands, logos or phone numbers (use 555 numbers).
+- References: `docs/sample-videos/sample-road-signs/` (the user's `new-*` billboards, gas prices, next-exit services and
+  rest-area signs, beside the older Caltrans ones). Read them; don't attach them to prompts.
+
+Where they go, in road order (`build_trip.sh` sequence; check `manifest-media.json` for each clip's place on the
+route before choosing):
+- `departure-low` (Monterey) and `carmel-golf-low`: billboards, blue services signs.
+- `carmel-trees-low` / `carmel-town-low`: the Carmel-by-the-Sea sign.
+- `hillside-homes-low-slow` and the `gas-side-*` set: the gas stop's own sign and price board (the holds stand still,
+  so a pasted board stays put without tracking).
+- `cliffs-3-low`, `cliffs-sign-trim`: Garrapata; the existing distance sign.
+- `bixby-low`, `bixby-approach-low-stop`, `overlook-hold-v3`: the Vista Point advance sign and the overlook's sign.
+- `coast-pointsur-low`: Point Sur. `coast-3-low-stop` / `arrival-hold-v3`: Big Sur.
+
+How (the skill already has the method for the distance sign):
+- Video models garble text that grows as it nears. So: remove any model sign with an edit, **paste ours on the still**
+  (`tools/footage/sign.py paste`), make the clip from that still, then **repaint the face in every frame**
+  (`sign.py fix`, which tracks the sign's four corners). Extend `sign.py` for the new kinds (town, services, price
+  board, billboard faces); billboard faces are our own artwork drawn by the script, never generated text.
+- Place signs about 150 m down the road and small in frame; nothing behind the rear-view mirror or the A-pillar; a sign
+  must be readable for about five seconds.
+- A sign, once placed, never changes text or fades (review checklist). Run `drift.py` on every new clip.
+- Remake only the clips that get a sign. Stay at preview resolution.
+
+Budget: estimate 2–4 US dollars (stills 10 cents at 2K; HeyGen about 18 cents per 12 s; Seedance about 91 cents per
+10 s for holds). Up to 5 US dollars per batch without asking; report costs. Check both OpenRouter limits and the HeyGen
+quota first (see Money). HeyGen's launch price ends with October.
+
+Deliver: rebuild the tour (`build_trip.sh`) as **fx-22** with close-ups of each new sign (`fx-22-*.png`) in
+`docs/sample-videos/review/`, shown as clickable workspace links. Commit and push to `footage/carmel-coast-final` only
+when the user asks.
+
+Read this file first. Then `.claude/skills/journey-footage/SKILL.md` and the `prompts.md` beside it, then these sections
+of the standard (`docs/journey-video-standard.md`): The cockpit layer, How much to make, Review checklist, World detail.
+Load the skill (`journey-footage`). Check the branch and both budgets. The guiding rule below still holds.
+
+### After the signs (ask the user which)
+
+1. The rest of step 1: the known flaws in fx-20 (under "Review for step 1") and which variants ship.
+2. Renderer milestone 1 (decision A): the Video Director, packs from disk, the `media` schema and validator, the codec
+   check, baked clips, and the photo-car dashboard as mocked (rounds 1–4 below). Plan it with the user first.
 
 ## Blocker for step 2: VibeTour can't play video packs yet
 
@@ -151,29 +183,19 @@ The options:
 The user's rule from #10 holds in every option: keep the rear-view mirror, no HUD elements on it, and the Alerts bell
 on its top-right corner, on the glass (see e2 below). On the photo car it sits inside the car's mirror box.
 
-## Branch and PRs (16 October)
+## Branch and PRs (17 October)
 
-- Everything is on GitHub. PRs #1–#11 are merged; #11 (the car radio, from `feat/radio`) merged on 15 October with CI
-  green, and main is `b7c96a2`.
-- On 16 October these merged:
-  - #12 (`feat/dash-polish`, the dashboard edits e1–e4);
-  - #13 (`feat/dash-round2`, dashboard round 2);
-  - #14 (`feat/controls-map`, the Controls Map).
-- Main is `1e616c9`.
-- **PR #15 is open** (`feat/tour-strip-trim`): Tour mode's strip trimmed to the route and the progress. Tests pass
-  locally; merge it when the user says so.
-- These were made in the `../vibetour-context` worktree, which is on `feat/tour-strip-trim`.
-- `handoff.txt` is committed on `footage/carmel-coast-final` from 16 October, at the user's request, so the phone
-  session can read it. The repo is public, so keep secrets and account balances out of it.
-- This checkout is on `footage/carmel-coast-final`. The cloud session made it from main after #9, and on 15 October it
-  was fast-forwarded to main (`b7c96a2`, radio included) and pushed. Step 1's footage work goes here. Commit, push and open a PR only when the user asks.
-  Commit messages end with the Co-Authored-By line from the session's attribution reminder; PR bodies end with the
+- PRs #1–#17 are merged. Main is `c95141d` (#17: stops on the route, no windshield line, check engine from GitHub CI
+  and deployments, the Cockpit Map rename, the Customization Guide).
+- This checkout is on `footage/carmel-coast-final`, with main merged in (`84c7fe5`). Footage work goes here. Commit,
+  push and open a PR only when the user asks; `handoff.txt` updates are committed and pushed here so the phone session
+  can read them. The repo is public: keep secrets and account balances out of it.
+- Commit messages end with the Co-Authored-By line from the session's attribution reminder; PR bodies end with the
   Claude Code line.
-- `../vibetour-context` is a second worktree, used for the app branches. Its `node_modules` is a symlink to this checkout's,
-  which is why git lists it as untracked there. Leave it.
-- The user also works from their phone, through a cloud Claude Code session (claude.ai/code). On 14–15 October it merged
-  #7–#10 and sent this checkout cross-session messages. Its history isn't on this Mac. Run `git fetch` and
-  `gh pr list` before trusting this file.
+- `../vibetour-context` is a second worktree for app branches (on `main` now). Its `node_modules` is a symlink to this
+  checkout's, which is why git lists it as untracked there. Leave it.
+- The user also works from their phone through a cloud Claude Code session; its history isn't on this Mac. Run
+  `git fetch` and `gh pr list` before trusting this file.
 - If an e2e test is flaky on CI, re-run it with `gh run rerun <id> --failed`.
 
 ## What main has now
@@ -192,6 +214,15 @@ on its top-right corner, on the glass (see e2 below). On the photo car it sits i
   - Streams go through the companion server's `/radio/stream`. `vibetour.radio.enabled` / `--no-radio` turn it off.
   - Not yet checked by hand: playback inside a VS Code webview (F5) with Power as the user gesture, an SSH/WSL remote
     window, and how the tone controls sound. Do these in step 2.
+
+- **Dashboard rounds 2 and 3 (#13, #16) and stops (#17).** One stop pill (the alert, then what resumes the drive);
+  Activity, Agents and Tools dials (Activity reads 0 when stopped, with pins); no side-mirror crew, no warning lights,
+  no Tour strip, no windshield line; a glovebox handle and the demo's controls behind a Demo pill; in Tour mode the
+  dash rises at a stop. California's scenic stops sit on the route and are named only where the car stops; the Nav map
+  marks them. Check engine counts failing GitHub CI and failed deployments on the branch's PR.
+- **Docs.** The Cockpit Map (`docs/site/vibetour-cockpit-map.html`, `npm run cockpit-map`, a footage still behind the
+  dashboard, shared at https://claude.ai/artifact/UXJK2Ed8zA9G8CDKv3E8J4) and the Cockpit Customization Guide
+  (`docs/site/vibetour-cockpit-guide.html`, shared at https://claude.ai/artifact/6Xq9NCpVPQce2ztQFL2EPc).
 
 ## Review for step 1
 
@@ -450,7 +481,7 @@ From the Controls Map. Review images: `docs/sample-videos/review/45-round3-dash-
   at 1% near Monterey as "Cliffside café in Big Sur"). The windshield now uses the route's waypoints instead; the
   caption and the refuel pill still use the stop name. Follow-up to offer: give each scenic stop an `at` on the route.
 
-## Controls map (the user's request, 15–16 October): merged, PR #14
+## Controls map (the user's request, 15–16 October): merged, PR #14 (renamed the Cockpit Map in #17)
 
 Done. The page is `docs/site/controls-map.html`, published to share (privately, until the user shares it) at
 https://claude.ai/artifact/UXJK2Ed8zA9G8CDKv3E8J4.
@@ -495,12 +526,11 @@ probably went to the phone's cloud session; this is the full version.
 
 ## Decisions of 16 October
 
-- #12, #13 and #14 merged at the user's word; #15 waits for it.
-- The windshield line: news only, one line; at a stop, the place. A checkpoint shows only if the car stops there. Towns
-  show as the car nears and leaves them.
+- #12–#17 merged at the user's word.
+- The windshield line: removed for good on 17 October (#17). Names live on signs outside and on the Nav screen.
 - Red zones: always marked, saturating at 75%, on Activity, Agents & Tools, Changes (rescaled so 20 files sit at 75%)
   and Issues (more than three issues). Context turns red under 25% left.
-- Tour mode's strip trimmed like the windshield (#15).
+- Tour mode's strip: removed (#16).
 - The guiding rule: as few distractions as possible (see the top of this file).
 - The Controls Map: a shareable page, plus PNGs in the repo.
 - Decision A: staged, as recommended. Decision B: the hybrid.
@@ -508,9 +538,11 @@ probably went to the phone's cloud session; this is the full version.
 
 ## Questions open
 
-1. **The strip's status lights in Tour mode:** settled by round 3. The whole strip goes (#16).
-2. **Merging #16 (and with it #15):** ask, unless the user has said.
-3. **Renderer milestone 1:** start now, alongside the footage review, or after it? Plan it with the user first.
+1. Which variants ship (rain, night, sunset, fog)? Their stills predate the seated-height remake.
+2. Renderer milestone 1: start after the signs, or alongside? Plan it with the user first.
+3. The refuel stop's name: "a Carmel Highlands gas station" shows while the car is at Big Sur or Monterey. Add a Big
+   Sur gas stop to the pack, or name the refuel stop by position too.
+4. Photo car: the user wants to see it running once before signing off (renderer milestone 1).
 
 ## Other open items
 
