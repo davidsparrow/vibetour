@@ -93,7 +93,7 @@ export type DevEventBody =
       tool?: string;
       /** Context-window usage 0..1 when the provider reports it. */
       context?: number;
-      /** Set for background/sub-agents shown in the side mirrors. */
+      /** Set for background/sub-agents: the crew, counted on the Agents dial. */
       parentId?: string;
     }
   | { type: 'agent.remove'; agentId: string }

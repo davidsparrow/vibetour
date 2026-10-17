@@ -87,8 +87,8 @@ export interface TourSnapshot {
     stopName?: string;
     caption: string;
     /**
-     * The one line at the bottom of the windshield: empty while the car just drives,
-     * else where it is when that's the news (a stop, a tunnel, a town, departing, arriving).
+     * The one line at the bottom of the windshield: the place, only while the car is stopped
+     * somewhere with a name (a scenic stop, a town on the route, the destination). Else empty.
      */
     windshield: string;
     since: number;
@@ -103,6 +103,10 @@ export interface TourSnapshot {
     gear: Gear;
     devActivity: number;
     agentActivity: number;
+    /** Agents at work right now, the main agent and its crew. */
+    agentsWorking: number;
+    /** Tool calls and commands started in the last minute. */
+    toolCalls: number;
     errorIntensity: number;
     checkEngine: { on: boolean; reason?: string };
     warning: boolean;
@@ -234,8 +238,6 @@ export interface ClientPrefs {
   batteryGauge: boolean;
   /** Show a gauge for the files changed and not yet committed. */
   changesGauge: boolean;
-  /** Dashboard cue for the your-turn moment on this display. */
-  yourTurnCue: 'none' | 'light';
   /** Which kinds of alert this display lists in its Alerts tab and lights its bells for. */
   hudAlerts: Record<AlertKind, boolean>;
   /** Uncommitted files light the bells blue. */
@@ -260,7 +262,6 @@ export const DEFAULT_PREFS: ClientPrefs = {
   contextGauge: true,
   batteryGauge: false,
   changesGauge: true,
-  yourTurnCue: 'none',
   hudAlerts: Object.fromEntries(ALERT_KINDS.map((k) => [k, true])) as Record<AlertKind, boolean>,
   alertOnChanges: true,
   captureIncludeProject: false,

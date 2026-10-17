@@ -1,14 +1,13 @@
 import { waitingFor } from '../../core/attention';
 import { APPROACH_CAP } from '../../core/journey';
 import type { JourneyPack } from '../../core/packs';
-import type { AgentSnapshot, PullRequestSnapshot, TourSnapshot } from '../../core/protocol';
+import type { PullRequestSnapshot, TourSnapshot } from '../../core/protocol';
 import { ROLE_LABEL, STATUS_LABEL } from './agents';
-import { alertLevel, alertPill, AlertsPane, bell, lightBell, shownAlerts } from './alerts';
+import { alertLevel, alertPill, AlertsPane, bell, lightBell, notePill, shownAlerts } from './alerts';
 import type { AppContext } from './context';
-import { CUES, cueTable, litCues, type Cue } from './cues';
 import { clear, formatDuration, formatElapsed, h, renderKeyed, text, timeAgo, toggle } from './dom';
 import { Gauge, RED_ZONE_FROM } from './gauges';
-import { branchIcon } from './icons';
+import { branchIcon, gloveboxArt } from './icons';
 import { RouteMap } from './map';
 import type { RadioDeck } from './radioDeck';
 
@@ -33,27 +32,26 @@ export type Tab = 'nav' | 'radio' | 'prs' | 'trip' | 'console' | 'alerts';
 const TABS: Tab[] = ['nav', 'radio', 'prs', 'trip', 'console', 'alerts'];
 const TAB_LABEL: Record<Tab, string> = { nav: 'Nav', radio: 'Radio', prs: 'PRs', trip: 'Trip', console: 'Console', alerts: 'Alerts' };
 
-function light(name: string, label: string): HTMLElement {
-  return h('span', { class: `light light-${name}`, title: label, 'aria-label': label, role: 'img' }, h('i'), h('b', {}, label));
-}
-
 export class Cockpit {
   readonly root: HTMLElement;
   /** What just happened, newest first: in the Console tab now the rear-view mirror is gone. */
   private readonly recent = h('ul', { class: 'recent-list', 'aria-label': 'Recent' });
   /** The windshield's one line, shown only when there's news: a stop, a tunnel, a town, departing, arriving. */
   private readonly hudCaption = h('div', { class: 'hud-caption', 'aria-hidden': 'true' });
+  /** Why the car stopped, as one pill: the alert that stopped it, and what resumes the drive. */
   private readonly stopCard = h('div', { class: 'stop-card', role: 'status' });
-  /** The alert that stopped the car, riding on the stop card's top edge. */
-  private readonly stopPill = h('div', { class: 'stop-pill' });
-  private readonly stopBody = h('div', { class: 'stop-body' });
   /** The Alerts icon on the rear-view mirror's top-right corner: lit by the loudest alert, opens the Alerts tab. */
   private readonly topBell = h('button', { class: 'alert-bell' }, bell());
   private readonly alertsPane: AlertsPane;
-  private readonly sideLeft = h('div', { class: 'side-mirror left', 'aria-label': 'Side mirror: background agents' });
-  private readonly sideRight = h('div', { class: 'side-mirror right', 'aria-label': 'Side mirror: background agents' });
+  /** Your coding. Like a speedometer, it reads zero while the car is stopped. */
   private readonly speedo = new Gauge({ label: 'Activity', tone: 'amber', zone: 'high', ariaLabel: 'Speedometer: development activity' });
-  private readonly tacho = new Gauge({ label: 'Agents & tools', tone: 'cyan', zone: 'high', ariaLabel: 'Tachometer: agent and tool activity' });
+  /** How many agents are at work: the main agent and its crew. Red from six at once. */
+  private readonly agentsGauge = new Gauge({ label: 'Agents', tone: 'cyan', ticks: AGENTS_FULL + 1, zone: 'high', ariaLabel: 'Agents at work' });
+  /** Tool calls and commands in the last minute. No red zone: a busy agent is no fault. */
+  private readonly toolsGauge = new Gauge({ label: 'Tools', tone: 'violet', ticks: 7, ariaLabel: 'Tool calls in the last minute' });
+  /** The left dials' readings the last time the car moved; they become pins when it stops. */
+  private lastMoving: { activity: number; agents: number; tools: number } | null = null;
+  private stopPins: { activity: number; agents: number; tools: number } | null = null;
   private readonly fuel = new Gauge({ label: 'Journey', size: 'small', tone: 'green', ends: ['E', 'F'], ticks: 5, ariaLabel: 'Fuel gauge: journey left' });
   private readonly contextGauge = new Gauge({ label: 'Context', size: 'small', tone: 'cyan', ends: ['E', 'F'], ticks: 5, zone: 'low', ariaLabel: 'Agent context window left' });
   private readonly batteryGauge = new Gauge({ label: 'Battery', size: 'small', tone: 'green', ends: ['E', 'F'], ticks: 5, ariaLabel: 'Battery' });
@@ -62,15 +60,16 @@ export class Cockpit {
   private readonly changesGauge = new Gauge({ label: 'Changes', size: 'small', tone: 'blue', ticks: 5, needle: false, zone: 'high', icon: branchIcon(), ariaLabel: 'Uncommitted changes' });
   private readonly changesButton = h('button', { class: 'gauge-btn', onclick: () => this.openSourceControl() }, this.changesGauge.el);
   private readonly miniGauges = h('div', { class: 'mini-gauges' }, this.fuel.el, this.contextGauge.el, this.batteryGauge.el, this.changesButton, this.temp.el);
-  private readonly lights = h(
+  /** The glovebox: its handle opens the project's docs. The browser demo hangs its Demo pill here. */
+  private readonly glovebox = h(
     'div',
-    { class: 'lights' },
-    light('check', 'Check engine'),
-    light('warn', 'Warnings'),
-    light('hazard', 'Hazard'),
-    light('agent', 'Agent waiting'),
-    light('turn', 'Your turn'),
-    light('head', 'Headlights'),
+    { class: 'glovebox-wrap' },
+    h(
+      'button',
+      { class: 'glovebox', 'aria-label': 'Glovebox: project docs', title: 'Glovebox: project docs (also in the command palette)', onclick: () => this.ctx.send({ type: 'openDocs' }) },
+      gloveboxArt(),
+      h('span', { class: 'glovebox-label', 'aria-hidden': 'true' }, 'glovebox'),
+    ),
   );
   private readonly gear = h('div', { class: 'gear', 'aria-label': 'Gear selector' }, ...['P', 'R', 'N', 'D'].map((g) => h('span', { 'data-gear': g }, g)));
   private readonly gearHint = h('div', { class: 'gear-hint' });
@@ -83,26 +82,19 @@ export class Cockpit {
   private readonly prsBadge = h('span', { class: 'tab-badge' });
   private readonly trip = h('div', { class: 'trip' });
   private readonly console = h('div', { class: 'console' });
-  private readonly strip = h('div', { class: 'tour-strip' });
-  private readonly stripProgress = h('div', { class: 'strip-fill' });
-  private readonly stripCar = h('div', { class: 'strip-car' });
-  private readonly stripTicks = h('div', { class: 'strip-ticks' });
-  private readonly stripTitle = h('div', { class: 'strip-title' });
-  private readonly stripLoc = h('div', { class: 'strip-loc' });
-  private readonly stripLights = h('div', { class: 'strip-lights' });
   private readonly arriveButton: HTMLButtonElement;
   private readonly work = h('div', { class: 'work', 'aria-label': 'Work mode panels' });
   private readonly workPanels: Record<string, HTMLElement> = {};
   private readonly workMap = new RouteMap(true);
-  private stripPack = '';
   private tab: Tab = 'nav';
+  /** The car is stopped and the stop pill is up: Tour mode brings the dashboard up too. */
+  private stopShown = false;
 
   constructor(
     private readonly ctx: AppContext,
     private readonly deck: RadioDeck,
   ) {
     this.alertsPane = new AlertsPane(ctx);
-    this.stopCard.append(this.stopPill, this.stopBody);
     this.topBell.addEventListener('click', () => this.showAlerts());
     for (const t of TABS) {
       // Alerts is a bell, lit by the loudest alert; the other tabs are words.
@@ -133,22 +125,15 @@ export class Cockpit {
     const dash = h(
       'div',
       { class: 'dash' },
-      h('div', { class: 'cluster cluster-left' }, this.speedo.el, this.tacho.el),
+      h('div', { class: 'cluster cluster-left' }, this.speedo.el, this.agentsGauge.el, this.toolsGauge.el),
       screen,
       h(
         'div',
         { class: 'cluster cluster-right' },
         this.miniGauges,
-        this.lights,
         h('div', { class: 'gear-wrap' }, this.gear, this.gearHint),
-        h('button', { class: 'glovebox', onclick: () => this.ctx.send({ type: 'openDocs' }), title: 'Glovebox: project docs (also in the command palette)' }, 'Glovebox'),
+        this.glovebox,
       ),
-    );
-
-    this.strip.append(
-      h('div', { class: 'strip-text' }, this.stripTitle, this.stripLoc),
-      h('div', { class: 'strip-track' }, this.stripTicks, this.stripProgress, this.stripCar),
-      this.stripLights,
     );
 
     this.buildWork();
@@ -159,17 +144,19 @@ export class Cockpit {
       h('div', { class: 'frame', 'aria-hidden': 'true' }, h('div', { class: 'roof' }), h('div', { class: 'pillar left' }), h('div', { class: 'pillar right' })),
       // The rear-view mirror is just a mirror now; its only display is the Alerts bell on its corner.
       h('div', { class: 'mirror-wrap' }, h('div', { class: 'mirror', 'aria-hidden': 'true' }, h('div', { class: 'mirror-glass' })), this.topBell),
-      // The alerts are for everyone; the rest of the HUD repeats what the screen reader already hears.
-      // The HUD keeps only where you are and what the car is doing; alerts live in the Alerts tab.
+      // The HUD repeats what the screen reader already hears: the place, at a named stop.
+      // Nothing else sits on the windshield's lower edge, in any mode.
       h('div', { class: 'hud', 'aria-hidden': 'true' }, this.hudCaption),
       this.stopCard,
-      this.sideLeft,
-      this.sideRight,
       dash,
-      this.strip,
       this.work,
     );
     this.setTab('nav');
+  }
+
+  /** The browser demo's Demo pill, on the glovebox's lower-left corner. */
+  addDemoButton(el: HTMLElement): void {
+    this.glovebox.append(el);
   }
 
   showTab(t: Tab): void {
@@ -191,7 +178,9 @@ export class Cockpit {
 
   /** The radio runs its lights and follows song titles only while its pane is on screen. */
   syncRadio(): void {
-    this.deck.setVisible(this.tab === 'radio' && this.ctx.prefs.mode === 'dashboard');
+    const mode = this.ctx.prefs.mode;
+    const dashUp = mode === 'dashboard' || (mode === 'tour' && this.stopShown);
+    this.deck.setVisible(this.tab === 'radio' && dashUp);
   }
 
   private buildWork(): void {
@@ -232,18 +221,15 @@ export class Cockpit {
     }
     if (!snap.ide.history.length) this.recent.append(h('li', { class: 'empty' }, 'Open road behind you'));
 
-    // HUD: one line, and only when there's news. While the car just drives the windshield stays clear.
+    // HUD: the place, only while the car is stopped somewhere with a name. Clear the rest of the time.
     text(this.hudCaption, snap.motion.windshield);
     this.hudCaption.hidden = !snap.motion.windshield;
 
     this.updateAlerts(snap);
     this.updateStopCard(snap, pack);
-    this.updateSideMirrors(snap.ide.agents);
 
     // Instruments.
-    this.speedo.set(a.devActivity, String(Math.round(a.devActivity * 100)), `${Math.round(a.devActivity * 100)} percent — ${STATE_LABEL[a.state]}`);
-    const rpm = a.agentActivity * 8;
-    this.tacho.set(a.agentActivity, rpm.toFixed(1), `${Math.round(a.agentActivity * 100)} percent agent and tool activity`);
+    this.updateLeftDials(snap);
     this.updateFuel(snap);
     this.updateContextGauge(snap);
     this.updateBatteryGauge();
@@ -251,26 +237,6 @@ export class Cockpit {
     this.miniGauges.dataset.count = String([...this.miniGauges.children].filter((g) => !(g as HTMLElement).hidden).length);
     const issues = snap.ide.diagnostics.errors;
     this.temp.set(issuesDial(a.errorIntensity), String(issues), `${issues} errors, ${snap.ide.diagnostics.warnings} warnings`);
-    const setLight = (name: string, on: boolean, title?: string) => {
-      const el = this.lights.querySelector(`.light-${name}`)!;
-      toggle(el, 'on', on);
-      if (title) el.setAttribute('title', title);
-    };
-    // Warning lights follow the moments through this display's cue table.
-    const table = cueTable(this.ctx.prefs);
-    const lit = litCues(table, snap.moments);
-    const titles: Partial<Record<Cue, string>> = {
-      check: a.checkEngine.reason ?? 'Check engine: build/test failures',
-      warn: `${snap.ide.diagnostics.errors} errors, ${snap.ide.diagnostics.warnings} warnings`,
-      agent: a.waitingAgent ? `${a.waitingAgent} is waiting for you` : 'Agent waiting',
-      turn: a.yourTurnAgent ? `${a.yourTurnAgent} finished: your turn` : 'Your turn',
-    };
-    for (const cue of CUES) {
-      setLight(cue, lit.has(cue), titles[cue]);
-      // A cue no moment can switch on stays off the panel.
-      toggle(this.lights.querySelector(`.light-${cue}`)!, 'unused', table[cue].length === 0);
-    }
-    setLight('head', !!j && (j.timeOfDay === 'night' || j.timeOfDay === 'dusk' || j.weather === 'rain' || j.weather === 'fog'));
     for (const el of this.gear.children) toggle(el, 'on', (el as HTMLElement).dataset.gear === a.gear);
     text(this.gearHint, { P: 'Paused', R: 'Review', N: 'Thinking', D: 'Build / edit' }[a.gear]);
 
@@ -280,8 +246,32 @@ export class Cockpit {
     this.updatePullRequests(snap);
     this.updateTrip(snap);
     this.updateConsole(snap);
-    this.updateStrip(snap, pack);
     this.updateWork(snap, pack);
+  }
+
+  /**
+   * Activity, Agents and Tools. Activity is the car's speedometer, so it reads zero while the
+   * car is stopped; Agents and Tools keep reading what runs. When the car stops, each dial
+   * leaves a pin where it stood, until the drive resumes.
+   */
+  private updateLeftDials(snap: TourSnapshot): void {
+    const a = snap.activity;
+    const stopped = !!snap.journey && (snap.motion.stopped || snap.journey.phase === 'parked');
+    const live = { activity: a.devActivity, agents: agentsDial(a.agentsWorking), tools: toolsDial(a.toolCalls) };
+    if (stopped) this.stopPins ??= this.lastMoving;
+    else {
+      this.stopPins = null;
+      this.lastMoving = live;
+    }
+    const pins = this.stopPins;
+    if (stopped) this.speedo.set(0, '0', pins && pins.activity > 0.02 ? `Stopped. It read ${Math.round(pins.activity * 100)} before the stop` : 'Stopped');
+    else this.speedo.set(a.devActivity, String(Math.round(a.devActivity * 100)), `${Math.round(a.devActivity * 100)} percent — ${STATE_LABEL[a.state]}`);
+    const n = a.agentsWorking;
+    this.agentsGauge.set(live.agents, String(n), `${n} agent${n === 1 ? '' : 's'} at work`);
+    this.toolsGauge.set(live.tools, String(a.toolCalls), `${a.toolCalls} tool call${a.toolCalls === 1 ? '' : 's'} and commands in the last minute`);
+    this.speedo.pin(pins?.activity ?? null);
+    this.agentsGauge.pin(pins?.agents ?? null);
+    this.toolsGauge.pin(pins?.tools ?? null);
   }
 
   private updateFuel(snap: TourSnapshot): void {
@@ -399,38 +389,46 @@ export class Cockpit {
     const j = snap.journey;
     const show = !!j && (m.stopped || j.phase === 'parked') && m.behavior !== 'arrived';
     toggle(this.stopCard, 'show', show);
-    if (!show) return;
-    const parked = j!.phase === 'parked';
-    let line = '';
-    let detail = '';
-    if (parked) {
-      line = `Parked. Your journey to ${pack?.route.to ?? 'your destination'} is saved; pick it up whenever you like.`;
-    } else if (m.behavior === 'pull-over') {
-      line = `Pulled over safely: ${snap.activity.blockedReason ?? 'something needs your attention'}.`;
-      // Why, in the agent's words: "Stopped: rate limit".
-      if (snap.activity.blockedDetail) detail = snap.activity.blockedDetail;
-    } else if (m.stopReason === 'waiting') {
-      // Say why the car stopped: a question, a plan to approve, or a tool to allow.
-      const a = snap.activity;
-      const why = waitingFor(a.waitingAgent ?? 'Your agent', a.waitingAsk) + (a.waitingAsk === 'approval' && a.waitingTool ? ` to use ${a.waitingTool}` : '');
-      line = `${why}. The journey resumes when you ${a.waitingAsk === 'question' ? 'answer' : 'reply'}.`;
-    } else if (m.stopReason === 'your-turn') {
-      line = `${snap.activity.yourTurnAgent ?? 'Your agent'} finished its turn. The drive resumes when you reply or get back to work.`;
-    } else if (m.stopReason === 'refuel') {
-      line = `Refuelling at ${m.stopName ?? 'the gas station'}, then ${pack?.route.from ?? 'the start'} to ${pack?.route.to ?? 'your destination'} again, by a different way where the road allows.`;
-    } else {
-      line = 'Taking a breather. Start working again to continue the drive.';
+    // In Tour mode the dashboard comes up while the car is stopped, and goes when it drives on.
+    toggle(this.root, 'car-stopped', show);
+    if (show !== this.stopShown) {
+      this.stopShown = show;
+      this.syncRadio();
     }
-    // The alert that stopped the car rides on the card's top edge, whatever this display's switches say.
-    const trigger = m.stopAlert ? snap.attention.find((a) => a.id === m.stopAlert) : undefined;
-    toggle(this.stopCard, 'has-pill', !!trigger);
-    renderKeyed(this.stopPill, JSON.stringify(trigger ? [trigger.id, trigger.text] : null), () => {
-      if (trigger) this.stopPill.append(alertPill(trigger, this.ctx));
-    });
-    renderKeyed(this.stopBody, `${line}\n${detail}\n${parked}`, () => {
-      this.stopBody.append(h('div', { class: 'stop-line' }, line));
-      if (detail) this.stopBody.append(h('div', { class: 'stop-detail' }, detail));
-      if (parked) this.stopBody.append(h('button', { class: 'btn btn-primary', onclick: () => this.ctx.send({ type: 'resume' }) }, 'Resume journey'));
+    if (!show) return;
+    const a = snap.activity;
+    const parked = j!.phase === 'parked';
+    // The alert that stopped the car leads the pill, whatever this display's switches say.
+    const trigger = m.stopAlert ? snap.attention.find((x) => x.id === m.stopAlert) : undefined;
+    let title = trigger?.text ?? '';
+    let note = '';
+    if (parked) {
+      title = `Parked. Your journey to ${pack?.route.to ?? 'your destination'} is saved`;
+      note = 'Pick it up whenever you like.';
+    } else if (m.behavior === 'pull-over') {
+      title ||= a.blockedReason ?? 'Something needs your attention';
+      note = m.stopAlert === 'build' ? 'Pulled over until the build passes.' : 'Pulled over until you get it going again.';
+    } else if (m.stopReason === 'waiting') {
+      title ||= waitingFor(a.waitingAgent ?? 'Your agent', a.waitingAsk);
+      note = a.waitingAsk === 'question' ? 'Answer to resume your journey.' : 'Reply to resume your journey.';
+    } else if (m.stopReason === 'your-turn') {
+      title ||= `${a.yourTurnAgent ?? 'Your agent'} finished · your turn`;
+      note = 'Reply or get back to work to drive on.';
+    } else if (m.stopReason === 'refuel') {
+      title = `Refuelling at ${m.stopName ?? 'the gas station'}`;
+      note = `Then ${pack?.route.from ?? 'the start'} to ${pack?.route.to ?? 'your destination'} again, by a different way where the road allows.`;
+    } else {
+      title = 'Taking a breather';
+      note = 'Start working again to drive on.';
+    }
+    const key = JSON.stringify([trigger?.id, title, note, parked]);
+    renderKeyed(this.stopCard, key, () => {
+      this.stopCard.append(
+        trigger
+          ? alertPill(trigger, this.ctx, note, title)
+          : notePill(m.behavior === 'pull-over' ? 'blocking' : 'general', m.behavior === 'pull-over' ? '!' : 'P', title, note),
+      );
+      if (parked) this.stopCard.append(h('button', { class: 'btn btn-primary', onclick: () => this.ctx.send({ type: 'resume' }) }, 'Resume journey'));
     });
   }
 
@@ -442,27 +440,6 @@ export class Cockpit {
     const count = shownAlerts(snap.attention, this.ctx.prefs).length + (this.ctx.prefs.alertOnChanges && g && g.changes + g.staged > 0 ? 1 : 0);
     lightBell(this.topBell, level, count);
     lightBell(this.tabs.get('alerts')!, level, count);
-  }
-
-  private updateSideMirrors(agents: AgentSnapshot[]): void {
-    const crew = agents.filter((ag) => ag.parentId || agents.length > 1).filter((ag) => ag.parentId || ag !== agents[0]);
-    const render = (el: HTMLElement, list: AgentSnapshot[]) => {
-      clear(el);
-      toggle(el, 'show', list.length > 0);
-      for (const ag of list) {
-        el.append(
-          h(
-            'div',
-            { class: `crew status-${ag.status}`, title: `${ag.name}: ${STATUS_LABEL[ag.status]}${ag.detail ? ` — ${ag.detail}` : ''}` },
-            h('span', { class: 'crew-role' }, ROLE_LABEL[ag.role] ?? ag.role.toUpperCase()),
-            h('span', { class: 'crew-name' }, ag.name),
-            h('i', { class: 'dot' }),
-          ),
-        );
-      }
-    };
-    render(this.sideLeft, crew.filter((_, i) => i % 2 === 0).slice(0, 3));
-    render(this.sideRight, crew.filter((_, i) => i % 2 === 1).slice(0, 3));
   }
 
   private updateNav(snap: TourSnapshot, pack?: JourneyPack): void {
@@ -531,35 +508,6 @@ export class Cockpit {
     if (!this.console.childElementCount) this.console.append(h('p', { class: 'muted' }, 'Terminal is quiet.'));
   }
 
-  private updateStrip(snap: TourSnapshot, pack?: JourneyPack): void {
-    const j = snap.journey;
-    toggle(this.strip, 'empty', !j);
-    if (!j || !pack) {
-      text(this.stripTitle, 'VibeTour');
-      text(this.stripLoc, 'See the world while you code.');
-      return;
-    }
-    if (this.stripPack !== pack.id) {
-      this.stripPack = pack.id;
-      clear(this.stripTicks);
-      for (const w of pack.route.waypoints) this.stripTicks.append(h('i', { style: `left:${w.at * 100}%`, title: w.name }));
-    }
-    text(this.stripTitle, `${pack.route.from} → ${pack.route.to}`);
-    text(this.stripLoc, snap.motion.caption === j.location.label ? j.location.label : `${j.location.label} · ${snap.motion.caption}`);
-    const p = j.scope === 'free-drive' ? (j.travelMs / 3_600_000) % 1 : j.progress;
-    this.stripProgress.style.width = `${(p * 100).toFixed(2)}%`;
-    this.stripCar.style.left = `${(p * 100).toFixed(2)}%`;
-    clear(this.stripLights);
-    const d = snap.ide.diagnostics;
-    const ind = (cls: string, label: string, title: string) => h('span', { class: `ind ${cls}`, title }, label);
-    if (snap.ide.processes.some((pr) => pr.kind === 'test' || pr.kind === 'build')) this.stripLights.append(ind('verify', 'Verifying', 'Tests or build running'));
-    if (snap.activity.checkEngine.on) this.stripLights.append(ind('bad', '⚠', snap.activity.checkEngine.reason ?? 'Check engine'));
-    if (d.errors) this.stripLights.append(ind('bad', `${d.errors} errors`, 'Diagnostics'));
-    const working = snap.ide.agents.filter((ag) => ag.status === 'working' || ag.status === 'tool').length;
-    if (working) this.stripLights.append(ind('agent', `${working} agent${working > 1 ? 's' : ''}`, 'Agents working'));
-    this.stripLights.append(ind('gear', snap.activity.gear, 'Gear'));
-  }
-
   private updateWork(snap: TourSnapshot, pack?: JourneyPack): void {
     if (!this.root.closest('.mode-work')) return;
     const caps = this.ctx.host?.capabilities;
@@ -619,6 +567,18 @@ export class Cockpit {
       jp.append(h('p', { class: 'muted' }, 'No journey in progress.'));
     }
   }
+}
+
+/** The Agents dial runs to eight at full scale, so six at once reach its red zone (75%). */
+export const AGENTS_FULL = 8;
+export function agentsDial(working: number): number {
+  return Math.min(1, working / AGENTS_FULL);
+}
+
+/** The Tools dial is full at thirty tool calls and commands a minute. */
+export const TOOLS_FULL = 30;
+export function toolsDial(perMinute: number): number {
+  return Math.min(1, perMinute / TOOLS_FULL);
 }
 
 /** The Changes ring: twenty files sit at the start of its red zone (75%), so 21 and up are in the red. */

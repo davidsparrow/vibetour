@@ -542,33 +542,21 @@ export class VibeTourSession {
   }
 
   /**
-   * The windshield's one line. Nothing while the car just drives: the dials say how busy
-   * you and your agents are. It names the place when that is the news: a stop, the
-   * shoulder or a parked car (the stop card says why), a tunnel, a town on the route,
-   * the departure and the arrival. The
-   * full caption still goes to the screen reader, the status bar and the tour strip.
+   * The windshield's one line: the place, and only when the car has stopped in a town or at a
+   * landmark on the route ("Carmel-by-the-Sea", "Bixby Creek Bridge"), or arrived ("Arrived in
+   * Big Sur"). Nothing while the car moves, and nothing at a stop between places: the stop
+   * card says why the car stopped. A scenic stop's own name is picked from the pack's list,
+   * not from where the car is, so it stays in the caption. The full caption still goes to the
+   * screen reader, the status bar and the Work panel.
    */
-  private windshield(motion: MotionReading, stopName?: string): string {
+  private windshield(motion: MotionReading): string {
     const j = this.journey;
     if (!j) return 'Where do you want to go today?';
-    switch (motion.behavior) {
-      case 'scenic-stop':
-        return stopName ? placeName(stopName) : 'Scenic stop';
-      case 'pull-over':
-      case 'parked':
-        // Where the car stands; the stop card says why.
-        return j.location().label;
-      case 'approach':
-        return `Final approach to ${j.pack.route.to}`;
-      case 'arrived':
-        return `Arrived in ${j.pack.route.to}`;
-      case 'checkpoint':
-        if (j.scene().env.tunnel) return 'Through the tunnel';
-        return motion.stopped ? 'Checkpoint' : '';
-      default:
-        if (j.phase === 'departing') return `Departing ${j.pack.route.from}`;
-        return j.passing() ?? '';
-    }
+    if (!motion.stopped) return '';
+    if (motion.behavior === 'arrived') return `Arrived in ${j.pack.route.to}`;
+    // Refuelling: the stop card names the station.
+    if (motion.stopReason === 'refuel') return '';
+    return j.town() ?? '';
   }
 
   private gear(motion: MotionReading, a: ActivityReading): Gear {
@@ -681,7 +669,7 @@ export class VibeTourSession {
         stopReason: motion.stopReason,
         stopName,
         caption,
-        windshield: this.windshield(motion, stopName),
+        windshield: this.windshield(motion),
         since: motion.since,
         hazard: motion.behavior === 'pull-over',
         stopAlert: stopAlertOf(motion, a),
@@ -693,6 +681,8 @@ export class VibeTourSession {
         gear: this.gear(motion, a),
         devActivity: a.devActivity,
         agentActivity: a.agentActivity,
+        agentsWorking: a.agentsWorking,
+        toolCalls: a.toolCalls,
         errorIntensity: a.errorIntensity,
         checkEngine: a.checkEngine,
         warning: a.warning,
@@ -752,10 +742,4 @@ export class VibeTourSession {
       announce,
     };
   }
-}
-
-/** A stop's name as a title on the windshield: "a Carmel Highlands gas station" reads "Carmel Highlands gas station". */
-export function placeName(name: string): string {
-  const bare = name.replace(/^(a|an|the) /i, '');
-  return bare.charAt(0).toUpperCase() + bare.slice(1);
 }

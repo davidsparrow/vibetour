@@ -226,12 +226,13 @@ async function main() {
       if (only && !only.includes(state.id)) continue;
       if (state.needs === 'companion' && !companion) continue;
       console.log(`${state.id}: ${state.title}`);
-      const page = await browser.newPage({ viewport: state.close ? CLOSE_VIEW : VIEW, deviceScaleFactor: state.close ? 2 : 1 });
+      // Every picture at twice the pixels, so it stays sharp on a high-density screen and when opened full size.
+      const page = await browser.newPage({ viewport: state.close ? CLOSE_VIEW : VIEW, deviceScaleFactor: 2 });
       await page.goto(state.needs === 'companion' ? companion.url : `${demo.url}${state.query ?? '?fresh&autopilot=0'}`);
       await state.setup(page);
-      // The demo's own panel isn't part of the product, and a click leaves a focus ring.
+      // The demo's own pill and panel aren't part of the product, and a click leaves a focus ring.
       await page.evaluate(() => {
-        for (const el of document.querySelectorAll('.demo-panel')) el.style.display = 'none';
+        for (const el of document.querySelectorAll('.demo-panel, .demo-pill')) el.style.display = 'none';
         if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
       });
       let close;
@@ -244,7 +245,7 @@ async function main() {
       }
       const items = await mark(page, state.items, close);
       await page.screenshot({ path: join(IMG_DIR, `${state.id}.png`), ...(close ? { clip: close.crop } : {}) });
-      const size = close ? { width: Math.round(close.crop.width * 2), height: Math.round(close.crop.height * 2) } : VIEW;
+      const size = close ? { width: Math.round(close.crop.width * 2), height: Math.round(close.crop.height * 2) } : { width: VIEW.width * 2, height: VIEW.height * 2 };
       done.push({ ...state, items, image: `images/controls/${state.id}.png`, ...size });
       await page.close();
     }

@@ -80,7 +80,7 @@ function section(state) {
     <p class="intro">${rich(state.intro)}</p>
     <figure>
       <a class="zoom" href="${esc(state.image)}" target="_blank" rel="noopener"><img src="${esc(state.image)}" alt="${esc(state.title)}: the VibeTour dashboard with its controls numbered" width="${state.width}" height="${state.height}" loading="lazy"></a>
-      <figcaption>${esc(state.caption ?? (state.close ? 'Close-up of the screen, demo display' : 'Demo display, 1280 × 760'))}. Open the picture for full size.</figcaption>
+      <figcaption>${esc(state.caption ?? (state.close ? 'Close-up of the screen, demo display' : 'Demo display, 1280 × 760 at twice the pixels'))}. Open the picture for full size.</figcaption>
     </figure>
     <div class="head" aria-hidden="true"><span></span><span>Control</span><span>Fed by</span><span>Click or key</span></div>
     <ol class="key">
@@ -98,7 +98,7 @@ export function renderPage(states, { generated, wrap }) {
     <div class="brand">VibeTour</div>
     <h1>Controls Map</h1>
     <p class="lede">Every control on the dashboard, screen by screen. The numbers on each picture match its key: what feeds the control, and what a click or a key does.</p>
-    <div class="meta"><span>Made ${esc(generated)}</span><span>1280 × 760</span><span>Re-make: npm run controls-map</span></div>
+    <div class="meta"><span>Made ${esc(generated)}</span><span>1280 × 760, 2× pixels</span><span>Re-make: npm run controls-map</span></div>
   </header>
   <nav aria-label="Screens">
 ${states.map((s) => `    <a href="#${esc(s.id)}">${esc(s.short ?? s.title)}</a>`).join('\n')}

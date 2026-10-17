@@ -72,14 +72,6 @@ export class SettingsPanel {
           toggleRow('Battery gauge', "This computer's battery", p.batteryGauge, (pr, v) => (pr.batteryGauge = v)),
           h('p', { class: 'small muted battery-note' }, batteryNote(p.batteryGauge ? batteryHiddenReason(this.ctx.battery) : null)),
           toggleRow('Changes gauge', 'Files changed and not yet committed; click it for Source Control', p.changesGauge, (pr, v) => (pr.changesGauge = v)),
-          segmented<ClientPrefs['yourTurnCue']>('Your-turn cue', [['none', 'None'], ['light', 'Blue light']], p.yourTurnCue, (pr, v) => (pr.yourTurnCue = v)),
-          h(
-            'p',
-            { class: 'small muted' },
-            `Lights on this screen when an agent finishes its turn. Whether the car also pulls over is set ${
-              host?.kind === 'cli' ? 'when starting the companion: --your-turn-stop <seconds>' : 'in VS Code: Settings › VibeTour › Your Turn'
-            }.`,
-          ),
         ),
         h(
           'section',
