@@ -235,7 +235,20 @@ export class ActivityEngine {
       this.since = now;
     }
 
-    const checkReason = buildFailed ? 'Build failing' : testFailed ? 'Tests failing' : lintFailed ? 'Checks failing' : undefined;
+    // On GitHub: the pull request for the branch you're on, its CI and its latest deployment (Vercel and the like).
+    const branch = ws.git?.branch;
+    const pr = branch ? ws.pullRequests.items.find((p) => !p.crossRepo && p.branch === branch) : undefined;
+    const checkReason = buildFailed
+      ? 'Build failing'
+      : testFailed
+        ? 'Tests failing'
+        : lintFailed
+          ? 'Checks failing'
+          : pr?.ci === 'failing'
+            ? `CI failing on #${pr.number}`
+            : pr?.deploy === 'failing'
+              ? `Deployment failed on #${pr.number}${pr.deployEnv ? ` (${pr.deployEnv})` : ''}`
+              : undefined;
     const running = ws.processes.size;
     const contexts = agents.map((a) => a.context).filter((c): c is number => typeof c === 'number');
 

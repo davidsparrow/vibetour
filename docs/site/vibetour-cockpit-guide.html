@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cockpit Customization Guide</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: an owner's manual, one column: the rules first, then where to change things, ordered by how long a change takes. Same family as the Cockpit Map. */
+:root{
+  --bg:#0c0f14; --panel:#131821; --line:#243042; --fg:#e8ecf2; --mute:#98a4b8;
+  --amber:#f2b134; --amber-ink:#0c0f14; --chip:#1a2130; --code:#182030;
+  --quick:#7be0a0; --mid:#6fd3ff; --deep:#ff8a6b;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif; --body:"Barlow","Helvetica Neue",Arial,sans-serif; --mono:"IBM Plex Mono",Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){
+  --bg:#f3f1ec; --panel:#ffffff; --line:#d8d3c8; --fg:#1b1f26; --mute:#5c6573;
+  --amber:#b8780a; --amber-ink:#ffffff; --chip:#ebe7de; --code:#ece8df;
+  --quick:#1f8a4c; --mid:#1677a8; --deep:#b8462a; color-scheme:light; } }
+:root[data-theme="light"]{
+  --bg:#f3f1ec; --panel:#ffffff; --line:#d8d3c8; --fg:#1b1f26; --mute:#5c6573;
+  --amber:#b8780a; --amber-ink:#ffffff; --chip:#ebe7de; --code:#ece8df;
+  --quick:#1f8a4c; --mid:#1677a8; --deep:#b8462a; color-scheme:light; }
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.55}
+.wrap{max-width:940px;margin:0 auto;padding-inline:20px;padding-block:40px 64px;display:flex;flex-direction:column;gap:46px}
+header{display:flex;flex-direction:column;gap:12px;max-width:68ch}
+.brand{font-family:var(--display);font-weight:700;font-size:1.05rem;letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+h1{font-family:var(--display);font-weight:600;font-size:clamp(2.2rem,6vw,3.2rem);line-height:1;margin:0;text-wrap:balance}
+.lede{margin:0;font-size:1.08rem}
+.meta{font-family:var(--mono);font-size:.78rem;color:var(--mute);display:flex;flex-wrap:wrap;gap:4px 18px}
+nav{display:flex;flex-wrap:wrap;gap:8px}
+nav a{font-family:var(--display);font-weight:600;font-size:.95rem;letter-spacing:.06em;text-transform:uppercase;color:var(--fg);text-decoration:none;background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:4px 12px}
+nav a:hover,nav a:focus-visible{border-color:var(--amber);color:var(--amber);outline:none}
+section{display:flex;flex-direction:column;gap:14px;scroll-margin-top:16px}
+.eyebrow{font-family:var(--display);font-weight:600;font-size:.85rem;letter-spacing:.16em;text-transform:uppercase;color:var(--amber)}
+h2{font-family:var(--display);font-weight:600;font-size:clamp(1.6rem,4vw,2.1rem);line-height:1.05;margin:0;text-wrap:balance}
+p{margin:0;max-width:68ch}
+.intro{color:var(--mute)}
+a{color:var(--amber)}
+code{font-family:var(--mono);font-size:.84em;background:var(--code);border-radius:4px;padding:1px 5px;overflow-wrap:anywhere}
+/* The rules: a label and a sentence each, two columns on a wide screen. */
+dl.rules{margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:12px}
+.rule{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.rule dt{font-family:var(--display);font-weight:600;font-size:1.15rem;line-height:1.15}
+.rule dd{margin:0;color:var(--mute);font-size:.95rem}
+/* Change tables, tagged by how long a change takes. */
+.tier{display:inline-flex;align-items:center;gap:8px;font-family:var(--display);font-weight:600;font-size:.9rem;letter-spacing:.1em;text-transform:uppercase}
+.tier::before{content:"";width:10px;height:10px;border-radius:50%;background:currentColor}
+.t-quick{color:var(--quick)} .t-mid{color:var(--mid)} .t-deep{color:var(--deep)}
+.table{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+table{width:100%;border-collapse:collapse;font-size:.93rem;min-width:600px}
+th,td{text-align:left;vertical-align:top;padding:10px 14px;border-bottom:1px solid var(--line)}
+th{font-family:var(--display);font-weight:600;font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);background:var(--chip)}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:600;width:24%}
+td:nth-child(2){width:38%}
+.callout{border:1px solid var(--line);border-left:4px solid var(--deep);border-radius:8px;background:var(--panel);padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.callout h3{margin:0;font-family:var(--display);font-weight:600;font-size:1.35rem}
+ul.checks{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:6px;max-width:72ch}
+footer{border-top:1px solid var(--line);padding-top:18px;color:var(--mute);font-size:.92rem;max-width:68ch;display:flex;flex-direction:column;gap:8px}
+@media (max-width:640px){ td:first-child,td:nth-child(2){width:auto} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">VibeTour</div>
+    <h1>Cockpit Customization Guide</h1>
+    <p class="lede">How the VibeTour cockpit is designed, and where to change it: quick visual wins first, deeper rebuilds last.</p>
+    <div class="meta"><span>For designers and developers</span><span>17 October 2026</span><span>Pairs with the Cockpit Map</span></div>
+  </header>
+
+  <nav aria-label="Sections">
+    <a href="#rules">The rules</a>
+    <a href="#parts">The parts</a>
+    <a href="#quick">Minutes</a>
+    <a href="#mid">An afternoon</a>
+    <a href="#deep">Days</a>
+    <a href="#centre">One big screen?</a>
+    <a href="#working">Keep it working</a>
+  </nav>
+
+  <section id="rules">
+    <div class="eyebrow">Design</div>
+    <h2>The rules we designed by</h2>
+    <p class="intro">People pay to see the scenery. Every choice in the cockpit follows from that. Keep these in mind before you move anything.</p>
+    <dl class="rules">
+      <div class="rule"><dt>The view is the product</dt><dd>Nothing sits on the windshield while the car drives: no captions, no strip, no place names. The dials and tabs are there when someone looks for them.</dd></div>
+      <div class="rule"><dt>Instruments sit in front of the driver</dt><dd>Gauges live in the cluster behind the wheel and on the dash, where a glance down finds them. Alerts appear on the windshield, in the driver's line of sight.</dd></div>
+      <div class="rule"><dt>Speak up only when it matters</dt><dd>Interrupt when input is needed (the car stops, the stop pill says why, the bell lights) or when a phase ends (your turn, arrived, refuel). Nothing else asks for attention.</dd></div>
+      <div class="rule"><dt>Say each thing once</dt><dd>One stop pill, not a pill and a card. No warning light that repeats a dial. No windshield line that repeats the Nav screen.</dd></div>
+      <div class="rule"><dt>Keep it physically plausible</dt><dd>The speedometer reads 0 when the car is stopped. On the photo car, the car's own dials show the car. The car stops where a stop really is, and every name agrees: signs, Nav, stop pill.</dd></div>
+      <div class="rule"><dt>Colour means one thing</dt><dd>Red: the car stopped for you. Orange: something needs you. Blue: worth a look. A red zone appears only where "a lot" is bad (Issues, Changes, low Context, many agents at once), never on Tools.</dd></div>
+      <div class="rule"><dt>Text stays narrow</dt><dd>Messages wrap inside a pill at most 440 px wide and grow taller. Nobody reads a sentence stretched across the windshield.</dd></div>
+      <div class="rule"><dt>Every screen decides for itself</dt><dd>The VS Code panel and a Companion Display keep their own settings. The screen reader hears everything the eye sees.</dd></div>
+    </dl>
+  </section>
+
+  <section id="parts">
+    <div class="eyebrow">Layout</div>
+    <h2>The cockpit at a glance</h2>
+    <p class="intro">Five layers, back to front. The <a href="vibetour-cockpit-map.html">Cockpit Map</a> numbers every control on every screen.</p>
+    <div class="table"><table>
+      <thead><tr><th>Layer</th><th>What it shows</th><th>Where it lives</th></tr></thead>
+      <tbody>
+        <tr><td>Scene</td><td>The road outside: the live 3D world today; the footage of a video pack next.</td><td><code>src/webview/renderer/</code>, scenery in <code>packs/&lt;id&gt;/manifest.json</code></td></tr>
+        <tr><td>Windshield</td><td>The rear-view mirror with the Alerts bell on its glass, and the stop pill in the middle when the car stops.</td><td><code>.mirror-wrap</code>, <code>.alert-bell</code>, <code>.stop-card</code> in <code>src/webview/styles.css</code></td></tr>
+        <tr><td>Dash</td><td>Left: Activity, Agents, Tools. Centre: the screen with Nav, Radio, PRs, Trip, Console and Alerts. Right: Journey, Context, Changes, Issues, the gear and the glovebox.</td><td>The <code>Cockpit</code> class in <code>src/webview/ui/cockpit.ts</code>; the <code>.dash</code> grid in <code>styles.css</code></td></tr>
+        <tr><td>Modes</td><td>Tour (the view; the dash rises only while the car is stopped), Dash, and Work (your panels).</td><td><code>.mode-tour</code>, <code>.mode-dashboard</code>, <code>.mode-work</code> rules in <code>styles.css</code></td></tr>
+        <tr><td>Overlays</td><td>Destinations, Passport, Settings, the arrival card.</td><td><code>src/webview/ui/picker.ts</code>, <code>passport.ts</code>, <code>settings.ts</code></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="quick">
+    <span class="tier t-quick">Minutes</span>
+    <h2>Quick visual wins</h2>
+    <p class="intro">One value or one line each. Reload the demo (<code>npm run demo</code>) and look.</p>
+    <div class="table"><table>
+      <thead><tr><th>Change</th><th>Where</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Every colour</td><td><code>:root</code> in <code>src/webview/styles.css</code>: <code>--amber</code>, <code>--cyan</code>, <code>--green</code>, <code>--red</code>, <code>--violet</code>, <code>--blue</code>, <code>--ink</code>, <code>--glass</code>, <code>--line</code></td><td>Gauges, pills and bells all read these tokens.</td></tr>
+        <tr><td>Fonts</td><td><code>--font</code> and <code>--mono</code> in <code>:root</code></td><td>Keep figures tabular so dial numbers don't jump.</td></tr>
+        <tr><td>Dashboard height</td><td><code>--dash-h</code></td><td>A phone has its own value under <code>@media (max-width: 860px)</code>.</td></tr>
+        <tr><td>A dial's colour, label or ticks</td><td>The <code>new Gauge({…})</code> lines at the top of <code>Cockpit</code> in <code>cockpit.ts</code></td><td><code>tone</code>, <code>label</code>, <code>ticks</code>; <code>needle: false</code> makes a digital ring.</td></tr>
+        <tr><td>Where red zones start</td><td><code>RED_ZONE_FROM</code> in <code>src/webview/ui/gauges.ts</code></td><td>75% today. A dial gets one with <code>zone: 'high'</code>, or <code>'low'</code> for a gauge that runs out.</td></tr>
+        <tr><td>Dial scales</td><td><code>AGENTS_FULL</code>, <code>TOOLS_FULL</code>, <code>changesDial()</code>, <code>issuesDial()</code> in <code>cockpit.ts</code></td><td>Eight agents, 30 tool calls a minute, 20 changed files at 75%, more than three issues at 75%.</td></tr>
+        <tr><td>Dial sizes</td><td><code>.cluster-left .gauge-svg</code>, <code>.gauge-small .gauge-svg</code></td><td>Sizes use <code>clamp()</code> with vh and vw, so they scale with the window.</td></tr>
+        <tr><td>Stop pill width and place</td><td><code>.stop-card</code></td><td>440 px at most, centred in the window.</td></tr>
+        <tr><td>Mirror and bell</td><td><code>.mirror-wrap</code>, <code>.alert-bell</code></td><td>The bell matches the Alerts tab's bell at 20 px.</td></tr>
+        <tr><td>Alert colours</td><td><code>.lit-blocking</code>, <code>.lit-moderate</code>, <code>.lit-general</code></td><td>Red, orange and blue. Keep their meanings.</td></tr>
+        <tr><td>The glovebox drawing</td><td><code>gloveboxArt()</code> in <code>src/webview/ui/icons.ts</code></td><td>An SVG on a 160 × 56 grid.</td></tr>
+        <tr><td>Which small gauges show</td><td>Settings › Display, on each screen; defaults in <code>DEFAULT_PREFS</code>, <code>src/core/protocol.ts</code></td><td>Context, Battery and Changes can be switched off.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="mid">
+    <span class="tier t-mid">An afternoon</span>
+    <h2>Bigger changes</h2>
+    <p class="intro">A few files each, plus the Cockpit Map's key and a test.</p>
+    <div class="table"><table>
+      <thead><tr><th>Change</th><th>Where</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Add or remove a dial</td><td>Make a <code>Gauge</code>, place it in <code>Cockpit</code>'s constructor, feed it in <code>update()</code></td><td>A new reading also goes in the snapshot: <code>src/core/protocol.ts</code> and <code>session.ts</code>.</td></tr>
+        <tr><td>Rearrange the dash</td><td>The <code>.dash</code> grid (three columns) and its phone layout</td><td>Phones stack: the three dials, the small gauges, the gear, then the screen.</td></tr>
+        <tr><td>Add a screen tab</td><td><code>TABS</code> and a pane in <code>cockpit.ts</code></td><td>The Alerts tab is a bell; the others are words.</td></tr>
+        <tr><td>Which alerts exist, and how loud</td><td><code>src/core/attention.ts</code>, <code>src/webview/ui/alerts.ts</code></td><td>Each kind gets a switch in Settings › Alerts.</td></tr>
+        <tr><td>What the stop pill says</td><td><code>updateStopCard()</code> in <code>cockpit.ts</code>; captions in <code>caption()</code>, <code>src/core/session.ts</code></td><td>The pill is the alert, then what resumes the drive.</td></tr>
+        <tr><td>The radio's look</td><td><code>src/webview/ui/radioDeck.ts</code>, <code>eqLights.ts</code></td><td>FM plays internet radio; CB lists the agents.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="deep">
+    <span class="tier t-deep">Days</span>
+    <h2>Deep changes</h2>
+    <p class="intro">These touch the engine, the footage or the whole layout. Plan them before you build.</p>
+    <div class="table"><table>
+      <thead><tr><th>Change</th><th>Where</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>A new cockpit layout</td><td>The composition in <code>Cockpit</code>'s constructor and the dash rules in <code>styles.css</code></td><td>Re-take every Cockpit Map screen. The browser tests find controls by role and label, so keep those.</td></tr>
+        <tr><td>What moves the car</td><td><code>src/core/activity.ts</code>, <code>motion.ts</code>, <code>moments.ts</code></td><td>Signals become moments, moments become driving. Write the wiring into <code>docs/signal-map.md</code>; tests check it against the code.</td></tr>
+        <tr><td>A photo car</td><td><code>cars/&lt;id&gt;/car.json</code> and its cockpit stills</td><td>Boxes for the mirrors, the dial centres, the cluster screen and the centre screen. The instruments drawn over video are being built.</td></tr>
+        <tr><td>A destination</td><td><code>packs/&lt;id&gt;/manifest.json</code></td><td>Route, waypoints, scenic stops with their place on the route (<code>at</code>), and the scene graph. Footage follows <code>docs/journey-video-standard.md</code>.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="centre">
+    <div class="callout">
+      <h3>One big centre screen?</h3>
+      <p>You can build it: move the dials into the centre screen and drop the side clusters. VibeTour's cockpit is deliberately the opposite. A screen off to the side pulls the driver's eyes away from the road on every glance, and that is the distraction this project exists to avoid. If you build one anyway, keep the stop pill and the bell on the windshield, in front of the driver.</p>
+    </div>
+  </section>
+
+  <section id="working">
+    <div class="eyebrow">Before you share</div>
+    <h2>Keep it working</h2>
+    <ul class="checks">
+      <li><code>npm run check</code>: types, unit tests and a build.</li>
+      <li><code>npm run test:e2e</code>: the browser tests, the demo driven like a person would.</li>
+      <li><code>npm run cockpit-map</code>: re-takes the Cockpit Map's pictures after a visual change. Its key lives in <code>tools/cockpit-map/states.mjs</code>.</li>
+      <li>Update <code>docs/signal-map.md</code> when the wiring changes. It's documentation, not configuration: editing it changes nothing in the app.</li>
+      <li>Check a phone width and Tour mode. A change that looks right on the dash can crowd the windshield.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>The <a href="vibetour-cockpit-map.html">Cockpit Map</a> shows every control on every screen. The <a href="https://github.com/davidsparrow/vibetour/blob/main/docs/signal-map.md">Signal Map</a> has the wiring behind them. Source: <a href="https://github.com/davidsparrow/vibetour">github.com/davidsparrow/vibetour</a>.</p>
+  </footer>
+</div>
+</body>
+</html>

@@ -27,6 +27,8 @@ export class RouteMap {
   private done?: SVGPolylineElement;
   private car?: SVGCircleElement;
   private halo?: SVGCircleElement;
+  /** The pack's scenic stops on the line, by name, where it places them. */
+  private stops = new Map<string, SVGElement>();
   private packId = '';
   private readonly caption: HTMLElement;
 
@@ -56,13 +58,24 @@ export class RouteMap {
         this.svg.append(s('text', { x: w.x * 100, y: w.y * 100 + (w.y > 0.85 ? -4 : 6.5), class: 'route-label', 'text-anchor': anchor }, w.name));
       }
     });
+    // Scenic stops, where the pack places them: a small diamond each, lit while the car is stopped there.
+    this.stops.clear();
+    for (const st of pack.scenicStops) {
+      if (typeof st.at !== 'number') continue;
+      const p = routePoint(pack, st.at);
+      const [x, y] = [p.x * 100, p.y * 100];
+      const mark = s('path', { d: `M${x.toFixed(1)} ${(y - 1.9).toFixed(1)}l1.9 1.9-1.9 1.9-1.9-1.9z`, class: 'route-stop' }, s('title', {}, st.name));
+      this.stops.set(st.name, mark);
+      this.svg.append(mark);
+    }
     this.halo = s('circle', { cx: 0, cy: 0, r: 5, class: 'route-halo' });
     this.car = s('circle', { cx: 0, cy: 0, r: 2.4, class: 'route-car' });
     this.svg.append(this.halo, this.car);
   }
 
-  update(pack: JourneyPack, progress: number, caption: string): void {
+  update(pack: JourneyPack, progress: number, caption: string, here?: string): void {
     if (pack.id !== this.packId) this.build(pack);
+    for (const [name, mark] of this.stops) mark.classList.toggle('here', name === here);
     const p = Math.max(0, Math.min(1, progress));
     const pos = routePoint(pack, p);
     this.car!.setAttribute('cx', (pos.x * 100).toFixed(2));

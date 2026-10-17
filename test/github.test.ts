@@ -91,6 +91,15 @@ describe('pull request answers', () => {
     expect(items[2]).toMatchObject({ ci: 'pending', crossRepo: true });
   });
 
+  it('reads the head commit\'s latest deployment, when there is one', () => {
+    const deploy = (state: string | null) => ({ commits: { nodes: [{ commit: { statusCheckRollup: { state: 'SUCCESS' }, deployments: { nodes: [{ environment: 'Preview', latestStatus: state ? { state } : null }] } } }] } });
+    const { items } = parsePullRequests(listAnswer([node(4, deploy('FAILURE')), node(3, deploy('SUCCESS')), node(2, deploy(null)), node(1)]).data);
+    expect(items[0]).toMatchObject({ ci: 'passing', deploy: 'failing', deployEnv: 'Preview' });
+    expect(items[1]).toMatchObject({ deploy: 'ok' });
+    expect(items[2]).toMatchObject({ deploy: 'pending' });
+    expect(items[3].deploy).toBeUndefined();
+  });
+
   it('compares each branch with its base in one query, forks aside', () => {
     const items = [pr(9), pr(8, { branch: 'fix/"quoted"' }), pr(7, { crossRepo: true })];
     const { query, variables, aliases } = compareQuery(items);

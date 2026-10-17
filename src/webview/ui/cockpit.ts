@@ -36,8 +36,6 @@ export class Cockpit {
   readonly root: HTMLElement;
   /** What just happened, newest first: in the Console tab now the rear-view mirror is gone. */
   private readonly recent = h('ul', { class: 'recent-list', 'aria-label': 'Recent' });
-  /** The windshield's one line, shown only when there's news: a stop, a tunnel, a town, departing, arriving. */
-  private readonly hudCaption = h('div', { class: 'hud-caption', 'aria-hidden': 'true' });
   /** Why the car stopped, as one pill: the alert that stopped it, and what resumes the drive. */
   private readonly stopCard = h('div', { class: 'stop-card', role: 'status' });
   /** The Alerts icon on the rear-view mirror's top-right corner: lit by the loudest alert, opens the Alerts tab. */
@@ -144,9 +142,7 @@ export class Cockpit {
       h('div', { class: 'frame', 'aria-hidden': 'true' }, h('div', { class: 'roof' }), h('div', { class: 'pillar left' }), h('div', { class: 'pillar right' })),
       // The rear-view mirror is just a mirror now; its only display is the Alerts bell on its corner.
       h('div', { class: 'mirror-wrap' }, h('div', { class: 'mirror', 'aria-hidden': 'true' }, h('div', { class: 'mirror-glass' })), this.topBell),
-      // The HUD repeats what the screen reader already hears: the place, at a named stop.
-      // Nothing else sits on the windshield's lower edge, in any mode.
-      h('div', { class: 'hud', 'aria-hidden': 'true' }, this.hudCaption),
+      // Nothing sits on the windshield's lower edge, in any mode: places are named on signs outside and on the Nav screen.
       this.stopCard,
       dash,
       this.work,
@@ -220,10 +216,6 @@ export class Cockpit {
       this.recent.append(h('li', { class: `tone-${item.tone}` }, h('span', {}, item.label), h('time', {}, timeAgo(item.at, now))));
     }
     if (!snap.ide.history.length) this.recent.append(h('li', { class: 'empty' }, 'Open road behind you'));
-
-    // HUD: the place, only while the car is stopped somewhere with a name. Clear the rest of the time.
-    text(this.hudCaption, snap.motion.windshield);
-    this.hudCaption.hidden = !snap.motion.windshield;
 
     this.updateAlerts(snap);
     this.updateStopCard(snap, pack);
@@ -450,19 +442,21 @@ export class Cockpit {
       );
       return;
     }
-    this.map.update(pack, j.scope === 'free-drive' ? (j.travelMs / 3_600_000) % 1 : j.progress, `${pack.route.from} → ${pack.route.to}`);
+    const here = stoppedAt(snap);
+    this.map.update(pack, j.scope === 'free-drive' ? (j.travelMs / 3_600_000) % 1 : j.progress, `${pack.route.from} → ${pack.route.to}`, here);
     const capped = j.progress >= APPROACH_CAP - 0.001 && j.phase === 'extended';
     const canArrive = j.phase !== 'arrived' && j.phase !== 'staying' && j.phase !== 'final-approach' && j.phase !== 'parked';
     const percent = j.scope === 'free-drive' ? -1 : Math.round(j.progress * 100);
-    const key = [pack.id, j.location.label, j.scene.label, j.scopeLabel, percent, j.objective ?? '', capped, canArrive].join('\n');
-    renderKeyed(this.navInfo, key, () => this.renderNav(j, pack, capped, canArrive));
+    const key = [pack.id, j.location.label, j.scene.label, j.scopeLabel, percent, j.objective ?? '', capped, canArrive, here ?? ''].join('\n');
+    renderKeyed(this.navInfo, key, () => this.renderNav(j, pack, capped, canArrive, here));
   }
 
-  private renderNav(j: NonNullable<TourSnapshot['journey']>, pack: JourneyPack, capped: boolean, canArrive: boolean): void {
+  private renderNav(j: NonNullable<TourSnapshot['journey']>, pack: JourneyPack, capped: boolean, canArrive: boolean, here?: string): void {
+    // At a scenic stop, its name; otherwise where, and the scene, unless they say the same thing ("Leaving Monterey" twice at the start).
+    const where = here ? `Stopped at ${here}` : j.scene.label === j.location.label ? j.location.label : `${j.location.label} · ${j.scene.label}`;
     this.navInfo.append(
       h('div', { class: 'nav-route' }, h('strong', {}, pack.title), h('span', {}, ` · ${pack.route.name}`)),
-      // Where, and the scene, unless they say the same thing ("Leaving Monterey" twice at the start).
-      h('div', { class: 'nav-loc' }, j.scene.label === j.location.label ? j.location.label : `${j.location.label} · ${j.scene.label}`),
+      h('div', { class: 'nav-loc' }, where),
       h(
         'div',
         { class: 'nav-meta' },
@@ -561,12 +555,18 @@ export class Cockpit {
     clear(jp);
     const j = snap.journey;
     if (j && pack) {
-      this.workMap.update(pack, j.progress, `${pack.route.from} → ${pack.route.to}`);
+      this.workMap.update(pack, j.progress, `${pack.route.from} → ${pack.route.to}`, stoppedAt(snap));
       jp.append(h('div', { class: 'kv' }, h('span', {}, j.location.label), h('strong', {}, snap.motion.caption)));
     } else {
       jp.append(h('p', { class: 'muted' }, 'No journey in progress.'));
     }
   }
+}
+
+/** The scenic stop the car is stopped at, by name; undefined between stops, while refuelling and on the road. */
+export function stoppedAt(snap: Pick<TourSnapshot, 'motion'>): string | undefined {
+  const m = snap.motion;
+  return m.stopped && m.behavior === 'scenic-stop' && m.stopReason !== 'refuel' ? m.stopName : undefined;
 }
 
 /** The Agents dial runs to eight at full scale, so six at once reach its red zone (75%). */

@@ -21,7 +21,8 @@ All three share one procedural Three.js renderer and one activity/journey engine
 ## Journeys: how they work and how to make one
 
 - **[Signal Map](docs/signal-map.md):** every signal VibeTour listens to, the moment it becomes, and what the car, the journey and each instrument do about it.
-- **[Controls Map](docs/site/controls-map.html):** every control on the dashboard, screen by screen: numbered pictures with a key saying what feeds each one and what a click or a key does. `npm run controls-map` re-makes it after a UI change.
+- **[Cockpit Map](docs/site/vibetour-cockpit-map.html):** every control on the dashboard, screen by screen: numbered pictures with a key saying what feeds each one and what a click or a key does. `npm run cockpit-map` re-makes it after a UI change.
+- **[Cockpit Customization Guide](docs/site/vibetour-cockpit-guide.html):** the design rules behind the cockpit, and where to change each part, from quick visual wins to deep rebuilds.
 - **[Journey Packs](docs/journey-packs.md):** what a pack contains (route, scene graph, scenic stops, variants, provenance) and how to write one. Today's packs are procedural.
 - **[Journey Video Standard](docs/journey-video-standard.md)** (proposed, draft 0.2): how to make a video pack, so creators can build their own journeys and one day sell them. It covers:
   - the three layers: footage plates, a cockpit that steers with the road, and the instruments
@@ -97,7 +98,7 @@ Not in the standard yet:
   - Performance: 30/60 FPS, low-GPU mode, automatic GPU throttling, and no rendering while hidden.
   - Sound: a procedural soundscape (engine, road, wind, rain, ambience, generative Focus Mix) with independent volumes.
 - **A car radio.** The dashboard's Radio tab (`R`) has two bands. **FM** plays internet radio: curated [SomaFM](https://somafm.com/support/) presets, stations near where you're driving, and a search of the [Radio Browser](https://www.radio-browser.info/) directory. It has power, volume, six presets (hold one to save), bass, treble, fader, balance, surround and stereo mix, and equalizer lights that move with the music. **CB** lists your agents.
-- **Private by design.** VibeTour reads metadata only (event types, file names, counts, exit codes), never source code. Nothing leaves your machine, except the internet radio you choose to play and, if you connect GitHub for the PRs tab, a request for the repository's open pull requests (numbers, titles, branches, CI, review and merge state; no code). Radio searches and streams go out from VS Code or the CLI, never from the tour page; turn the radio off with `vibetour.radio.enabled` or `--no-radio`. Streaming Mode removes file names, paths, branches, PR titles, commands and messages at the source.
+- **Private by design.** VibeTour reads metadata only (event types, file names, counts, exit codes), never source code. Nothing leaves your machine, except the internet radio you choose to play and, if you connect GitHub for the PRs tab, a request for the repository's open pull requests (numbers, titles, branches, CI, latest deployment status, review and merge state; no code). Radio searches and streams go out from VS Code or the CLI, never from the tour page; turn the radio off with `vibetour.radio.enabled` or `--no-radio`. Streaming Mode removes file names, paths, branches, PR titles, commands and messages at the source.
 
 ## Try it
 
