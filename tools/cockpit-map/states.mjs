@@ -1,4 +1,4 @@
-// The screens of the Controls Map: how to reach each one, and the key for its controls.
+// The screens of the Cockpit Map: how to reach each one, and the key for its controls.
 // `sel` is plain CSS for the control to number (the first match). In `name`, `fed`
 // and `click`, `X` is a key cap and *word* is italic. The key's order is the order
 // of the numbers on the picture, roughly reading order.

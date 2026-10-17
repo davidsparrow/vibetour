@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>VibeTour Controls Map</title>
+<title>VibeTour Cockpit Map</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: an owner's manual for the cockpit. One picture per screen, numbered callouts on it, the key right under it. */
@@ -66,9 +66,9 @@ code{font-family:var(--mono);font-size:.85em}
 <div class="wrap">
   <header>
     <div class="brand">VibeTour</div>
-    <h1>Controls Map</h1>
+    <h1>Cockpit Map</h1>
     <p class="lede">Every control on the dashboard, screen by screen. The numbers on each picture match its key: what feeds the control, and what a click or a key does.</p>
-    <div class="meta"><span>Made 2026-10-17</span><span>1280 × 760, 2× pixels</span><span>Re-make: npm run controls-map</span></div>
+    <div class="meta"><span>Made 2026-10-17</span><span>1280 × 760, 2× pixels</span><span>Re-make: npm run cockpit-map</span></div>
   </header>
   <nav aria-label="Screens">
     <a href="#dash">Dashboard</a>
@@ -319,8 +319,9 @@ code{font-family:var(--mono);font-size:.85em}
     </ol>
   </section>
   <footer>
+    <p>The <a href="vibetour-cockpit-guide.html">Cockpit Customization Guide</a> has the design rules behind these controls and where to change each one.</p>
     <p>The <a href="https://github.com/davidsparrow/vibetour/blob/main/docs/signal-map.md">Signal Map</a> has the wiring behind these controls: every signal VibeTour listens to, the moment it becomes, and what that moment does to each object.</p>
-    <p>Pictures come from the browser demo, which plays a scripted coding session. Behind the glass is a still from the California Coast footage, in place of the live scene the app draws today. The FM radio picture comes from the CLI companion, playing a real station. Made by <code>tools/controls-map/</code>.</p>
+    <p>Pictures come from the browser demo, which plays a scripted coding session. Behind the glass is a still from the California Coast footage, in place of the live scene the app draws today. The FM radio picture comes from the CLI companion, playing a real station. Made by <code>tools/cockpit-map/</code>.</p>
   </footer>
 </div>
 </body>

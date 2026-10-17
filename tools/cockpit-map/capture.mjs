@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// Makes the Controls Map: sets each dashboard state, numbers its controls, takes a
-// screenshot, and writes docs/site/controls-map.html with a key under each picture.
+// Makes the Cockpit Map: sets each dashboard state, numbers its controls, takes a
+// screenshot, and writes docs/site/vibetour-cockpit-map.html with a key under each picture.
 //
-//   npm run controls-map                 # builds first, then this script
-//   node tools/controls-map/capture.mjs [--fragment <file>] [--no-radio] [--only <id,id>]
+//   npm run cockpit-map                 # builds first, then this script
+//   node tools/cockpit-map/capture.mjs [--fragment <file>] [--no-radio] [--only <id,id>]
 //
 // --fragment also writes the page without its <html>/<head>/<body> wrapper, for
 // publishing as a shareable page. --no-radio skips the FM picture, which needs the
@@ -19,14 +19,14 @@ import { STATES } from './states.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const IMG_DIR = join(ROOT, 'docs/site/images/controls');
-const PAGE = join(ROOT, 'docs/site/controls-map.html');
+const PAGE = join(ROOT, 'docs/site/vibetour-cockpit-map.html');
 const VIEW = { width: 1280, height: 760 };
 /** Close-ups of the screen: a taller window gives the dash, and so the screen, its full height. */
 const CLOSE_VIEW = { width: 1280, height: 980 };
 const CLOSE_PAD = { x: 120, y: 18 };
 const DEMO_PORT = 5183;
 /** A still from the California Coast footage, shown behind the dashboard in place of the live 3D scene. */
-const BACKDROP = `data:image/jpeg;base64,${readFileSync(join(ROOT, 'tools/controls-map/backdrop.jpg')).toString('base64')}`;
+const BACKDROP = `data:image/jpeg;base64,${readFileSync(join(ROOT, 'tools/cockpit-map/backdrop.jpg')).toString('base64')}`;
 
 const args = process.argv.slice(2);
 const flag = (name) => args.includes(name);
@@ -54,7 +54,7 @@ async function startCompanion() {
   const project = mkdtempSync(join(tmpdir(), 'vibetour-map-project-'));
   const home = mkdtempSync(join(tmpdir(), 'vibetour-map-home-'));
   spawnSync('git', ['init', '-q', '-b', 'main'], { cwd: project });
-  writeFileSync(join(project, 'README.md'), '# Controls map\n');
+  writeFileSync(join(project, 'README.md'), '# Cockpit map\n');
   const child = spawn(process.execPath, [join(ROOT, 'dist/cli.js'), project, '--port', '0', '--no-open'], { env: { ...process.env, VIBETOUR_HOME: home } });
   const url = await new Promise((ok, fail) => {
     let out = '';
