@@ -412,6 +412,16 @@ Round 3 (17 October; mocks 64–68, script `docs/sample-videos/photo-car-mock/mo
   (`docs/site/vibetour-cockpit-guide.html`, shared at https://claude.ai/artifact/6Xq9NCpVPQce2ztQFL2EPc). The user dislikes
   single-centre-screen (Tesla-style) cockpits: the guide says so.
 
+Round 4 (17 October; mocks 69–71, `mock4.mjs`):
+- HUD dial panel glass darker and more saturated (navy, about 80% opaque, blur 18 px, saturate 1.4): every dial
+  readable over the bright coast.
+- Cluster display, top to bottom: the GitHub repo path (wraps to two lines, then ends in "…"), the lamps under it with
+  no rule between, then the smaller Context dial (32 px at 1280) and the gear, with CONTEXT and BUILD / EDIT at the
+  very bottom.
+- License opens the connected agent's account page (Claude account settings for Claude Code); Registration opens
+  VS Code's About. The user agreed.
+- PR #17 merges when the user approves these mocks.
+
 ## Dashboard round 3 (the user's list, 16 October): PR #16, merged
 
 From the Controls Map. Review images: `docs/sample-videos/review/45-round3-dash-moving.png`, `46-round3-stopped.png`,
