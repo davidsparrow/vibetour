@@ -322,26 +322,6 @@ body {
   background: var(--cyan);
 }
 
-/* -------------------------------------------------------------------- HUD */
-
-.hud {
-  position: absolute;
-  left: 50%;
-  bottom: calc(var(--dash-h) + 3.5vh);
-  transform: translateX(-50%);
-  text-align: center;
-  width: min(760px, 92vw);
-  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.6);
-  transition: bottom 0.5s ease, opacity 0.4s;
-}
-.mode-tour .hud {
-  bottom: 56px;
-}
-/* One line, only while the car is stopped somewhere with a name: the place. */
-.hud-caption {
-  font-size: 1.32em;
-  font-weight: 500;
-}
 /* Alert pills: one glowing pill per thing that needs you, coloured by how loud it is. */
 .alert {
   --tone: 111, 211, 255;
@@ -412,10 +392,6 @@ button.alert:focus-visible {
 .high-contrast .alert {
   background: var(--glass-strong);
   border-width: 2px;
-}
-.mode-work .hud,
-.overlay-open .hud {
-  opacity: 0;
 }
 
 /* --------------------------------------------------------------- stop card */
@@ -514,9 +490,6 @@ button.alert:focus-visible {
   transform: none;
   opacity: 1;
   pointer-events: auto;
-}
-.mode-tour .car-stopped .hud {
-  bottom: calc(var(--dash-h) + 3.5vh);
 }
 .cluster {
   display: flex;
@@ -1143,6 +1116,16 @@ button.pr-row:hover {
 }
 .route-dest {
   fill: var(--amber);
+}
+/* A scenic stop on the route: a small diamond, lit while the car is stopped there. */
+.route-stop {
+  fill: rgba(123, 224, 160, 0.55);
+  stroke: rgba(8, 10, 14, 0.8);
+  stroke-width: 0.4;
+}
+.route-stop.here {
+  fill: var(--green);
+  filter: drop-shadow(0 0 1.6px var(--green));
 }
 .route-car {
   fill: #fff;
@@ -2591,16 +2574,10 @@ button.problem:hover {
 .high-contrast .gauge-value {
   stroke-width: 8;
 }
-.high-contrast .hud,
 .high-contrast .alert-bell,
 .high-contrast .mirror,
 .high-contrast .screen {
   background: #000;
-}
-.high-contrast .hud {
-  padding: 8px 12px;
-  border: 1px solid #fff;
-  border-radius: 12px;
 }
 
 .reduced-motion *,
@@ -2704,9 +2681,6 @@ button.problem:hover {
   .mini-gauges[data-count] .gauge-label {
     font-size: 0.6em;
     letter-spacing: 0.06em;
-  }
-  .mode-tour .hud {
-    bottom: 40px;
   }
   .topbar {
     left: 14px;

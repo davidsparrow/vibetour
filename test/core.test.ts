@@ -3,6 +3,7 @@ import { ActivityEngine } from '../src/core/activity';
 import { fileRef } from '../src/core/events';
 import { APPROACH_CAP, JourneyEngine } from '../src/core/journey';
 import { MotionController } from '../src/core/motion';
+import { placesStops, stopAt } from '../src/core/packs';
 import { KEYS } from '../src/core/session';
 import { WorkspaceTracker } from '../src/core/workspace';
 import { BUILTIN_PACKS } from '../src/packs';
@@ -209,20 +210,15 @@ describe('JourneyEngine', () => {
     expect(j.record.progress).toBeGreaterThan(0);
   });
 
-  it('names the town the car is in, only close to it', () => {
-    const j = JourneyEngine.create(coast, { id: 'j', scope: 'day-trip', now: 0, seed: 3 });
-    // Carmel-by-the-Sea is at 12% of the coast route, Point Lobos at 25%.
-    const at = (p: number) => {
-      j.record.progress = p;
-      return j.town();
-    };
-    expect(at(0.005)).toBe('Monterey');
-    expect(at(0.06)).toBeUndefined();
-    expect(at(0.1)).toBe('Carmel-by-the-Sea');
-    expect(at(0.14)).toBe('Carmel-by-the-Sea');
-    expect(at(0.15)).toBeUndefined();
-    expect(at(0.24)).toBe('Point Lobos');
-    expect(at(0.99)).toBe('Big Sur');
+  it('names a scenic stop only where the pack places it', () => {
+    // The coast pack places its stops: Bixby Creek Overlook at 54%, nothing near Monterey.
+    expect(placesStops(coast)).toBe(true);
+    expect(stopAt(coast, 0.545)?.name).toBe('Bixby Creek Overlook');
+    expect(stopAt(coast, 0.3)?.name).toBe('a Carmel Highlands gas station');
+    expect(stopAt(coast, 0.05)).toBeUndefined();
+    expect(stopAt(coast, 0.6)).toBeUndefined();
+    // A pack without positions keeps picking a name.
+    expect(placesStops({ ...coast, scenicStops: [{ name: 'Somewhere', kind: 'viewpoint' }] })).toBe(false);
   });
 
   it('walks the scene graph in order from departure', () => {
@@ -254,17 +250,13 @@ describe('VibeTourSession', () => {
     expect(s.journey?.phase).toBe('departing');
     expect(s.motion.stopped).toBe(false);
     expect(s.activity.gear).toBe('D');
-    // The windshield stays clear while the car moves, even departing.
     expect(s.motion.caption).toBe('Departing Monterey');
-    expect(s.motion.windshield).toBe('');
 
     emit({ type: 'process.start', id: 'p1', kind: 'test', label: 'npm test' });
     clock.advance(6_000);
     s = session.latestSnapshot!;
     expect(s.activity.state).toBe('VERIFYING');
     expect(s.motion.behavior).toBe('checkpoint');
-    // A checkpoint, tunnel or not, leaves the windshield clear: the car is still moving.
-    expect(s.motion.windshield).toBe('');
 
     emit({ type: 'process.end', id: 'p1', kind: 'test', label: 'npm test', exitCode: 0 });
     clock.advance(20_000);
@@ -273,10 +265,10 @@ describe('VibeTourSession', () => {
     s = session.latestSnapshot!;
     expect(s.motion.behavior).toBe('scenic-stop');
     expect(s.motion.caption).toMatch(/Claude is waiting for you/);
-    expect(s.motion.stopName).toBeTruthy();
-    // Stopped near the start: the windshield names the town the car is in.
-    expect(s.journey!.progress).toBeLessThan(0.025);
-    expect(s.motion.windshield).toBe('Monterey');
+    // Near Monterey, between the pack's stops: an unnamed turnout.
+    expect(s.journey!.progress).toBeLessThan(0.05);
+    expect(s.motion.stopName).toBeUndefined();
+    expect(s.motion.caption).toMatch(/^Scenic stop at a turnout — /);
     expect(s.activity.gear).toBe('P');
 
     emit({ type: 'agent', agentId: 'claude:1', name: 'Claude', status: 'working' });
@@ -288,7 +280,6 @@ describe('VibeTourSession', () => {
     s = session.latestSnapshot!;
     expect(s.journey?.phase).toBe('arrived');
     expect(s.motion.behavior).toBe('arrived');
-    expect(s.motion.windshield).toBe('Arrived in Big Sur');
     expect(s.activity.state).toBe('COMPLETE');
 
     const catalog = session.catalog();
@@ -406,8 +397,6 @@ describe('VibeTourSession', () => {
     const snap = () => session.latestSnapshot!;
     expect(snap().motion).toMatchObject({ behavior: 'scenic-stop', stopped: true, stopReason: 'refuel', stopName: 'a Carmel Highlands gas station' });
     expect(snap().motion.caption).toBe('Refuelling at a Carmel Highlands gas station — then Monterey to Big Sur again');
-    // The stop card names the station; the windshield doesn't repeat it.
-    expect(snap().motion.windshield).toBe('');
 
     // Typing doesn't cut the stop short; after it, the car departs and the journey moves.
     type();
@@ -417,42 +406,21 @@ describe('VibeTourSession', () => {
     clock.advance(10_000, 1_000);
     expect(snap().motion.stopped).toBe(false);
     expect(snap().motion.caption).toBe('Departing Monterey');
-    expect(snap().motion.windshield).toBe('');
     expect(session.catalog().stamps).toHaveLength(1);
   });
 
-  it('keeps the windshield clear whenever the car moves', () => {
+  it('stops at the scenic stop where the car is, by name', () => {
     const { session, clock, emit, type } = makeSession();
-    session.startJourney('california-coast', 'day-trip');
-    emit({ type: 'agent', agentId: 'claude:1', name: 'Claude', status: 'working' });
-    let moving = 0;
-    for (let i = 0; i < 40; i++) {
-      type();
-      emit({ type: 'agent', agentId: 'claude:1', name: 'Claude', status: 'working' });
-      clock.advance(30_000, 1_000);
-      const m = session.latestSnapshot!.motion;
-      if (m.stopped) continue;
-      moving++;
-      expect(m.windshield).toBe('');
-    }
-    expect(moving).toBeGreaterThan(10);
-  });
-
-  it('names where the car is parked only in a town on the route', () => {
-    const { session, clock, type } = makeSession();
     session.startJourney('california-coast', 'day-trip');
     type();
     clock.advance(5_000);
-    const park = (progress: number) => {
-      session.activeJourney!.progress = progress;
-      session.park();
-      clock.advance(1_000);
-      const line = session.latestSnapshot!.motion.windshield;
-      session.resume();
-      return line;
-    };
-    expect(park(0.12)).toBe('Carmel-by-the-Sea');
-    expect(park(0.3)).toBe('');
+    session.activeJourney!.progress = 0.545;
+    emit({ type: 'agent', agentId: 'claude:1', name: 'Claude', status: 'waiting', ask: 'question', detail: 'Has a question for you' });
+    clock.advance(25_000, 1_000);
+    const m = session.latestSnapshot!.motion;
+    expect(m.behavior).toBe('scenic-stop');
+    expect(m.stopName).toBe('Bixby Creek Overlook');
+    expect(m.caption).toBe('Scenic stop at Bixby Creek Overlook — Claude has a question for you');
   });
 
 

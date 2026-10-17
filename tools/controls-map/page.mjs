@@ -106,7 +106,7 @@ ${states.map((s) => `    <a href="#${esc(s.id)}">${esc(s.short ?? s.title)}</a>`
 ${states.map(section).join('\n')}
   <footer>
     <p>The <a href="https://github.com/davidsparrow/vibetour/blob/main/docs/signal-map.md">Signal Map</a> has the wiring behind these controls: every signal VibeTour listens to, the moment it becomes, and what that moment does to each object.</p>
-    <p>Pictures come from the browser demo, which plays a scripted coding session. The FM radio picture comes from the CLI companion, playing a real station. Made by <code>tools/controls-map/</code>.</p>
+    <p>Pictures come from the browser demo, which plays a scripted coding session. Behind the glass is a still from the California Coast footage, in place of the live scene the app draws today. The FM radio picture comes from the CLI companion, playing a real station. Made by <code>tools/controls-map/</code>.</p>
   </footer>
 </div>`;
   if (!wrap) return `${head}\n${body}\n`;

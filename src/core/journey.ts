@@ -102,8 +102,6 @@ export interface LocationInfo {
 }
 
 const MAX_FILES = 2_000;
-/** How close to a town on the route the car counts as in it, either side, for the windshield at a stop. */
-export const IN_TOWN = 0.025;
 
 export class JourneyEngine {
   constructor(
@@ -294,15 +292,5 @@ export class JourneyEngine {
     else if (next && next.at - p < 0.07) label = `Approaching ${next.name}`;
     else label = `Near ${wps[idx].name}`;
     return { label, waypointIndex: idx, next: next?.name };
-  }
-
-  /**
-   * The town on the route the car is in, if any: within IN_TOWN of a waypoint, either side.
-   * The windshield names it when the car stops there. Undefined on a free drive.
-   */
-  town(): string | undefined {
-    if (this.isFreeDrive) return undefined;
-    const p = this.record.progress;
-    return this.pack.route.waypoints.find((w) => Math.abs(w.at - p) < IN_TOWN)?.name;
   }
 }

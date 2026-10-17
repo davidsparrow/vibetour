@@ -68,7 +68,7 @@ code{font-family:var(--mono);font-size:.85em}
     <div class="brand">VibeTour</div>
     <h1>Controls Map</h1>
     <p class="lede">Every control on the dashboard, screen by screen. The numbers on each picture match its key: what feeds the control, and what a click or a key does.</p>
-    <div class="meta"><span>Made 2026-10-16</span><span>1280 × 760, 2× pixels</span><span>Re-make: npm run controls-map</span></div>
+    <div class="meta"><span>Made 2026-10-17</span><span>1280 × 760, 2× pixels</span><span>Re-make: npm run controls-map</span></div>
   </header>
   <nav aria-label="Screens">
     <a href="#dash">Dashboard</a>
@@ -88,9 +88,9 @@ code{font-family:var(--mono);font-size:.85em}
   <section id="dash">
     <div class="eyebrow">Dashboard</div>
     <h2>The dashboard</h2>
-    <p class="intro">Dash mode, while you code and an agent works. The windshield stays clear while the car drives. Press <kbd>D</kbd> from anywhere to come here.</p>
+    <p class="intro">Dash mode, while you code and an agent works. Nothing sits on the windshield. Press <kbd>D</kbd> from anywhere to come here.</p>
     <figure>
-      <a class="zoom" href="images/controls/dash.png" target="_blank" rel="noopener"><img src="images/controls/dash.png" alt="The dashboard: the VibeTour dashboard with its controls numbered" width="2560" height="1520" loading="lazy"></a>
+      <a class="zoom" href="images/controls/dash.jpg" target="_blank" rel="noopener"><img src="images/controls/dash.jpg" alt="The dashboard: the VibeTour dashboard with its controls numbered" width="2560" height="1520" loading="lazy"></a>
       <figcaption>Demo display, 1280 × 760 at twice the pixels. Open the picture for full size.</figcaption>
     </figure>
     <div class="head" aria-hidden="true"><span></span><span>Control</span><span>Fed by</span><span>Click or key</span></div>
@@ -118,18 +118,17 @@ code{font-family:var(--mono);font-size:.85em}
   <section id="stopped">
     <div class="eyebrow">Dashboard</div>
     <h2>Stopped for you</h2>
-    <p class="intro">Your agent asked a question, so the car pulled into a scenic stop. It drives on when you answer.</p>
+    <p class="intro">Your agent asked a question, so the car pulled over at once, here at a turnout just out of Monterey. At one of the journey’s scenic stops the Nav screen names it. It drives on when you answer.</p>
     <figure>
-      <a class="zoom" href="images/controls/stopped.png" target="_blank" rel="noopener"><img src="images/controls/stopped.png" alt="Stopped for you: the VibeTour dashboard with its controls numbered" width="2560" height="1520" loading="lazy"></a>
+      <a class="zoom" href="images/controls/stopped.jpg" target="_blank" rel="noopener"><img src="images/controls/stopped.jpg" alt="Stopped for you: the VibeTour dashboard with its controls numbered" width="2560" height="1520" loading="lazy"></a>
       <figcaption>Demo display, 1280 × 760 at twice the pixels. Open the picture for full size.</figcaption>
     </figure>
     <div class="head" aria-hidden="true"><span></span><span>Control</span><span>Fed by</span><span>Click or key</span></div>
     <ol class="key">
       <li><span class="n">1</span><span class="c">Alerts bell</span><span class="f">The loudest alert: <em>red</em> when something stopped the car, <em>orange</em> when something needs you, <em>blue</em> for files not yet committed. Dark when there is nothing.</span><span class="k">Opens the dashboard on the Alerts tab.</span></li>
       <li><span class="n">2</span><span class="c">Stop pill</span><span class="f">Why the car stopped, coloured like the bells, and what resumes the drive: a question, a plan or approval, an agent that stopped, a failing build, your turn, a breather, refuelling, or parked. A long message wraps and the pill grows taller.</span><span class="k">Takes you where you act: the agent's terminal (else the editor), the PR on GitHub, or Problems. When parked, <em>Resume journey</em> sits under it.</span></li>
-      <li><span class="n">3</span><span class="c">Windshield line</span><span class="f">The town or landmark the car stopped in, if it stopped in one. The pill above says why.</span><span class="k">Nothing to press.</span></li>
-      <li><span class="n">4</span><span class="c">Stop pins</span><span class="f">Activity reads 0 while stopped. Each dial on the left leaves a white pin where its needle stood when the car stopped, until the drive resumes.</span><span class="k">Nothing to press.</span></li>
-      <li><span class="n">5</span><span class="c">Gear</span><span class="f"><em>P</em> while stopped.</span><span class="k">Nothing to press.</span></li>
+      <li><span class="n">3</span><span class="c">Stop pins</span><span class="f">Activity reads 0 while stopped. Each dial on the left leaves a white pin where its needle stood when the car stopped, until the drive resumes.</span><span class="k">Nothing to press.</span></li>
+      <li><span class="n">4</span><span class="c">Gear</span><span class="f"><em>P</em> while stopped.</span><span class="k">Nothing to press.</span></li>
     </ol>
   </section>
   <section id="nav">
@@ -143,11 +142,12 @@ code{font-family:var(--mono);font-size:.85em}
     <div class="head" aria-hidden="true"><span></span><span>Control</span><span>Fed by</span><span>Click or key</span></div>
     <ol class="key">
       <li><span class="n">1</span><span class="c">Route map</span><span class="f">The journey’s route, its towns, and the car on it.</span><span class="k">Nothing to press.</span></li>
-      <li><span class="n">2</span><span class="c">Route</span><span class="f">The journey pack and its road.</span><span class="k">Nothing to press.</span></li>
-      <li><span class="n">3</span><span class="c">Where you are</span><span class="f">The town you are near, and the scene outside.</span><span class="k">Nothing to press.</span></li>
-      <li><span class="n">4</span><span class="c">Trip and progress</span><span class="f">The trip length you picked (Coffee Run to Expedition) and how far along you are.</span><span class="k">Nothing to press.</span></li>
-      <li><span class="n">5</span><span class="c">Objective</span><span class="f">What you said you would get done, on your ticket.</span><span class="k">Nothing to press.</span></li>
-      <li><span class="n">6</span><span class="c">Arrive</span><span class="f">Shown until you arrive.</span><span class="k">Marks the objective done: the car takes the final approach and arrives, and you get a stamp. Key <kbd>A</kbd>.</span></li>
+      <li><span class="n">2</span><span class="c">Scenic stops</span><span class="f">Where the journey’s scenic stops are on the route (green diamonds). The one the car is stopped at lights up.</span><span class="k">Nothing to press.</span></li>
+      <li><span class="n">3</span><span class="c">Route</span><span class="f">The journey pack and its road.</span><span class="k">Nothing to press.</span></li>
+      <li><span class="n">4</span><span class="c">Where you are</span><span class="f">The town you are near, and the scene outside. At a scenic stop, its name: <em>Stopped at Bixby Creek Overlook</em>.</span><span class="k">Nothing to press.</span></li>
+      <li><span class="n">5</span><span class="c">Trip and progress</span><span class="f">The trip length you picked (Coffee Run to Expedition) and how far along you are.</span><span class="k">Nothing to press.</span></li>
+      <li><span class="n">6</span><span class="c">Objective</span><span class="f">What you said you would get done, on your ticket.</span><span class="k">Nothing to press.</span></li>
+      <li><span class="n">7</span><span class="c">Arrive</span><span class="f">Shown until you arrive.</span><span class="k">Marks the objective done: the car takes the final approach and arrives, and you get a stamp. Key <kbd>A</kbd>.</span></li>
     </ol>
   </section>
   <section id="radio-fm">
@@ -289,9 +289,9 @@ code{font-family:var(--mono);font-size:.85em}
   <section id="tour">
     <div class="eyebrow">Mode</div>
     <h2>Tour mode</h2>
-    <p class="intro">The view and nothing in front of it: no dashboard, no strip, and no windshield line while the car drives. When the car stops, the dashboard comes up with the stop pill and the place, and goes again when the drive resumes. The top bar shows when you move the mouse and fades after a few seconds. Press <kbd>T</kbd>.</p>
+    <p class="intro">The view and nothing in front of it: no dashboard, no strip and no windshield line while the car drives. When the car stops, the dashboard comes up with the stop pill, and goes again when the drive resumes. The top bar shows when you move the mouse and fades after a few seconds. Press <kbd>T</kbd>.</p>
     <figure>
-      <a class="zoom" href="images/controls/tour.png" target="_blank" rel="noopener"><img src="images/controls/tour.png" alt="Tour mode: the VibeTour dashboard with its controls numbered" width="2560" height="1520" loading="lazy"></a>
+      <a class="zoom" href="images/controls/tour.jpg" target="_blank" rel="noopener"><img src="images/controls/tour.jpg" alt="Tour mode: the VibeTour dashboard with its controls numbered" width="2560" height="1520" loading="lazy"></a>
       <figcaption>Demo display, 1280 × 760 at twice the pixels. Open the picture for full size.</figcaption>
     </figure>
     <div class="head" aria-hidden="true"><span></span><span>Control</span><span>Fed by</span><span>Click or key</span></div>
@@ -305,7 +305,7 @@ code{font-family:var(--mono);font-size:.85em}
     <h2>Work mode</h2>
     <p class="intro">Your work in panels over a blurred view. In VS Code, Work mode takes you back to the editor instead, so these panels show on a Companion Display and in the browser. Press <kbd>W</kbd>.</p>
     <figure>
-      <a class="zoom" href="images/controls/work.png" target="_blank" rel="noopener"><img src="images/controls/work.png" alt="Work mode: the VibeTour dashboard with its controls numbered" width="2560" height="1520" loading="lazy"></a>
+      <a class="zoom" href="images/controls/work.jpg" target="_blank" rel="noopener"><img src="images/controls/work.jpg" alt="Work mode: the VibeTour dashboard with its controls numbered" width="2560" height="1520" loading="lazy"></a>
       <figcaption>Demo display, 1280 × 760 at twice the pixels. Open the picture for full size.</figcaption>
     </figure>
     <div class="head" aria-hidden="true"><span></span><span>Control</span><span>Fed by</span><span>Click or key</span></div>
@@ -320,7 +320,7 @@ code{font-family:var(--mono);font-size:.85em}
   </section>
   <footer>
     <p>The <a href="https://github.com/davidsparrow/vibetour/blob/main/docs/signal-map.md">Signal Map</a> has the wiring behind these controls: every signal VibeTour listens to, the moment it becomes, and what that moment does to each object.</p>
-    <p>Pictures come from the browser demo, which plays a scripted coding session. The FM radio picture comes from the CLI companion, playing a real station. Made by <code>tools/controls-map/</code>.</p>
+    <p>Pictures come from the browser demo, which plays a scripted coding session. Behind the glass is a still from the California Coast footage, in place of the live scene the app draws today. The FM radio picture comes from the CLI companion, playing a real station. Made by <code>tools/controls-map/</code>.</p>
   </footer>
 </div>
 </body>

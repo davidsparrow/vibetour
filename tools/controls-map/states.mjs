@@ -17,7 +17,6 @@ const TOP_BAR = [
 ];
 
 const BELL = { sel: '.alert-bell', name: 'Alerts bell', fed: 'The loudest alert: *red* when something stopped the car, *orange* when something needs you, *blue* for files not yet committed. Dark when there is nothing.', click: 'Opens the dashboard on the Alerts tab.' };
-const WINDSHIELD = { sel: '.hud-caption', name: 'Windshield line', fed: 'Only while the car is stopped in a town or at a landmark on the route: its name. Also *Arrived in …*. Empty the rest of the time, and nothing else ever sits at the bottom of the windshield.', click: NONE };
 
 export const STATES = [
   {
@@ -25,7 +24,7 @@ export const STATES = [
     short: 'Dashboard',
     group: 'dash',
     title: 'The dashboard',
-    intro: 'Dash mode, while you code and an agent works. The windshield stays clear while the car drives. Press `D` from anywhere to come here.',
+    intro: 'Dash mode, while you code and an agent works. Nothing sits on the windshield. Press `D` from anywhere to come here.',
     query: '?fresh&speed=5',
     async setup(page) {
       await depart(page);
@@ -54,7 +53,7 @@ export const STATES = [
     short: 'Stopped',
     group: 'dash',
     title: 'Stopped for you',
-    intro: 'Your agent asked a question, so the car pulled into a scenic stop. It drives on when you answer.',
+    intro: 'Your agent asked a question, so the car pulled over at once, here at a turnout just out of Monterey. At one of the journey’s scenic stops the Nav screen names it. It drives on when you answer.',
     async setup(page) {
       await depart(page);
       await demo(page, 'Agent edits', 'Agent asks');
@@ -65,7 +64,6 @@ export const STATES = [
     items: [
       BELL,
       { sel: '.stop-card.show .alert', name: 'Stop pill', fed: 'Why the car stopped, coloured like the bells, and what resumes the drive: a question, a plan or approval, an agent that stopped, a failing build, your turn, a breather, refuelling, or parked. A long message wraps and the pill grows taller.', click: "Takes you where you act: the agent's terminal (else the editor), the PR on GitHub, or Problems. When parked, *Resume journey* sits under it." },
-      { ...WINDSHIELD, fed: 'The town or landmark the car stopped in, if it stopped in one. The pill above says why.' },
       { sel: '.gauge[aria-label="Speedometer: development activity"]', name: 'Stop pins', fed: 'Activity reads 0 while stopped. Each dial on the left leaves a white pin where its needle stood when the car stopped, until the drive resumes.', click: NONE },
       { sel: '.gear', name: 'Gear', fed: '*P* while stopped.', click: NONE },
     ],
@@ -85,8 +83,9 @@ export const STATES = [
     },
     items: [
       { sel: '.pane-nav .route-map', name: 'Route map', fed: 'The journey’s route, its towns, and the car on it.', click: NONE },
+      { sel: '.pane-nav .route-stop', name: 'Scenic stops', fed: 'Where the journey’s scenic stops are on the route (green diamonds). The one the car is stopped at lights up.', click: NONE },
       { sel: '.nav-route', name: 'Route', fed: 'The journey pack and its road.', click: NONE },
-      { sel: '.nav-loc', name: 'Where you are', fed: 'The town you are near, and the scene outside.', click: NONE },
+      { sel: '.nav-loc', name: 'Where you are', fed: 'The town you are near, and the scene outside. At a scenic stop, its name: *Stopped at Bixby Creek Overlook*.', click: NONE },
       { sel: '.nav-meta', name: 'Trip and progress', fed: 'The trip length you picked (Coffee Run to Expedition) and how far along you are.', click: NONE },
       { sel: '.nav-objective', name: 'Objective', fed: 'What you said you would get done, on your ticket.', click: NONE },
       { sel: '.btn-arrive', name: 'Arrive', fed: 'Shown until you arrive.', click: 'Marks the objective done: the car takes the final approach and arrives, and you get a stamp. Key `A`.' },
@@ -285,7 +284,7 @@ export const STATES = [
     short: 'Tour mode',
     group: 'mode',
     title: 'Tour mode',
-    intro: 'The view and nothing in front of it: no dashboard, no strip, and no windshield line while the car drives. When the car stops, the dashboard comes up with the stop pill and the place, and goes again when the drive resumes. The top bar shows when you move the mouse and fades after a few seconds. Press `T`.',
+    intro: 'The view and nothing in front of it: no dashboard, no strip and no windshield line while the car drives. When the car stops, the dashboard comes up with the stop pill, and goes again when the drive resumes. The top bar shows when you move the mouse and fades after a few seconds. Press `T`.',
     async setup(page) {
       await depart(page);
       await demo(page, 'Agent edits');

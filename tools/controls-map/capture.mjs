@@ -9,7 +9,7 @@
 // publishing as a shareable page. --no-radio skips the FM picture, which needs the
 // network (it plays a real SomaFM station through the CLI companion).
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -25,6 +25,8 @@ const VIEW = { width: 1280, height: 760 };
 const CLOSE_VIEW = { width: 1280, height: 980 };
 const CLOSE_PAD = { x: 120, y: 18 };
 const DEMO_PORT = 5183;
+/** A still from the California Coast footage, shown behind the dashboard in place of the live 3D scene. */
+const BACKDROP = `data:image/jpeg;base64,${readFileSync(join(ROOT, 'tools/controls-map/backdrop.jpg')).toString('base64')}`;
 
 const args = process.argv.slice(2);
 const flag = (name) => args.includes(name);
@@ -230,6 +232,8 @@ async function main() {
       const page = await browser.newPage({ viewport: state.close ? CLOSE_VIEW : VIEW, deviceScaleFactor: 2 });
       await page.goto(state.needs === 'companion' ? companion.url : `${demo.url}${state.query ?? '?fresh&autopilot=0'}`);
       await state.setup(page);
+      // The real coast behind the glass, not the low-poly scene the demo draws.
+      await page.addStyleTag({ content: `.scene-canvas,.scene-fallback{visibility:hidden}.scene{background:#05070c url("${BACKDROP}") center / cover no-repeat}` });
       // The demo's own pill and panel aren't part of the product, and a click leaves a focus ring.
       await page.evaluate(() => {
         for (const el of document.querySelectorAll('.demo-panel, .demo-pill')) el.style.display = 'none';
@@ -244,9 +248,11 @@ async function main() {
         close = { crop, focus };
       }
       const items = await mark(page, state.items, close);
-      await page.screenshot({ path: join(IMG_DIR, `${state.id}.png`), ...(close ? { clip: close.crop } : {}) });
+      // Close-ups of the screen are flat UI: PNG. Whole views have the coast photo behind them: JPEG, a tenth the size.
+      const file = `${state.id}.${close ? 'png' : 'jpg'}`;
+      await page.screenshot({ path: join(IMG_DIR, file), ...(close ? { clip: close.crop } : { type: 'jpeg', quality: 88 }) });
       const size = close ? { width: Math.round(close.crop.width * 2), height: Math.round(close.crop.height * 2) } : { width: VIEW.width * 2, height: VIEW.height * 2 };
-      done.push({ ...state, items, image: `images/controls/${state.id}.png`, ...size });
+      done.push({ ...state, items, image: `images/controls/${file}`, ...size });
       await page.close();
     }
   } finally {

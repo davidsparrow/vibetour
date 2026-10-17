@@ -4,7 +4,7 @@ import type { DevEvent, ProcessKind } from './events';
 import { JourneyEngine, SCOPES, scopeInfo, type JourneyRecord, type ScopeId } from './journey';
 import { momentsOf } from './moments';
 import { DEFAULT_MOTION_CONFIG, MotionController, type MotionConfig, type MotionReading } from './motion';
-import { findVariant, freshSeed, planPath, refuelStop, rng, variantForHour, type JourneyPack, type ScenicStop } from './packs';
+import { findVariant, freshSeed, placesStops, planPath, refuelStop, rng, stopAt, variantForHour, type JourneyPack, type ScenicStop } from './packs';
 import { makeStamp, passportStats, updateLibrary, type LibraryEntry, type Stamp, type TravelMemory } from './passport';
 import type { Catalog, ClientCommand, Gear, JourneySnapshot, PullRequestSnapshot, TourSnapshot } from './protocol';
 import { WorkspaceTracker, type HistoryItem } from './workspace';
@@ -501,7 +501,10 @@ export class VibeTourSession {
       else if (motion.behavior === 'arrived') this.stopName = pack.arrival.scene;
       else if (motion.behavior === 'parked') this.stopName = undefined;
       else if (motion.stopReason === 'refuel' && this.refuelAt) this.stopName = this.refuelAt;
-      else {
+      else if (placesStops(pack)) {
+        // The stop where the car stands, or none: between stops it's an unnamed turnout.
+        this.stopName = stopAt(pack, this.journey!.record.progress)?.name;
+      } else {
         const r = rng(Math.floor(now / 1000) ^ this.journey!.record.seed);
         this.stopName = pack.scenicStops[Math.floor(r() * pack.scenicStops.length)].name;
       }
@@ -525,11 +528,13 @@ export class VibeTourSession {
         return 'Slowing down — taking a breather';
       case 'checkpoint':
         return j.scene().env.tunnel ? 'Through the tunnel — verification running' : 'Checkpoint — verification running';
-      case 'scenic-stop':
-        if (motion.stopReason === 'waiting') return `Scenic stop at ${stopName} — ${waitingFor(a.waitingAgent ?? 'your agent', a.waitingAsk)}`;
-        if (motion.stopReason === 'your-turn') return `Scenic stop at ${stopName} — ${a.yourTurn?.agent ?? 'your agent'} finished, your turn`;
-        if (motion.stopReason === 'refuel') return `Refuelling at ${stopName} — then ${j.pack.route.from} to ${to} again`;
-        return `Parked at ${stopName} — resume whenever you're ready`;
+      case 'scenic-stop': {
+        const at = `at ${stopName ?? 'a turnout'}`;
+        if (motion.stopReason === 'waiting') return `Scenic stop ${at} — ${waitingFor(a.waitingAgent ?? 'your agent', a.waitingAsk)}`;
+        if (motion.stopReason === 'your-turn') return `Scenic stop ${at} — ${a.yourTurn?.agent ?? 'your agent'} finished, your turn`;
+        if (motion.stopReason === 'refuel') return `Refuelling ${at} — then ${j.pack.route.from} to ${to} again`;
+        return `Parked ${at} — resume whenever you're ready`;
+      }
       case 'pull-over':
         return `Pulled over safely — ${a.blockedReason ?? 'something needs attention'}`;
       case 'approach':
@@ -539,24 +544,6 @@ export class VibeTourSession {
       case 'parked':
         return j.phase === 'parked' ? 'Parked — your journey is saved' : 'Parked';
     }
-  }
-
-  /**
-   * The windshield's one line: the place, and only when the car has stopped in a town or at a
-   * landmark on the route ("Carmel-by-the-Sea", "Bixby Creek Bridge"), or arrived ("Arrived in
-   * Big Sur"). Nothing while the car moves, and nothing at a stop between places: the stop
-   * card says why the car stopped. A scenic stop's own name is picked from the pack's list,
-   * not from where the car is, so it stays in the caption. The full caption still goes to the
-   * screen reader, the status bar and the Work panel.
-   */
-  private windshield(motion: MotionReading): string {
-    const j = this.journey;
-    if (!j) return 'Where do you want to go today?';
-    if (!motion.stopped) return '';
-    if (motion.behavior === 'arrived') return `Arrived in ${j.pack.route.to}`;
-    // Refuelling: the stop card names the station.
-    if (motion.stopReason === 'refuel') return '';
-    return j.town() ?? '';
   }
 
   private gear(motion: MotionReading, a: ActivityReading): Gear {
@@ -669,7 +656,6 @@ export class VibeTourSession {
         stopReason: motion.stopReason,
         stopName,
         caption,
-        windshield: this.windshield(motion),
         since: motion.since,
         hazard: motion.behavior === 'pull-over',
         stopAlert: stopAlertOf(motion, a),

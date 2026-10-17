@@ -86,11 +86,6 @@ export interface TourSnapshot {
     stopReason?: StopReason;
     stopName?: string;
     caption: string;
-    /**
-     * The one line at the bottom of the windshield: the place, only while the car is stopped
-     * somewhere with a name (a scenic stop, a town on the route, the destination). Else empty.
-     */
-    windshield: string;
     since: number;
     hazard: boolean;
     /** The attention id of the alert that stopped the car, if one did: it rides on the stop card. */

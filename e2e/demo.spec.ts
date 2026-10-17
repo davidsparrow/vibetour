@@ -27,8 +27,9 @@ test('opens on "Where do you want to go today?" with every destination', async (
 test('departs on a journey and renders the drive', async ({ page }) => {
   await page.goto('/?fresh&autopilot=0');
   await bookFirstJourney(page);
-  // The windshield stays clear while the car moves, even on the way out of town.
-  await expect(page.locator('.hud-caption')).toBeHidden();
+  // Nothing on the windshield: places are named outside and on the Nav screen, whose map marks the scenic stops.
+  await expect(page.locator('.hud, .hud-caption')).toHaveCount(0);
+  await expect(page.locator('.pane-nav .route-stop')).toHaveCount(6);
   await expect(page.locator('.nav-objective')).toContainText('Onboarding flow');
   await expect.poll(() => page.evaluate(() => (window as any).vibetour.renderer.renderer.info.render.frame), { timeout: 20_000 }).toBeGreaterThan(3);
   await expect(page.locator('.nav-route')).toContainText('California Coast');
@@ -42,7 +43,6 @@ test('switches between Tour, Dashboard and Work modes from the keyboard', async 
   await expect(root).toHaveClass(/mode-tour/);
   // Tour mode keeps the lower windshield empty: no strip, no line while the car drives.
   await expect(page.locator('.tour-strip')).toHaveCount(0);
-  await expect(page.locator('.hud-caption')).toBeHidden();
   await expect.poll(() => page.locator('.dash').evaluate((el) => Number(getComputedStyle(el).opacity))).toBe(0);
   await page.keyboard.press('w');
   await expect(root).toHaveClass(/mode-work/);
@@ -248,9 +248,8 @@ test('an agent finishing its turn can pull over, and lights the bells orange', a
   const turn = page.locator('.stop-card.show .alert');
   await expect(turn).toHaveText('↩Claude finished · your turnReply or get back to work to drive on.', { timeout: 15_000 });
   await expect(turn).toHaveClass(/alert-moderate/);
-  // Stopped just out of Monterey: the windshield names the town, not why the car stopped.
-  await expect(page.locator('.hud-caption')).toHaveText('Monterey');
-  await expect.poll(() => page.locator('.hud-caption').evaluate((el) => Number(getComputedStyle(el).opacity))).toBeGreaterThan(0.5);
+  // Stopped just out of Monterey, between the pack's scenic stops: a turnout, so no stop is lit on the Nav map.
+  await expect(page.locator('.pane-nav .route-stop.here')).toHaveCount(0);
 
   await page.getByRole('button', { name: 'Answer', exact: true }).click();
   await expect(page.locator('.stop-card')).not.toHaveClass(/show/);
@@ -296,7 +295,6 @@ test('refuelling after arriving stops for fuel, then drives the same route again
   } finally {
     clearInterval(typing);
   }
-  await expect(page.locator('.hud-caption')).toBeHidden();
   await page.keyboard.press('p');
   await expect(page.locator('.passport.show .stamp')).toHaveCount(1);
 });

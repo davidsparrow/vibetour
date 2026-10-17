@@ -377,28 +377,34 @@
   },
   "scenicStops": [
     {
-      "name": "Bixby Creek Overlook",
-      "kind": "overlook"
+      "name": "a Carmel Highlands gas station",
+      "kind": "rest-area",
+      "at": 0.3
     },
     {
       "name": "Garrapata State Park pullout",
-      "kind": "viewpoint"
+      "kind": "viewpoint",
+      "at": 0.39
     },
     {
-      "name": "a cliffside café in Big Sur",
-      "kind": "cafe"
-    },
-    {
-      "name": "Pfeiffer Beach parking area",
-      "kind": "beach"
+      "name": "Bixby Creek Overlook",
+      "kind": "overlook",
+      "at": 0.54
     },
     {
       "name": "the Point Sur turnout",
-      "kind": "viewpoint"
+      "kind": "viewpoint",
+      "at": 0.67
     },
     {
-      "name": "a Carmel Highlands gas station",
-      "kind": "rest-area"
+      "name": "a cliffside café in Big Sur",
+      "kind": "cafe",
+      "at": 0.93
+    },
+    {
+      "name": "Pfeiffer Beach parking area",
+      "kind": "beach",
+      "at": 0.98
     }
   ],
   "arrival": {
