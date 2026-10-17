@@ -11,15 +11,14 @@ export async function depart(page, objective = 'Onboarding flow') {
   await page.waitForTimeout(600);
 }
 
-/** Presses the demo's own buttons ("Agent edits", "Agent asks"…), then folds the demo panel away. */
+/** Opens the demo's panel from its pill on the glovebox, presses its buttons ("Agent edits", "Agent asks"…), then closes it. */
 export async function demo(page, ...buttons) {
-  const panel = page.locator('.demo-panel');
-  await panel.locator('summary').click();
+  await page.locator('.demo-pill').click();
   for (const name of buttons) {
-    await page.getByRole('button', { name, exact: true }).click();
+    await page.locator('.demo-panel').getByRole('button', { name, exact: true }).click();
     await page.waitForTimeout(250);
   }
-  await panel.locator('summary').click();
+  await page.locator('.demo-close').click();
 }
 
 /** Switches the display mode by its key: `t` Tour, `d` Dash, `w` Work. */

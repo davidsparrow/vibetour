@@ -43,16 +43,28 @@ const TITLE: Record<Attention['target']['type'], string> = { agent: 'Go to the a
 
 /**
  * One alert as a glowing pill, coloured by how loud it is. Clicking it goes
- * where you act: the agent, the PR on GitHub, or Problems.
+ * where you act: the agent, the PR on GitHub, or Problems. A `note` adds a
+ * second, quieter sentence under the alert, and the pill grows taller to fit.
  */
-export function alertPill(a: Attention, ctx: AppContext): HTMLElement {
+export function alertPill(a: Attention, ctx: AppContext, note?: string, title = a.text): HTMLElement {
   const mark = a.kind === 'pr' ? pullRequestIcon() : h('i', { class: 'alert-glyph', 'aria-hidden': 'true' }, GLYPH[a.kind]);
-  const cls = `alert alert-${severityOf(a.kind)} alert-${a.kind}`;
-  if (!alertClickable(a, ctx.host)) return h('span', { class: cls }, mark, h('span', {}, a.text));
+  const cls = `alert alert-${severityOf(a.kind)} alert-${a.kind}${note ? ' alert-noted' : ''}`;
+  const words = pillText(title, note);
+  if (!alertClickable(a, ctx.host)) return h('span', { class: cls }, mark, words);
   const t = a.target;
   const onclick = () =>
     ctx.send(t.type === 'pr' ? { type: 'openPullRequest', number: t.number } : t.type === 'agent' ? { type: 'focusAgent', agentId: t.agentId } : { type: 'openProblems' });
-  return h('button', { class: cls, title: TITLE[t.type], onclick }, mark, h('span', {}, a.text));
+  return h('button', { class: cls, title: TITLE[t.type], onclick }, mark, words);
+}
+
+/** A pill like an alert's for a stop no alert caused: parked, refuelling, a breather. */
+export function notePill(severity: AlertSeverity, glyph: string, title: string, note: string): HTMLElement {
+  return h('span', { class: `alert alert-${severity} alert-noted` }, h('i', { class: 'alert-glyph', 'aria-hidden': 'true' }, glyph), pillText(title, note));
+}
+
+function pillText(title: string, note?: string): HTMLElement {
+  if (!note) return h('span', {}, title);
+  return h('span', { class: 'alert-words' }, h('span', { class: 'alert-title' }, title), h('span', { class: 'alert-note' }, note));
 }
 
 /** A bell, for the Alerts tab and the icon at the top of the windshield. */

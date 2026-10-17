@@ -4,7 +4,7 @@ import type { DevEvent, ProcessKind } from './events';
 import { JourneyEngine, SCOPES, scopeInfo, type JourneyRecord, type ScopeId } from './journey';
 import { momentsOf } from './moments';
 import { DEFAULT_MOTION_CONFIG, MotionController, type MotionConfig, type MotionReading } from './motion';
-import { findVariant, freshSeed, planPath, refuelStop, rng, variantForHour, type JourneyPack, type ScenicStop } from './packs';
+import { findVariant, freshSeed, placesStops, planPath, refuelStop, rng, stopAt, variantForHour, type JourneyPack, type ScenicStop } from './packs';
 import { makeStamp, passportStats, updateLibrary, type LibraryEntry, type Stamp, type TravelMemory } from './passport';
 import type { Catalog, ClientCommand, Gear, JourneySnapshot, PullRequestSnapshot, TourSnapshot } from './protocol';
 import { WorkspaceTracker, type HistoryItem } from './workspace';
@@ -501,7 +501,10 @@ export class VibeTourSession {
       else if (motion.behavior === 'arrived') this.stopName = pack.arrival.scene;
       else if (motion.behavior === 'parked') this.stopName = undefined;
       else if (motion.stopReason === 'refuel' && this.refuelAt) this.stopName = this.refuelAt;
-      else {
+      else if (placesStops(pack)) {
+        // The stop where the car stands, or none: between stops it's an unnamed turnout.
+        this.stopName = stopAt(pack, this.journey!.record.progress)?.name;
+      } else {
         const r = rng(Math.floor(now / 1000) ^ this.journey!.record.seed);
         this.stopName = pack.scenicStops[Math.floor(r() * pack.scenicStops.length)].name;
       }
@@ -525,11 +528,13 @@ export class VibeTourSession {
         return 'Slowing down — taking a breather';
       case 'checkpoint':
         return j.scene().env.tunnel ? 'Through the tunnel — verification running' : 'Checkpoint — verification running';
-      case 'scenic-stop':
-        if (motion.stopReason === 'waiting') return `Scenic stop at ${stopName} — ${waitingFor(a.waitingAgent ?? 'your agent', a.waitingAsk)}`;
-        if (motion.stopReason === 'your-turn') return `Scenic stop at ${stopName} — ${a.yourTurn?.agent ?? 'your agent'} finished, your turn`;
-        if (motion.stopReason === 'refuel') return `Refuelling at ${stopName} — then ${j.pack.route.from} to ${to} again`;
-        return `Parked at ${stopName} — resume whenever you're ready`;
+      case 'scenic-stop': {
+        const at = `at ${stopName ?? 'a turnout'}`;
+        if (motion.stopReason === 'waiting') return `Scenic stop ${at} — ${waitingFor(a.waitingAgent ?? 'your agent', a.waitingAsk)}`;
+        if (motion.stopReason === 'your-turn') return `Scenic stop ${at} — ${a.yourTurn?.agent ?? 'your agent'} finished, your turn`;
+        if (motion.stopReason === 'refuel') return `Refuelling ${at} — then ${j.pack.route.from} to ${to} again`;
+        return `Parked ${at} — resume whenever you're ready`;
+      }
       case 'pull-over':
         return `Pulled over safely — ${a.blockedReason ?? 'something needs attention'}`;
       case 'approach':
@@ -538,36 +543,6 @@ export class VibeTourSession {
         return `Arrived in ${to}`;
       case 'parked':
         return j.phase === 'parked' ? 'Parked — your journey is saved' : 'Parked';
-    }
-  }
-
-  /**
-   * The windshield's one line. Nothing while the car just drives: the dials say how busy
-   * you and your agents are. It names the place when that is the news: a stop, the
-   * shoulder or a parked car (the stop card says why), a tunnel, a town on the route,
-   * the departure and the arrival. The
-   * full caption still goes to the screen reader, the status bar and the tour strip.
-   */
-  private windshield(motion: MotionReading, stopName?: string): string {
-    const j = this.journey;
-    if (!j) return 'Where do you want to go today?';
-    switch (motion.behavior) {
-      case 'scenic-stop':
-        return stopName ? placeName(stopName) : 'Scenic stop';
-      case 'pull-over':
-      case 'parked':
-        // Where the car stands; the stop card says why.
-        return j.location().label;
-      case 'approach':
-        return `Final approach to ${j.pack.route.to}`;
-      case 'arrived':
-        return `Arrived in ${j.pack.route.to}`;
-      case 'checkpoint':
-        if (j.scene().env.tunnel) return 'Through the tunnel';
-        return motion.stopped ? 'Checkpoint' : '';
-      default:
-        if (j.phase === 'departing') return `Departing ${j.pack.route.from}`;
-        return j.passing() ?? '';
     }
   }
 
@@ -681,7 +656,6 @@ export class VibeTourSession {
         stopReason: motion.stopReason,
         stopName,
         caption,
-        windshield: this.windshield(motion, stopName),
         since: motion.since,
         hazard: motion.behavior === 'pull-over',
         stopAlert: stopAlertOf(motion, a),
@@ -693,6 +667,8 @@ export class VibeTourSession {
         gear: this.gear(motion, a),
         devActivity: a.devActivity,
         agentActivity: a.agentActivity,
+        agentsWorking: a.agentsWorking,
+        toolCalls: a.toolCalls,
         errorIntensity: a.errorIntensity,
         checkEngine: a.checkEngine,
         warning: a.warning,
@@ -752,10 +728,4 @@ export class VibeTourSession {
       announce,
     };
   }
-}
-
-/** A stop's name as a title on the windshield: "a Carmel Highlands gas station" reads "Carmel Highlands gas station". */
-export function placeName(name: string): string {
-  const bare = name.replace(/^(a|an|the) /i, '');
-  return bare.charAt(0).toUpperCase() + bare.slice(1);
 }

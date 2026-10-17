@@ -21,7 +21,8 @@ All three share one procedural Three.js renderer and one activity/journey engine
 ## Journeys: how they work and how to make one
 
 - **[Signal Map](docs/signal-map.md):** every signal VibeTour listens to, the moment it becomes, and what the car, the journey and each instrument do about it.
-- **[Controls Map](docs/site/controls-map.html):** every control on the dashboard, screen by screen: numbered pictures with a key saying what feeds each one and what a click or a key does. `npm run controls-map` re-makes it after a UI change.
+- **[Cockpit Map](docs/site/vibetour-cockpit-map.html):** every control on the dashboard, screen by screen: numbered pictures with a key saying what feeds each one and what a click or a key does. `npm run cockpit-map` re-makes it after a UI change.
+- **[Cockpit Customization Guide](docs/site/vibetour-cockpit-guide.html):** the design rules behind the cockpit, and where to change each part, from quick visual wins to deep rebuilds.
 - **[Journey Packs](docs/journey-packs.md):** what a pack contains (route, scene graph, scenic stops, variants, provenance) and how to write one. Today's packs are procedural.
 - **[Journey Video Standard](docs/journey-video-standard.md)** (proposed, draft 0.2): how to make a video pack, so creators can build their own journeys and one day sell them. It covers:
   - the three layers: footage plates, a cockpit that steers with the road, and the instruments
@@ -73,15 +74,14 @@ Not in the standard yet:
 
   | Instrument | Shows |
   | --- | --- |
-  | Speedometer | Development activity |
-  | Tachometer | Agent and tool activity |
+  | Activity (speedometer) | Your coding; zero while the car is stopped |
+  | Agents | How many agents are at work, crew included |
+  | Tools | Tool calls and commands in the last minute |
   | Fuel | Journey left |
   | Context | How much of your agent's context window is left |
   | Changes | Files changed and not committed, like the Source Control badge; click it to open Source Control |
   | Battery | Laptop battery, where the browser reports it (off by default) |
   | Temperature | Warnings and errors |
-  | Check-engine light | Failing builds or tests |
-  | Side mirrors | Background (crew) agents |
   | Alerts (bell) | What needs you now: a question, a plan, an approval, an agent that stopped, a failing build, your turn, a PR of yours with failing CI, a conflict or requested changes, and changed files. The bells light red, orange or blue; the Alerts tab lists them, and the alert that stopped the car rides on the stop card. One click goes there |
   | Radio | Internet radio and your agents on CB |
   | PRs | The repository's open pull requests, with a lit branch on the ones on your branch (after you connect GitHub) |
@@ -98,7 +98,7 @@ Not in the standard yet:
   - Performance: 30/60 FPS, low-GPU mode, automatic GPU throttling, and no rendering while hidden.
   - Sound: a procedural soundscape (engine, road, wind, rain, ambience, generative Focus Mix) with independent volumes.
 - **A car radio.** The dashboard's Radio tab (`R`) has two bands. **FM** plays internet radio: curated [SomaFM](https://somafm.com/support/) presets, stations near where you're driving, and a search of the [Radio Browser](https://www.radio-browser.info/) directory. It has power, volume, six presets (hold one to save), bass, treble, fader, balance, surround and stereo mix, and equalizer lights that move with the music. **CB** lists your agents.
-- **Private by design.** VibeTour reads metadata only (event types, file names, counts, exit codes), never source code. Nothing leaves your machine, except the internet radio you choose to play and, if you connect GitHub for the PRs tab, a request for the repository's open pull requests (numbers, titles, branches, CI, review and merge state; no code). Radio searches and streams go out from VS Code or the CLI, never from the tour page; turn the radio off with `vibetour.radio.enabled` or `--no-radio`. Streaming Mode removes file names, paths, branches, PR titles, commands and messages at the source.
+- **Private by design.** VibeTour reads metadata only (event types, file names, counts, exit codes), never source code. Nothing leaves your machine, except the internet radio you choose to play and, if you connect GitHub for the PRs tab, a request for the repository's open pull requests (numbers, titles, branches, CI, latest deployment status, review and merge state; no code). Radio searches and streams go out from VS Code or the CLI, never from the tour page; turn the radio off with `vibetour.radio.enabled` or `--no-radio`. Streaming Mode removes file names, paths, branches, PR titles, commands and messages at the source.
 
 ## Try it
 
@@ -154,7 +154,6 @@ Inside the view: `T` `D` `W` switch modes, `G` destinations, `P` passport, `C` c
 
 Each display also has its own settings for these:
 
-- the **Your-turn cue**: none, or a blue light
 - the **Context** gauge: on by default
 - the **Battery** gauge: off by default
 - the **Changes** gauge: on by default
@@ -182,7 +181,7 @@ Run `node dist/cli.js --help` for options (`--port`, `--no-open`, `--scope`, `--
 
 ### Claude Code (and other agents)
 
-VibeTour shows your agents in the cockpit. The main agent is your co-pilot on the radio's CB band, and sub-agents appear in the side mirrors as crew. When an agent asks a question, shows a plan to approve or waits for permission, the car pulls into a scenic stop that says which, and the Alerts bell on the rear-view mirror's glass lights up and takes you to it with one click. If a turn ends on an API error, such as a rate limit, the car pulls onto the shoulder and says so. Run **VibeTour: Copy Claude Code Hook Configuration** and paste the result into `.claude/settings.json`. The hooks also feed the Context gauge with how full Claude's context window is, and an optional status line makes it exact. See [docs/agent-integration.md](docs/agent-integration.md) for the hook forwarder, the status line, Codex `notify`, and the provider-neutral HTTP API.
+VibeTour shows your agents in the cockpit. The main agent is your co-pilot on the radio's CB band, and the Agents dial counts it and its sub-agents, the crew. When an agent asks a question, shows a plan to approve or waits for permission, the car pulls into a scenic stop that says which, and the Alerts bell on the rear-view mirror's glass lights up and takes you to it with one click. If a turn ends on an API error, such as a rate limit, the car pulls onto the shoulder and says so. Run **VibeTour: Copy Claude Code Hook Configuration** and paste the result into `.claude/settings.json`. The hooks also feed the Context gauge with how full Claude's context window is, and an optional status line makes it exact. See [docs/agent-integration.md](docs/agent-integration.md) for the hook forwarder, the status line, Codex `notify`, and the provider-neutral HTTP API.
 
 ## Development
 

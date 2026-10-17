@@ -132,6 +132,11 @@ export interface Waypoint {
 export interface ScenicStop {
   name: string;
   kind: 'overlook' | 'cafe' | 'beach' | 'village' | 'station' | 'hotel' | 'viewpoint' | 'rest-area';
+  /**
+   * Where the stop is along the journey, 0..1, on the same scale as the waypoints. A pack that
+   * places its stops names a stop only when the car stops there; one that doesn't picks a name.
+   */
+  at?: number;
 }
 
 export interface JourneyPack {
@@ -264,6 +269,7 @@ export function validatePack(raw: unknown): ValidationResult {
   }
   checkEnv(p.environment, 'environment', errors);
   if (!Array.isArray(p.scenicStops) || p.scenicStops.length === 0) errors.push('at least one scenic stop is required');
+  else for (const st of p.scenicStops) if (st.at !== undefined && (typeof st.at !== 'number' || st.at < 0 || st.at > 1)) errors.push(`scenic stop "${st.name}" must sit at 0..1`);
   const graph = p.sceneGraph;
   if (!graph || !graph.nodes || !graph.nodes[graph.start]) {
     errors.push('sceneGraph.start must reference a node');
@@ -348,6 +354,25 @@ export function rng(seed: number): () => number {
  * Walks the scene graph from start to an arrival, choosing branches with a
  * seeded RNG so each trip can vary (PRD §40) while staying reproducible.
  */
+/** How close to a scenic stop on the route the car must stop to be at it, either side. */
+export const STOP_REACH = 0.025;
+
+/** Whether a pack places its scenic stops on the route. */
+export function placesStops(pack: JourneyPack): boolean {
+  return pack.scenicStops.some((st) => typeof st.at === 'number');
+}
+
+/** The scenic stop where the car stands, the nearest within STOP_REACH; undefined between stops. */
+export function stopAt(pack: JourneyPack, progress: number): ScenicStop | undefined {
+  let best: ScenicStop | undefined;
+  for (const st of pack.scenicStops) {
+    if (typeof st.at !== 'number') continue;
+    const d = Math.abs(st.at - progress);
+    if (d < STOP_REACH && (!best || d < Math.abs(best.at! - progress))) best = st;
+  }
+  return best;
+}
+
 /** Where the car refuels before driving a route again: a gas station if the pack has one, else a rest area, else its first stop. */
 export function refuelStop(pack: JourneyPack): ScenicStop {
   const stops = pack.scenicStops;

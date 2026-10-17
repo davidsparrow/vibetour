@@ -95,7 +95,7 @@ export class App implements AppContext {
       this.announcer,
       this.summary,
     );
-    if (transport.demo) this.root.append(this.demoPanel());
+    if (transport.demo) this.addDemoControls();
     mount.append(this.root);
 
     try {
@@ -460,15 +460,25 @@ export class App implements AppContext {
 
   // ------------------------------------------------------------------ demo
 
-  private demoPanel(): HTMLElement {
+  /**
+   * The browser demo's controls: a Demo pill on the glovebox opens a panel in the
+   * lower-right corner, which closes with its × or the pill. Not in VS Code or the CLI.
+   */
+  private addDemoControls(): void {
     const demo = this.transport.demo!;
     const button = (label: string, action: DemoAction) => h('button', { class: 'btn btn-sm', onclick: () => demo.trigger(action) }, label);
     const auto = h('input', { type: 'checkbox', checked: demo.isAutopilot, id: 'demo-auto' }) as HTMLInputElement;
     auto.addEventListener('change', () => demo.setAutopilot(auto.checked));
+    const pill = h('button', { class: 'demo-pill', 'aria-expanded': 'false', 'aria-controls': 'demo-panel', title: 'Demo controls: drive a simulated coding session' }, 'Demo');
     const panel = h(
-      'details',
-      { class: 'demo-panel' },
-      h('summary', {}, 'Demo controls'),
+      'section',
+      { class: 'demo-panel', id: 'demo-panel', 'aria-label': 'Demo controls', hidden: true },
+      h(
+        'header',
+        { class: 'demo-head' },
+        h('strong', {}, 'Demo controls'),
+        h('button', { class: 'demo-close', 'aria-label': 'Close demo controls', title: 'Close', onclick: () => show(false) }, '×'),
+      ),
       h('p', { class: 'small muted' }, 'This is a simulated coding session. Install the VS Code extension to drive VibeTour with your real work.'),
       h('label', { class: 'demo-auto', for: 'demo-auto' }, auto, ' Autopilot story'),
       h(
@@ -486,6 +496,13 @@ export class App implements AppContext {
         button('Go idle', 'idle'),
       ),
     );
-    return panel;
+    const show = (open: boolean) => {
+      panel.hidden = !open;
+      pill.setAttribute('aria-expanded', String(open));
+      toggle(pill, 'on', open);
+    };
+    pill.addEventListener('click', () => show(panel.hidden));
+    this.cockpit.addDemoButton(pill);
+    this.root.append(panel);
   }
 }

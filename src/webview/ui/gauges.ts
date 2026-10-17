@@ -9,7 +9,7 @@ export interface GaugeOptions {
   /** Labels at the start and end of the scale, e.g. E / F. */
   ends?: [string, string];
   ticks?: number;
-  tone?: 'amber' | 'cyan' | 'green' | 'red' | 'blue';
+  tone?: 'amber' | 'cyan' | 'green' | 'red' | 'blue' | 'violet';
   size?: 'large' | 'small';
   /** False: a digital dial, its number large in the middle of a lit ring. */
   needle?: boolean;
@@ -63,6 +63,8 @@ export class Gauge {
   private readonly hotLength: number;
   private readonly zone?: 'high' | 'low';
   private readonly needle: SVGGElement;
+  /** Where the needle stood when the car stopped: a mark across the scale. */
+  private readonly pinMark: SVGGElement;
   private readonly readout: SVGTextElement;
   /** Inside a digital dial, under its number. */
   private readonly note: SVGTextElement;
@@ -98,6 +100,8 @@ export class Gauge {
       this.hotArc.style.strokeDashoffset = `${this.hotLength}`;
       svg.append(this.hotArc);
     }
+    this.pinMark = s('g', { class: 'gauge-pin' }, s('line', { x1: 50 + r - 7, y1: 50, x2: 50 + r + 5, y2: 50 }));
+    svg.append(this.pinMark);
     const digital = opts.needle === false;
     this.needle = s('g', { class: 'gauge-needle' }, s('line', { x1: 50, y1: 50, x2: 50 + r - 14, y2: 50 }), s('circle', { cx: 50, cy: 50, r: 3.2 }));
     this.needle.style.transform = `rotate(${START}deg)`;
@@ -146,6 +150,20 @@ export class Gauge {
     }
     text(this.readout, readout);
     if (valueText) this.el.setAttribute('aria-valuetext', valueText);
+  }
+
+  /**
+   * Marks where the needle stood, e.g. when the car stopped and the dial fell to zero, so you
+   * can see what it read before. The mark takes the colour of the scale where it sits. Null
+   * takes it away; so does a reading of almost nothing.
+   */
+  pin(value: number | null): void {
+    const on = value !== null && value > 0.02;
+    this.el.classList.toggle('gauge-pinned', on);
+    if (!on) return;
+    this.pinMark.style.transform = `rotate(${START + SWEEP * Math.min(1, value)}deg)`;
+    // Red in the red zone, the dial's own colour elsewhere.
+    this.pinMark.classList.toggle('hot', zoneSplit(value, this.zone).inZone);
   }
 
   /** No reading yet: an empty dial with a dash and no needle. */

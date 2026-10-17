@@ -60,8 +60,12 @@ export interface ActivityReading {
   since: number;
   /** Speedometer: overall development activity 0..1. */
   devActivity: number;
-  /** Tachometer: tool/agent activity 0..1. */
+  /** Tool/agent activity 0..1, a blended score (the capture's dial; the dashboard shows the two below). */
   agentActivity: number;
+  /** The Agents dial: agents at work right now, the main agent and its crew. */
+  agentsWorking: number;
+  /** The Tools dial: tool calls and commands started in the last minute. */
+  toolCalls: number;
   /** Temperature gauge: warning/error intensity 0..1. */
   errorIntensity: number;
   checkEngine: { on: boolean; reason?: string };
@@ -103,9 +107,14 @@ class Decay {
 
 const saturate = (score: number, k: number) => 1 - Math.exp(-score / k);
 
+/** The Tools dial counts over this window. */
+export const TOOL_WINDOW_MS = 60_000;
+
 export class ActivityEngine {
   private readonly dev = new Decay(15_000);
   private readonly agent = new Decay(20_000);
+  /** When each tool call or command started, for the last minute. */
+  private toolStarts: number[] = [];
   private state: ActivityState = 'IDLE';
   private since: number;
   private complete = false;
@@ -143,13 +152,20 @@ export class ActivityEngine {
         break;
       case 'agent':
         if (e.status === 'working' || e.status === 'tool') this.agent.add(e.at, 0.5);
+        if (e.status === 'tool') this.countTool(e.at);
         break;
       case 'process.start':
         this.agent.add(e.at, 0.4);
+        this.countTool(e.at);
         break;
       default:
         break;
     }
+  }
+
+  private countTool(at: number): void {
+    this.toolStarts = this.toolStarts.filter((t) => at - t < TOOL_WINDOW_MS);
+    this.toolStarts.push(at);
   }
 
   setComplete(done: boolean): void {
@@ -219,7 +235,20 @@ export class ActivityEngine {
       this.since = now;
     }
 
-    const checkReason = buildFailed ? 'Build failing' : testFailed ? 'Tests failing' : lintFailed ? 'Checks failing' : undefined;
+    // On GitHub: the pull request for the branch you're on, its CI and its latest deployment (Vercel and the like).
+    const branch = ws.git?.branch;
+    const pr = branch ? ws.pullRequests.items.find((p) => !p.crossRepo && p.branch === branch) : undefined;
+    const checkReason = buildFailed
+      ? 'Build failing'
+      : testFailed
+        ? 'Tests failing'
+        : lintFailed
+          ? 'Checks failing'
+          : pr?.ci === 'failing'
+            ? `CI failing on #${pr.number}`
+            : pr?.deploy === 'failing'
+              ? `Deployment failed on #${pr.number}${pr.deployEnv ? ` (${pr.deployEnv})` : ''}`
+              : undefined;
     const running = ws.processes.size;
     const contexts = agents.map((a) => a.context).filter((c): c is number => typeof c === 'number');
 
@@ -229,6 +258,8 @@ export class ActivityEngine {
       since: this.since,
       devActivity: saturate(this.dev.get(now), 3),
       agentActivity: Math.min(1, saturate(this.agent.get(now), 2.5) + Math.min(running, 3) * 0.12 + working.length * 0.1),
+      agentsWorking: working.length,
+      toolCalls: this.toolStarts.filter((t) => now - t < TOOL_WINDOW_MS && t <= now).length,
       errorIntensity: saturate(ws.diagnostics.errors + ws.diagnostics.warnings * 0.2 + (checkReason ? 2 : 0), 5),
       checkEngine: { on: !!checkReason, reason: checkReason },
       warning,

@@ -1,4 +1,4 @@
-// Renders the Controls Map page from the captured states. The styling follows
+// Renders the Cockpit Map page from the captured states. The styling follows
 // docs/site/footage-study.html: a night instrument panel, with a light variant.
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -80,7 +80,7 @@ function section(state) {
     <p class="intro">${rich(state.intro)}</p>
     <figure>
       <a class="zoom" href="${esc(state.image)}" target="_blank" rel="noopener"><img src="${esc(state.image)}" alt="${esc(state.title)}: the VibeTour dashboard with its controls numbered" width="${state.width}" height="${state.height}" loading="lazy"></a>
-      <figcaption>${esc(state.caption ?? (state.close ? 'Close-up of the screen, demo display' : 'Demo display, 1280 × 760'))}. Open the picture for full size.</figcaption>
+      <figcaption>${esc(state.caption ?? (state.close ? 'Close-up of the screen, demo display' : 'Demo display, 1280 × 760 at twice the pixels'))}. Open the picture for full size.</figcaption>
     </figure>
     <div class="head" aria-hidden="true"><span></span><span>Control</span><span>Fed by</span><span>Click or key</span></div>
     <ol class="key">
@@ -90,23 +90,24 @@ ${rows}
 }
 
 export function renderPage(states, { generated, wrap }) {
-  const head = `<title>VibeTour Controls Map</title>
+  const head = `<title>VibeTour Cockpit Map</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>${STYLE}</style>`;
   const body = `<div class="wrap">
   <header>
     <div class="brand">VibeTour</div>
-    <h1>Controls Map</h1>
+    <h1>Cockpit Map</h1>
     <p class="lede">Every control on the dashboard, screen by screen. The numbers on each picture match its key: what feeds the control, and what a click or a key does.</p>
-    <div class="meta"><span>Made ${esc(generated)}</span><span>1280 × 760</span><span>Re-make: npm run controls-map</span></div>
+    <div class="meta"><span>Made ${esc(generated)}</span><span>1280 × 760, 2× pixels</span><span>Re-make: npm run cockpit-map</span></div>
   </header>
   <nav aria-label="Screens">
 ${states.map((s) => `    <a href="#${esc(s.id)}">${esc(s.short ?? s.title)}</a>`).join('\n')}
   </nav>
 ${states.map(section).join('\n')}
   <footer>
+    <p>The <a href="vibetour-cockpit-guide.html">Cockpit Customization Guide</a> has the design rules behind these controls and where to change each one.</p>
     <p>The <a href="https://github.com/davidsparrow/vibetour/blob/main/docs/signal-map.md">Signal Map</a> has the wiring behind these controls: every signal VibeTour listens to, the moment it becomes, and what that moment does to each object.</p>
-    <p>Pictures come from the browser demo, which plays a scripted coding session. The FM radio picture comes from the CLI companion, playing a real station. Made by <code>tools/controls-map/</code>.</p>
+    <p>Pictures come from the browser demo, which plays a scripted coding session. Behind the glass is a still from the California Coast footage, in place of the live scene the app draws today. The FM radio picture comes from the CLI companion, playing a real station. Made by <code>tools/cockpit-map/</code>.</p>
   </footer>
 </div>`;
   if (!wrap) return `${head}\n${body}\n`;

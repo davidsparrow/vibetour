@@ -1,4 +1,4 @@
-// The screens of the Controls Map: how to reach each one, and the key for its controls.
+// The screens of the Cockpit Map: how to reach each one, and the key for its controls.
 // `sel` is plain CSS for the control to number (the first match). In `name`, `fed`
 // and `click`, `X` is a key cap and *word* is italic. The key's order is the order
 // of the numbers on the picture, roughly reading order.
@@ -8,7 +8,7 @@ const NONE = 'Nothing to press.';
 
 /** The top bar, the same in Dash and Tour mode. */
 const TOP_BAR = [
-  { sel: '.topbar .modes', name: 'Display mode', fed: 'Your choice. Each screen remembers its own.', click: '*Tour*: the view, with a strip of the trip. *Dash*: this dashboard. *Work*: your work panels; in VS Code it takes you back to the editor. Keys `T` `D` `W`.' },
+  { sel: '.topbar .modes', name: 'Display mode', fed: 'Your choice. Each screen remembers its own.', click: '*Tour*: the view, with nothing in front of it. *Dash*: this dashboard. *Work*: your work panels; in VS Code it takes you back to the editor. Keys `T` `D` `W`.' },
   { sel: '.top-btn[aria-label="Destinations"]', name: 'Destinations', fed: 'The journey packs.', click: 'Opens the destination board, to pick or change a journey. Key `G`.' },
   { sel: '.top-btn[aria-label="Passport"]', name: 'Passport', fed: 'Your trips, stamps and travel memories.', click: 'Opens your Passport. Key `P`.' },
   { sel: '.top-btn[aria-label="Capture my workplace"]', name: 'Capture my workplace', fed: 'The view and the dashboard as they are now.', click: 'Saves a picture, with private details left out. Key `C`.' },
@@ -17,7 +17,6 @@ const TOP_BAR = [
 ];
 
 const BELL = { sel: '.alert-bell', name: 'Alerts bell', fed: 'The loudest alert: *red* when something stopped the car, *orange* when something needs you, *blue* for files not yet committed. Dark when there is nothing.', click: 'Opens the dashboard on the Alerts tab.' };
-const WINDSHIELD = { sel: '.hud-caption', name: 'Windshield line', fed: 'News only: the place at a stop, a tunnel, a town on the route, departing and arriving. Clear while you cruise.', click: NONE };
 
 export const STATES = [
   {
@@ -25,11 +24,11 @@ export const STATES = [
     short: 'Dashboard',
     group: 'dash',
     title: 'The dashboard',
-    intro: 'Dash mode, while you code and an agent works, with a crew agent in the side mirror. Press `D` from anywhere to come here.',
+    intro: 'Dash mode, while you code and an agent works. Nothing sits on the windshield. Press `D` from anywhere to come here.',
     query: '?fresh&speed=5',
     async setup(page) {
       await depart(page);
-      await page.locator('.side-mirror.show').first().waitFor({ timeout: 30_000 }).catch(() => {});
+      await demo(page, 'Type code', 'Agent edits', 'Agent edits');
       await mode(page, 'd');
       await settle(page, 900);
     },
@@ -37,18 +36,16 @@ export const STATES = [
       ...TOP_BAR,
       { sel: '.mirror-wrap .mirror', name: 'Rear-view mirror', fed: 'Nothing. It is a plain mirror, kept clear of text.', click: 'Only its bell does anything.' },
       BELL,
-      { sel: '.side-mirror.show', name: 'Side mirrors', fed: 'Crew agents: each sub-agent your agent starts, until it reports back.', click: 'Hover one for what it is doing.' },
-      WINDSHIELD,
-      { sel: '.gauge[aria-label="Speedometer: development activity"]', name: 'Activity', fed: 'Your coding: edits, saves, moving around and focus, fading over about 15 s. Red zone from 75%.', click: NONE },
-      { sel: '.gauge[aria-label="Tachometer: agent and tool activity"]', name: 'Agents & Tools', fed: 'Your agents and tools: agent events, commands starting and running, agents at work. Red zone from 75%.', click: NONE },
+      { sel: '.gauge[aria-label="Speedometer: development activity"]', name: 'Activity', fed: 'Your coding: edits, saves, moving around and focus. Each one kicks the needle up; with nothing new the reading halves every 15 s. Like a speedometer, it reads 0 while the car is stopped. Red zone from 75%.', click: NONE },
+      { sel: '.gauge[aria-label="Agents at work"]', name: 'Agents', fed: 'How many agents are at work now: your agent and the sub-agents it starts, until each reports back. 0 to 8; six or more at once is the red zone, where your plan’s usage goes fastest.', click: NONE },
+      { sel: '.gauge[aria-label="Tool calls in the last minute"]', name: 'Tools', fed: 'Tool calls and commands started in the last minute. Full at 30. No red zone: a busy agent is no fault.', click: NONE },
       { sel: '.screen .tabs', name: 'Screen tabs', fed: 'Nav, Radio, PRs, Trip, Console, and the bell for Alerts. The PRs count turns amber when one needs you.', click: 'Switches the screen. Each tab has its own section below. `R` opens Radio.' },
       { sel: '.gauge[aria-label="Fuel gauge: journey left"]', name: 'Journey', fed: 'How much of the journey is left, with the percent done. Full again after you refuel.', click: NONE },
       { sel: '.gauge[aria-label="Agent context window left"]', name: 'Context', fed: "How much of your agent's context window is left, as Claude Code reports it. Red under 25%.", click: NONE },
       { sel: '.gauge-btn', name: 'Changes', fed: 'Files changed and not committed, from Git, like the Source Control badge. ↑N: commits to push. Red past 20 files.', click: 'Opens Source Control in VS Code.' },
       { sel: '.gauge[aria-label="Temperature: warnings and errors"]', name: 'Issues', fed: 'Errors and warnings in Problems, and failing checks. Red past three issues.', click: NONE },
-      { sel: '.lights', name: 'Warning lights', fed: 'Check engine (a failing test, build or lint), warnings, hazard (pulled over), agent waiting, your turn (if you chose the blue light), headlights (dusk, night, rain, fog).', click: NONE },
       { sel: '.gear', name: 'Gear', fed: '*P* stopped, *R* reviewing a diff, *N* thinking, *D* coding, an agent at work or verifying. The hint beside it says which.', click: NONE },
-      { sel: '.glovebox', name: 'Glovebox', fed: "Your project's docs: README, CONTRIBUTING, CHANGELOG and docs/.", click: 'Lists the docs; picking one opens it in VS Code, Markdown in its preview.' },
+      { sel: '.glovebox', name: 'Glovebox', fed: "Your project's docs: README, CONTRIBUTING, CHANGELOG and docs/. Pull the handle.", click: 'Lists the docs; picking one opens it in VS Code, Markdown in its preview. Hidden on a phone.' },
     ],
   },
   {
@@ -56,7 +53,7 @@ export const STATES = [
     short: 'Stopped',
     group: 'dash',
     title: 'Stopped for you',
-    intro: 'Your agent asked a question, so the car pulled into a scenic stop. It drives on when you answer.',
+    intro: 'Your agent asked a question, so the car pulled over at once, here at a turnout just out of Monterey. At one of the journey’s scenic stops the Nav screen names it. It drives on when you answer.',
     async setup(page) {
       await depart(page);
       await demo(page, 'Agent edits', 'Agent asks');
@@ -66,10 +63,8 @@ export const STATES = [
     },
     items: [
       BELL,
-      { sel: '.stop-card .stop-pill .alert', name: 'Alert pill', fed: 'The alert that stopped the car, coloured like the bells.', click: "Takes you where you act: the agent's terminal (else the editor), the PR on GitHub, or Problems." },
-      { sel: '.stop-card.show .stop-body', name: 'Stop card', fed: 'Why the car stopped: a question, a plan or approval, an agent that stopped, a failing build, your turn, a breather, refuelling, or parked.', click: 'When parked, *Resume journey*. Otherwise reply to your agent or get back to work, and the drive resumes.' },
-      { ...WINDSHIELD, fed: 'The stop’s place. The card above says why.' },
-      { sel: '.light-agent', name: 'Agent waiting light', fed: 'An agent waiting for you.', click: NONE },
+      { sel: '.stop-card.show .alert', name: 'Stop pill', fed: 'Why the car stopped, coloured like the bells, and what resumes the drive: a question, a plan or approval, an agent that stopped, a failing build, your turn, a breather, refuelling, or parked. A long message wraps and the pill grows taller.', click: "Takes you where you act: the agent's terminal (else the editor), the PR on GitHub, or Problems. When parked, *Resume journey* sits under it." },
+      { sel: '.gauge[aria-label="Speedometer: development activity"]', name: 'Stop pins', fed: 'Activity reads 0 while stopped. Each dial on the left leaves a white pin where its needle stood when the car stopped, until the drive resumes.', click: NONE },
       { sel: '.gear', name: 'Gear', fed: '*P* while stopped.', click: NONE },
     ],
   },
@@ -88,8 +83,9 @@ export const STATES = [
     },
     items: [
       { sel: '.pane-nav .route-map', name: 'Route map', fed: 'The journey’s route, its towns, and the car on it.', click: NONE },
+      { sel: '.pane-nav .route-stop', name: 'Scenic stops', fed: 'Where the journey’s scenic stops are on the route (green diamonds). The one the car is stopped at lights up.', click: NONE },
       { sel: '.nav-route', name: 'Route', fed: 'The journey pack and its road.', click: NONE },
-      { sel: '.nav-loc', name: 'Where you are', fed: 'The town you are near, and the scene outside.', click: NONE },
+      { sel: '.nav-loc', name: 'Where you are', fed: 'The town you are near, and the scene outside. At a scenic stop, its name: *Stopped at Bixby Creek Overlook*.', click: NONE },
       { sel: '.nav-meta', name: 'Trip and progress', fed: 'The trip length you picked (Coffee Run to Expedition) and how far along you are.', click: NONE },
       { sel: '.nav-objective', name: 'Objective', fed: 'What you said you would get done, on your ticket.', click: NONE },
       { sel: '.btn-arrive', name: 'Arrive', fed: 'Shown until you arrive.', click: 'Marks the objective done: the car takes the final approach and arrives, and you get a stamp. Key `A`.' },
@@ -288,7 +284,7 @@ export const STATES = [
     short: 'Tour mode',
     group: 'mode',
     title: 'Tour mode',
-    intro: 'The view, with the trip on a strip along the bottom. The top bar shows when you move the mouse and fades after a few seconds. Press `T`.',
+    intro: 'The view and nothing in front of it: no dashboard, no strip and no windshield line while the car drives. When the car stops, the dashboard comes up with the stop pill, and goes again when the drive resumes. The top bar shows when you move the mouse and fades after a few seconds. Press `T`.',
     async setup(page) {
       await depart(page);
       await demo(page, 'Agent edits');
@@ -299,11 +295,6 @@ export const STATES = [
     items: [
       { sel: '.topbar', name: 'Top bar', fed: 'The same buttons as on the dashboard.', click: 'See *The dashboard*, 1–6.' },
       BELL,
-      WINDSHIELD,
-      { sel: '.strip-title', name: 'Route', fed: 'Where from and where to.', click: NONE },
-      { sel: '.strip-loc', name: 'Where you are', fed: 'The place, and what the car is doing.', click: NONE },
-      { sel: '.strip-track', name: 'Progress', fed: 'How far along the route, with a tick at each town.', click: NONE },
-      { sel: '.strip-lights', name: 'Status', fed: 'Verifying, ⚠ check engine, the number of errors and of agents working, and the gear.', click: NONE },
     ],
   },
   {

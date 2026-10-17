@@ -43,6 +43,10 @@ export interface PullRequestRef {
   /** Opened from a fork: its branch is not one of this repository's. */
   crossRepo: boolean;
   ci: 'passing' | 'failing' | 'pending' | 'none';
+  /** The head commit's latest deployment, when one reports to GitHub (Vercel, Netlify, Actions…). */
+  deploy?: 'ok' | 'failing' | 'pending';
+  /** That deployment's environment, e.g. `Preview`. */
+  deployEnv?: string;
   review: 'approved' | 'changes-requested' | 'review-required' | 'none';
   conflict: boolean;
   /** Commits on the branch that the base lacks, and the base's commits it lacks. */
@@ -93,7 +97,7 @@ export type DevEventBody =
       tool?: string;
       /** Context-window usage 0..1 when the provider reports it. */
       context?: number;
-      /** Set for background/sub-agents shown in the side mirrors. */
+      /** Set for background/sub-agents: the crew, counted on the Agents dial. */
       parentId?: string;
     }
   | { type: 'agent.remove'; agentId: string }

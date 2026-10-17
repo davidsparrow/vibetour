@@ -4,7 +4,7 @@ Every signal VibeTour listens to, the moment it turns into, and what that moment
 
 `test/docs.test.ts` keeps this page in step with the code: it fails if a moment or a timing here no longer matches. Captions use the California Coast journey as an example.
 
-To see where each object is, the [Controls Map](site/controls-map.html) has a numbered picture of every screen, with what feeds each control and what a click or a key does.
+To see where each object is, the [Cockpit Map](site/vibetour-cockpit-map.html) has a numbered picture of every screen, with what feeds each control and what a click or a key does.
 
 ## The path of a signal
 
@@ -44,9 +44,9 @@ This split decides where any new setting can live.
 - captions and the VS Code status bar
 - whether your turn pulls the car over
 
-**Each display draws its own**: a VS Code tab, a companion browser. A dashboard cue can differ per screen, like today's display settings. Each display decides:
+**Each display draws its own**: a VS Code tab, a companion browser. Each display decides:
 
-- lights, gauges, gear, stop card, side mirrors and HUD
+- gauges, gear and stop pill
 - which alerts its Alerts tab lists and its bells light for: questions, plans, approvals, an agent that stopped, a build left failing, your turn, pull requests, changed files
 - render settings: reduced motion, weather, frame rate, contrast
 - sound, and which gauges show (Context, Battery)
@@ -70,64 +70,58 @@ Top to bottom is the engine's priority order for the car: the first row that mat
 | **You're coding** `coding`<br/>ACTIVE | You typed, saved, switched files, moved the cursor or focused the window in the last 20 s. | 100%. Cruise. Easy pace (80%) while you review diffs. | Full speed (1×). |
 | **Thinking** `thinking`<br/>THINKING | Quiet, but your last input was under 5 min ago (2 min if VS Code is in the background; 5 min while an agent CLI runs in a terminal). | 65%. Gentle cruise. | Three-quarter speed (0.75×). |
 | **Idle** `idle`<br/>IDLE | Quiet for longer than that. | 35%. Slow for 3 min, then a scenic stop. | Paused. |
-| **Heads-up** `heads-up`<br/>WARNING | Errors in Problems, or the last test, lint or build failed, while you're coding or thinking. Shown on top of that moment. `problems` (any errors or warnings) and `checks-failing` (a failed run) also hold on their own, at any time. | No change: the car follows the moment underneath. | No change. |
+| **Heads-up** `heads-up`<br/>WARNING | Errors in Problems, or the last test, lint or build failed, while you're coding or thinking. Shown on top of that moment. `problems` (any errors or warnings) and `checks-failing` (a failed run here, or failing CI or a failed deployment on GitHub for the pull request on your branch, such as a Vercel preview) also hold on their own, at any time. | No change: the car follows the moment underneath. | No change. |
 | **Your turn** `your-turn`<br/>your move | Claude Code `Stop` or Codex turn complete, with no agent working or waiting. Ends when the agent works again or 15 min after it finished. `idle_prompt` and `auth_success` are ignored. | **Keep driving** (default): the car follows your activity. **Pull over** (opt-in): a scenic stop after 30 s of quiet (5–3600 s). Typing restarts the count; replying drives on. | Paused while pulled over. |
 | **Parked** `parked`<br/>journey phase | The Park command, or closing VS Code or the CLI. | Stopped. | Saved. If closing parked it, it resumes as soon as you work again (the auto-resume setting). |
 | **No journey** `no-journey` | Nothing booked yet. | 55%. A preview drive of a destination. | — |
 
 ### Dashboard
 
-| Moment | Caption and stop card | Lights and gear | Rest of the dashboard and sound |
+| Moment | Caption and stop pill | Gear and bells | Rest of the dashboard and sound |
 | --- | --- | --- | --- |
 | **Arrived** | *"Arrived in Big Sur"*. Arrival card with the stamp, *Refuel and drive again* and *Choose next destination*. Refuelling: *"Refuelling at a Carmel Highlands gas station — then Monterey to Big Sur again"*, with a stop card. | Gear **P**. | Fuel reads 100%. Status bar: *Arrived*. Soft music. |
 | **Final approach** | *"Final approach to Big Sur"*. Arrival scenery. | Gear **D**. | Sound follows speed. |
-| **Agent hit a problem** | *"Pulled over safely — Claude needs help"*. Stop card: *Pulled over safely: Claude needs help*, with the reason (*Stopped: rate limit*); red pill on its edge: *Claude stopped · rate limit*. | **Hazard** on. Gear **P**. Bells red. | Alerts tab: the same pill. Recent: *Claude hit a problem*. Radio: *Needs help*. Soft music. |
-| **Build left failing** | *"Pulled over safely — Build is failing"*. Stop card, with a red *Build failing* pill that opens Problems. | **Hazard** and **check engine** on. Gear **P**. Bells red. | Temperature up. Recent: *Build failed*. Strip: ⚠. |
-| **Agent needs you** | Says why: *"Scenic stop at Bixby Creek Overlook — Claude has a question for you"*, *"… has a plan for you to approve"* or *"… needs your approval"*. The stop card names the tool (*to use Bash*) and says it resumes when you reply, with a red pill on its edge: *Claude has a question*, *Claude has a plan to approve* or *Claude needs approval · Bash*. Agents that don't say why: *"… is waiting for you"*. | **Agent waiting** light on. Gear **P**. Bells red. | Alerts tab: the same pill. Recent: the same. Radio: *Waiting for you*. Soft music. |
-| **Verifying** | *"Through the tunnel — verification running"*. | Gear **D**. Check engine updates when it ends. | Console: *npm test* with a spinner. Strip: *Verifying*. Recent: *Tests running*, then *passed* or *failed*. |
-| **Agent at work** | *"Steady autopilot cruise — agent at work"*. | Gear **D**. | Tachometer up. Side mirrors show crew agents. Radio shows status. Strip: *1 agent*. Recent: *Agent edited 3 files*. Bright music. |
-| **You're coding** | *"Cruising"*, *"Departing Monterey"*, or *"Easy pace — reviewing changes"*. | Gear **D**, or **R** within 60 s of opening a diff. | Speedometer up. Alerts tab: the file you're in. Bright music. |
+| **Agent hit a problem** | *"Pulled over safely — Claude needs help"*. Stop pill, red: *Claude stopped · rate limit*, then *Pulled over until you get it going again.* | Gear **P**. Bells red. | Alerts tab: the same pill. Recent: *Claude hit a problem*. Radio: *Needs help*. Soft music. |
+| **Build left failing** | *"Pulled over safely — Build is failing"*. Stop pill, red: *Build failing*, then *Pulled over until the build passes.* It opens Problems. | Gear **P**. Bells red. | Issues up. Recent: *Build failed*. |
+| **Agent needs you** | The car stops at once. Where the pack places a scenic stop within 2.5% of the trip, it is at that stop and takes its name; between stops it's *a turnout*. Says why: *"Scenic stop at Bixby Creek Overlook — Claude has a question for you"* (or *"Scenic stop at a turnout — …"*), *"… has a plan for you to approve"* or *"… needs your approval"*. The stop pill, red, says it and what resumes the drive: *Claude has a question* / *Answer to resume your journey.*, *Claude has a plan to approve* or *Claude needs approval · Bash* / *Reply to resume your journey.* Agents that don't say why: *"… is waiting for you"*. | Gear **P**. Bells red. | Alerts tab: the same pill. Recent: the same. Radio: *Waiting for you*. Soft music. |
+| **Verifying** | *"Through the tunnel — verification running"*. | Gear **D**. | Console: *npm test* with a spinner. Recent: *Tests running*, then *passed* or *failed*. |
+| **Agent at work** | *"Steady autopilot cruise — agent at work"*. | Gear **D**. | Agents and Tools dials up; Agents counts crew agents too. Radio shows status. Recent: *Agent edited 3 files*. Bright music. |
+| **You're coding** | *"Cruising"*, *"Departing Monterey"*, or *"Easy pace — reviewing changes"*. | Gear **D**, or **R** within 60 s of opening a diff. | Activity up. Alerts tab: the file you're in. Bright music. |
 | **Thinking** | *"Gentle cruising — thinking time"*. | Gear **N** (**R** after a diff). | Medium music. |
 | **Idle** | *"Slowing down — taking a breather"*, then *"Parked at Bixby Creek Overlook — resume whenever you're ready"* with a stop card. | Gear **N**, then **P**. | Soft music once stopped. |
-| **Heads-up** | No change. | **Warnings** light (any errors or warnings). **Check engine** (a failed test, build or lint). | Temperature gauge. Strip: ⚠ and *2 errors*. |
-| **Your turn** | When pulled over: *"Scenic stop at Bixby Creek Overlook — Claude finished, your turn"*. Stop card: *Claude finished its turn*, with an orange *Claude finished · your turn* pill. | **Blue your-turn light**, if this display's Your-turn cue is on (off by default). Gear **P** when pulled over. Bells orange. | Alerts tab: the same pill. Recent: *Claude finished*. Radio: *Finished*. |
+| **Heads-up** | No change. | — | Issues: errors and warnings, a failed test, build or lint, and failing CI or a failed deployment on your branch's pull request. |
+| **Your turn** | When pulled over: *"Scenic stop at Bixby Creek Overlook — Claude finished, your turn"*. Stop pill, orange: *Claude finished · your turn*, then *Reply or get back to work to drive on.* | Gear **P** when pulled over. Bells orange. | Alerts tab: the same pill. Recent: *Claude finished*. Radio: *Finished*. |
 | **Parked** | *"Parked — your journey is saved"*. Stop card with *Resume journey*. | Gear **P**. | Status bar: *Parked*. |
 | **No journey** | *"Where do you want to go today?"* The destination board opens. | — | — |
 
 ## Every dashboard object and what drives it
 
-The same wiring, read the other way: pick an object and see which signals reach it. The warning lights read from one moment-to-cue table per display (`src/webview/ui/cues.ts`). That table is what a dashboard designer would edit.
+The same wiring, read the other way: pick an object and see which signals reach it. There are no warning lights: the stop pill, the bells and the dials say what they used to.
 
 | Object | Driven by | Lit or moved during |
 | --- | --- | --- |
-| **Warning lights** | | |
-| Check engine | Cue table: `checks-failing`. The last test, build or lint result failed. | Heads-up, Build left failing |
-| Warnings | Cue table: `problems`. Any errors or warnings in Problems. | Heads-up |
-| Hazard | Cue table: `agent-problem`, `build-failing`. The car pulled over. | Agent hit a problem, Build left failing |
-| Agent waiting | Cue table: `agent-waiting`. | Agent needs you |
-| Your turn (blue) | Cue table: `your-turn`, only when this display's Your-turn cue is *Blue light*. Hidden otherwise. | Your turn |
-| Headlights | Scenery only: dusk, night, rain or fog on this journey. | — |
 | **Gauges and gear** | | |
-| Speedometer | Your activity score: edits (bigger edits count more), saves, navigation, focus, plus outside edits. Fades with a 15 s half-life. Its top quarter is a red zone, marked faintly on the scale; past 75% the arc runs red. | You're coding, Agent at work |
-| Tachometer | Agent and tool score: agent events, outside edits, commands starting, commands running, agents working. 20 s half-life. A red zone in its top quarter, like a redline: cyan to 75%, red past it. | Agent at work, Verifying |
+| Activity (speedometer) | Your activity score: edits (bigger edits count more), saves, navigation, focus, plus outside edits. Each one kicks the needle up; with nothing new it halves every 15 s, so it settles near zero about a minute after you stop. Like a speedometer, it reads 0 while the car is stopped. Its top quarter is a red zone, marked faintly on the scale; past 75% the arc runs red. | You're coding, Agent at work |
+| Agents | How many agents are at work right now: the main agent and its crew (each Claude Code `Task`/`Agent` call until it reports back). 0 to 8; six or more at once reach the red zone, where your plan's usage goes fastest. | Agent at work |
+| Tools | Tool calls (each `PreToolUse`) and commands started in the last minute. Full at 30. No red zone: a busy agent is no fault. | Agent at work, Verifying |
+| Stop pins | When the car stops, Activity, Agents and Tools each leave a white pin where the needle stood, so you can see what they read before the stop. The pins go when the drive resumes. | Every stop |
 | Fuel | Journey progress: reads the percent while the needle drops toward E. Back to F when you refuel. | Every moving moment |
 | Context | How much of the fullest agent's context window is left: from Claude Code's transcript or status line, or the HTTP API's `context`. Reads — until an agent reports it. Its bottom quarter is a red zone: under 25% left, the whole arc turns red. On by default; Settings › Display on each screen. | Any agent signal that reports context |
 | Changes | Files changed and not yet committed, staged ones included, like the editor's Source Control badge: dark at 0, then a lit blue ring and a white number. Twenty files sit at 75%, where its red zone starts; 21 and up run red. ↑N after the label: commits to push. Click it to open Source Control (VS Code, Cursor, Windsurf). On by default; Settings › Display on each screen. | Any edit, save or commit |
 | Battery | This computer's battery. Off by default; Settings › Display on each screen. Hidden where the browser doesn't report battery (Safari, Firefox) and until a battery shows up: a desktop, or a laptop that's plugged in and full, reports no battery. | — |
-| Temperature | Errors, warnings (a fifth as much) and failed checks. Scaled so more than three issues (a score of 4) reach its red zone at 75%, which burns a deeper red. | Heads-up, Build left failing |
+| Temperature | Errors, warnings (a fifth as much) and failed checks: a test, build or lint here, or on GitHub the CI or latest deployment of your branch's pull request (Vercel, Netlify or anything that reports a deployment). Scaled so more than three issues (a score of 4) reach its red zone at 75%, which burns a deeper red. | Heads-up, Build left failing |
 | Gear P · R · N · D | P when stopped. R within 60 s of a diff while coding or thinking. D while coding, agent at work, verifying or on final approach. N otherwise. | Every moment |
 | **Windshield and mirrors** | | |
-| Stop card | Why the car stopped, in one line (no title): a question, a plan, an approval, an API error, a failing build, your turn, a breather, refuelling, or parked (with *Resume journey*). When an alert stopped it, that alert's pill straddles the card's top edge, coloured like the bells; clicking it goes where you act. | Agent needs you, Your turn, Idle, Blocked, Parked |
-| HUD | One line at the bottom of the windshield, and only when there's news: the place at a stop (*Bixby Creek Overlook*) or where the car pulled over or parked (*Near Garrapata*), while the stop card says why; *Through the tunnel*, a checkpoint only if the car stops there, a town on the route (*Approaching Carmel-by-the-Sea*, *Leaving Carmel-by-the-Sea*, close to it), *Departing Monterey*, *Final approach to Big Sur*, *Arrived in Big Sur*. Clear while the car just cruises: the dials say how busy you and your agents are. | Stops, tunnels, towns, departing, arriving |
-| Alerts bell (on the rear-view mirror's glass, in its top-right corner) | Lit by the loudest alert: **red** when something stopped the car (a question, a plan, an approval, an agent that stopped, a build left failing), **orange** when something needs you but the car may drive on (your turn, a PR of yours that needs you), **blue** for files changed and not committed. Dark when there is nothing. Clicking it opens the dash on the Alerts tab. | Any alert |
+| Stop pill | Why the car stopped, as one pill in the middle of the window: what happened, then what resumes the drive, quieter (*Claude has a question* / *Answer to resume your journey.*). A question, a plan, an approval, an API error, a failing build, your turn, a breather, refuelling, or parked (with *Resume journey* under it). When an alert stopped the car, the pill is that alert, coloured like the bells; clicking it goes where you act. At most 440 px wide: a long message wraps and the pill grows taller. | Agent needs you, Your turn, Idle, Blocked, Parked |
+| Windshield | Nothing, in any mode: places are named on the Nav screen (and, in the footage, on signs outside). In Tour mode the dashboard comes up while the car is stopped, and goes when it drives on. | — |
+| Alerts bell (on the rear-view mirror's glass, near its right end) | Lit by the loudest alert: **red** when something stopped the car (a question, a plan, an approval, an agent that stopped, a build left failing), **orange** when something needs you but the car may drive on (your turn, a PR of yours that needs you), **blue** for files changed and not committed. Dark when there is nothing. Clicking it opens the dash on the Alerts tab. | Any alert |
 | Rear-view mirror | A plain mirror: nothing written on it. Its only display is the Alerts bell, a glowing glyph on its glass. The recent events it used to list are the Console tab's *Recent* log. On a phone, and in Tour mode on a narrow screen, the mirror hides and the bell stands alone on a dark disc. | — |
-| Side mirrors | Crew agents (each Claude Code `Task`/`Agent` call until it reports back), and any agent after the first. | Agent at work |
-| **Center screen and strip** | | |
+| **Center screen** | | |
+| Nav tab | The route map: the towns, the journey's scenic stops as green diamonds where the pack places them (lit while the car is stopped at one), the road done and the car. Beside it: where you are (*Stopped at Bixby Creek Overlook* at a stop), the trip and progress, the objective and *Arrive*. | Every moving moment, stops |
 | Radio tab | Two bands. **CB**: every agent with its status: Working, Using tools, Waiting for you, Standing by, Finished, Needs help; an amber dot on the CB button while one is waiting or needs help. **FM**: internet radio (SomaFM presets, stations near the journey, Radio Browser search) with the song title from the stream, presets 1–6, tone controls and equalizer lights. FM follows no moment. | Any agent signal (CB) |
 | Alerts tab (bell) | Left, *Needs you*: a pill per alert, most urgent first, coloured red, orange or blue like the bells, only while it holds; clicking one goes where you act (the agent's terminal, else the editor; the PR on GitHub; Problems). Right: the file you're in, and the changed files (names hidden in Streaming Mode); click one to open it in VS Code. Each side scrolls on its own and fades at the bottom while more is below. The tab's bell lights like the top bell. Each kind of alert, and changed files, has a switch in Settings › Alerts on each screen; all on by default. | Agent needs you, Agent hit a problem, Build left failing, Your turn, Pull requests, changes |
 | PRs tab | The repository's open pull requests, once you connect GitHub: a large number, title, CI dot, how far the branch is ahead of and behind its base, when it was opened (*Oct 14, 3:12 PM*) and by whom, draft, conflict and review. A lit branch marks the ones on your current branch, listed first. The tab's count turns amber when one needs you. Click a row to open it on GitHub. | Pull requests |
 | Console tab | Running commands with elapsed time, the last test, build and lint results, and *Recent*: the last eight events (saves, test/build/check results, commits, branch switches, an agent's question / plan / approval / finish / problem, agent edits, PR opened). | Verifying, most moments |
-| Tour strip lights | *Verifying*, ⚠ (check engine), *N errors*, *N agents* working, and the gear. | Verifying, Heads-up, Agent at work |
 | Arrival card | The journey arrived. | Arrived |
 | **Outside the dashboard** | | |
 | Sound | Engine, road and wind follow the car's speed. The Focus Mix is brightest while coding or an agent works, then verifying, thinking, and softest when stopped. The radio plays on its own volume, even with tour audio off, and stops when the panel closes (Work mode in VS Code); the Companion Display keeps playing. The radio's equalizer lights follow whatever music plays: the radio, or the Focus Mix. | Every moment (Focus Mix) |
@@ -143,8 +137,8 @@ What each source sends, and the moment it feeds.
 | **Claude Code hooks** | | |
 | `SessionStart` | Claude: standing by | — |
 | `UserPromptSubmit` | Claude: working. Crew left over from the last turn leave. | Agent at work |
-| `PreToolUse` | Claude: using Edit, Bash… | Agent at work |
-| `PreToolUse` on `Task`/`Agent` | A crew agent appears in a side mirror (NAV, ENG, QA, COMMS, OPS by type) | Agent at work |
+| `PreToolUse` | Claude: using Edit, Bash…. The Tools dial counts it. | Agent at work |
+| `PreToolUse` on `Task`/`Agent` | A crew agent joins (NAV, ENG, QA, COMMS, OPS by type): the Agents dial counts it, and CB lists it | Agent at work |
 | `PostToolUse` | Claude: working. On `Task`/`Agent`, that crew agent leaves. | Agent at work |
 | `PreToolUse` on `AskUserQuestion` | Claude: waiting, "Has a question for you" | Agent needs you |
 | `PreToolUse` on `ExitPlanMode` | Claude: waiting, "Has a plan for you to approve" | Agent needs you |
@@ -219,16 +213,12 @@ One setting for the car, shared by every screen, and one cue per display.
 
 The count starts at `Stop`, so it works for every agent and doesn't wait for `idle_prompt`.
 
-**Dashboard (per display): Your-turn cue**, *None* (default) or *Blue light*, in Settings › Display on each screen. More cues can be added as entries in the cue table without touching the car or the cockpit code, such as:
-
-- a dimmed panel
-- a "Done" banner
-- colours
+Every display lights its bells orange for your turn.
 
 ---
 
 Drawn from:
 
 - `src/core/activity.ts`, `motion.ts`, `moments.ts`, `hooks.ts` and `session.ts`
-- `src/webview/ui/cues.ts` and `cockpit.ts`
+- `src/webview/ui/cockpit.ts`
 - the VS Code adapters

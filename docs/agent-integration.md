@@ -3,7 +3,7 @@
 VibeTour treats AI agents as cockpit entities (PRD §15):
 
 - **Co-pilot:** your main agent sits on the radio's **CB band**.
-- **Crew:** sub-agents show up in the **side mirrors**, labelled NAV, ENG, QA, COMMS or OPS.
+- **Crew:** sub-agents count on the **Agents** dial and show on the radio's CB band, labelled NAV, ENG, QA, COMMS or OPS.
 - **Activity:** agent activity moves the **tachometer** and keeps the journey cruising on autopilot.
 - **Waiting for you:** when an agent needs approval or a reply, the car pulls into a **scenic stop** until you answer.
 
@@ -39,14 +39,14 @@ How hook events map onto the journey:
 | --- | --- | --- |
 | `UserPromptSubmit` | co-pilot *working* | Steady autopilot cruise |
 | `PreToolUse` | co-pilot *using a tool* (e.g. "Using Edit") | Cruise |
-| `PreToolUse` with `Task`/`Agent` | a crew agent appears in a side mirror | — |
+| `PreToolUse` with `Task`/`Agent` | a crew agent joins: the Agents dial counts it, CB lists it | — |
 | `PostToolUse` with `Task`/`Agent` | that crew agent leaves | — |
 | `PreToolUse` with `AskUserQuestion` | co-pilot *has a question for you* | Scenic stop until you answer; alert on the stop card and in the Alerts tab |
 | `PreToolUse` with `ExitPlanMode` | co-pilot *has a plan for you to approve* | Scenic stop until you reply; alert on the stop card and in the Alerts tab |
 | `Notification` (`permission_prompt`) | co-pilot *needs your approval to use* the tool it was about to run | Scenic stop until you reply; alert on the stop card and in the Alerts tab |
 | `Notification` (MCP input requests: `elicitation_dialog`, `elicitation_url_dialog`, `agent_needs_input`) | co-pilot *needs your input* | Scenic stop until you reply; alert on the stop card and in the Alerts tab |
 | `Notification` (`idle_prompt`, `auth_success` and other notices that ask nothing) | ignored: the co-pilot is still *finished* | — |
-| `Stop` | co-pilot *finished — your turn*; crew whose task never reported back leave | Normal travel while you review, with a *your turn* alert. Optionally pulls over after N quiet seconds (`vibetour.yourTurn.pullOver`) and lights a blue your-turn cue |
+| `Stop` | co-pilot *finished — your turn*; crew whose task never reported back leave | Normal travel while you review, with a *your turn* alert that lights the bells orange. Optionally pulls over after N quiet seconds (`vibetour.yourTurn.pullOver`) |
 | `StopFailure` | the turn ended on an API error: co-pilot *stopped: rate limit* (or *API overloaded*, *billing problem*…). Only the error's kind is forwarded, never its details | Pulls onto the shoulder with hazards; alert on the stop card and in the Alerts tab |
 | `SessionEnd` | co-pilot leaves the cockpit | — |
 

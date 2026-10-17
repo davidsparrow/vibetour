@@ -3,7 +3,8 @@ import { ActivityEngine } from '../src/core/activity';
 import { fileRef } from '../src/core/events';
 import { APPROACH_CAP, JourneyEngine } from '../src/core/journey';
 import { MotionController } from '../src/core/motion';
-import { KEYS, placeName } from '../src/core/session';
+import { placesStops, stopAt } from '../src/core/packs';
+import { KEYS } from '../src/core/session';
 import { WorkspaceTracker } from '../src/core/workspace';
 import { BUILTIN_PACKS } from '../src/packs';
 import { makeSession } from './helpers';
@@ -43,6 +44,37 @@ describe('ActivityEngine', () => {
     feed({ type: 'process.end', id: 't', kind: 'test', label: 'npm test', exitCode: 1, at: 9_000 });
     const r = engine.evaluate(10_000);
     expect(r.checkEngine).toEqual({ on: true, reason: 'Tests failing' });
+  });
+
+  it('counts agents at work, and tool calls and commands over the last minute', () => {
+    const { engine, feed } = setup();
+    feed({ type: 'agent', agentId: 'c', name: 'Claude', status: 'tool', detail: 'Using Edit', at: 1_000 });
+    feed({ type: 'agent', agentId: 'c:sub:1', name: 'QA', status: 'working', parentId: 'c', at: 2_000 });
+    feed({ type: 'agent', agentId: 'c', name: 'Claude', status: 'tool', detail: 'Using Bash', at: 3_000 });
+    feed({ type: 'process.start', id: 't', kind: 'test', label: 'npm test', at: 4_000 });
+    let r = engine.evaluate(5_000);
+    expect(r.agentsWorking).toBe(2);
+    expect(r.toolCalls).toBe(3);
+    feed({ type: 'agent', agentId: 'c', name: 'Claude', status: 'waiting', ask: 'question', at: 30_000 });
+    feed({ type: 'agent.remove', agentId: 'c:sub:1', at: 30_000 });
+    r = engine.evaluate(63_500);
+    expect(r.agentsWorking).toBe(0);
+    // The calls at 1 s and 3 s have left the minute; the command at 4 s hasn't yet.
+    expect(r.toolCalls).toBe(1);
+    expect(engine.evaluate(65_000).toolCalls).toBe(0);
+  });
+
+  it('lights check engine for the branch\'s failing CI or failed deployment on GitHub', () => {
+    const { engine, feed } = setup();
+    const pr = (over: object) => ({ number: 17, title: 'Stops', url: 'https://github.com/o/r/pull/17', branch: 'feat/stops', base: 'main', draft: false, createdAt: 0, crossRepo: false, ci: 'passing' as const, review: 'none' as const, conflict: false, ...over });
+    feed({ type: 'git', branch: 'feat/stops', changes: 0, staged: 0, ahead: 0, behind: 0, at: 1_000 });
+    feed({ type: 'github.prs', state: 'ok', repo: 'o/r', items: [pr({ ci: 'failing' })], at: 2_000 });
+    expect(engine.evaluate(3_000).checkEngine).toEqual({ on: true, reason: 'CI failing on #17' });
+    feed({ type: 'github.prs', state: 'ok', repo: 'o/r', items: [pr({ deploy: 'failing', deployEnv: 'Preview' })], at: 4_000 });
+    expect(engine.evaluate(5_000).checkEngine).toEqual({ on: true, reason: 'Deployment failed on #17 (Preview)' });
+    // Another branch's PR is not this car's engine.
+    feed({ type: 'github.prs', state: 'ok', repo: 'o/r', items: [pr({ branch: 'feat/other', ci: 'failing' })], at: 6_000 });
+    expect(engine.evaluate(7_000).checkEngine).toEqual({ on: false, reason: undefined });
   });
 
   it('shows WARNING over thinking when there are errors', () => {
@@ -191,20 +223,15 @@ describe('JourneyEngine', () => {
     expect(j.record.progress).toBeGreaterThan(0);
   });
 
-  it('names the town the car is passing, only close to it', () => {
-    const j = JourneyEngine.create(coast, { id: 'j', scope: 'day-trip', now: 0, seed: 3 });
-    // Carmel-by-the-Sea is at 12% of the coast route.
-    const at = (p: number) => {
-      j.record.progress = p;
-      return j.passing();
-    };
-    expect(at(0.005)).toBe('Leaving Monterey');
-    expect(at(0.06)).toBeUndefined();
-    expect(at(0.1)).toBe('Approaching Carmel-by-the-Sea');
-    expect(at(0.125)).toBe('Leaving Carmel-by-the-Sea');
-    expect(at(0.15)).toBeUndefined();
-    // Big Sur is the destination: the final approach says that.
-    expect(at(0.99)).toBeUndefined();
+  it('names a scenic stop only where the pack places it', () => {
+    // The coast pack places its stops: Bixby Creek Overlook at 54%, nothing near Monterey.
+    expect(placesStops(coast)).toBe(true);
+    expect(stopAt(coast, 0.545)?.name).toBe('Bixby Creek Overlook');
+    expect(stopAt(coast, 0.3)?.name).toBe('a Carmel Highlands gas station');
+    expect(stopAt(coast, 0.05)).toBeUndefined();
+    expect(stopAt(coast, 0.6)).toBeUndefined();
+    // A pack without positions keeps picking a name.
+    expect(placesStops({ ...coast, scenicStops: [{ name: 'Somewhere', kind: 'viewpoint' }] })).toBe(false);
   });
 
   it('walks the scene graph in order from departure', () => {
@@ -236,15 +263,13 @@ describe('VibeTourSession', () => {
     expect(s.journey?.phase).toBe('departing');
     expect(s.motion.stopped).toBe(false);
     expect(s.activity.gear).toBe('D');
-    expect(s.motion.windshield).toBe('Departing Monterey');
+    expect(s.motion.caption).toBe('Departing Monterey');
 
     emit({ type: 'process.start', id: 'p1', kind: 'test', label: 'npm test' });
     clock.advance(6_000);
     s = session.latestSnapshot!;
     expect(s.activity.state).toBe('VERIFYING');
     expect(s.motion.behavior).toBe('checkpoint');
-    // A checkpoint says so on the windshield only in a tunnel, or if the car stops there.
-    expect(s.motion.windshield).toBe(s.motion.caption.startsWith('Through the tunnel') ? 'Through the tunnel' : '');
 
     emit({ type: 'process.end', id: 'p1', kind: 'test', label: 'npm test', exitCode: 0 });
     clock.advance(20_000);
@@ -253,8 +278,10 @@ describe('VibeTourSession', () => {
     s = session.latestSnapshot!;
     expect(s.motion.behavior).toBe('scenic-stop');
     expect(s.motion.caption).toMatch(/Claude is waiting for you/);
-    expect(s.motion.stopName).toBeTruthy();
-    expect(s.motion.windshield).toBe(placeName(s.motion.stopName!));
+    // Near Monterey, between the pack's stops: an unnamed turnout.
+    expect(s.journey!.progress).toBeLessThan(0.05);
+    expect(s.motion.stopName).toBeUndefined();
+    expect(s.motion.caption).toMatch(/^Scenic stop at a turnout — /);
     expect(s.activity.gear).toBe('P');
 
     emit({ type: 'agent', agentId: 'claude:1', name: 'Claude', status: 'working' });
@@ -266,7 +293,6 @@ describe('VibeTourSession', () => {
     s = session.latestSnapshot!;
     expect(s.journey?.phase).toBe('arrived');
     expect(s.motion.behavior).toBe('arrived');
-    expect(s.motion.windshield).toBe('Arrived in Big Sur');
     expect(s.activity.state).toBe('COMPLETE');
 
     const catalog = session.catalog();
@@ -384,8 +410,6 @@ describe('VibeTourSession', () => {
     const snap = () => session.latestSnapshot!;
     expect(snap().motion).toMatchObject({ behavior: 'scenic-stop', stopped: true, stopReason: 'refuel', stopName: 'a Carmel Highlands gas station' });
     expect(snap().motion.caption).toBe('Refuelling at a Carmel Highlands gas station — then Monterey to Big Sur again');
-    // The windshield names just the place; the stop card says why.
-    expect(snap().motion.windshield).toBe('Carmel Highlands gas station');
 
     // Typing doesn't cut the stop short; after it, the car departs and the journey moves.
     type();
@@ -395,34 +419,23 @@ describe('VibeTourSession', () => {
     clock.advance(10_000, 1_000);
     expect(snap().motion.stopped).toBe(false);
     expect(snap().motion.caption).toBe('Departing Monterey');
-    expect(snap().motion.windshield).toBe('Departing Monterey');
     expect(session.catalog().stamps).toHaveLength(1);
   });
 
-  it('keeps the windshield clear while the car just cruises, naming only the towns it passes', () => {
+  it('stops at the scenic stop where the car is, by name', () => {
     const { session, clock, emit, type } = makeSession();
     session.startJourney('california-coast', 'day-trip');
-    emit({ type: 'agent', agentId: 'claude:1', name: 'Claude', status: 'working' });
-    const lines = new Set<string>();
-    let clear = 0;
-    for (let i = 0; i < 40; i++) {
-      type();
-      emit({ type: 'agent', agentId: 'claude:1', name: 'Claude', status: 'working' });
-      clock.advance(30_000, 1_000);
-      const m = session.latestSnapshot!.motion;
-      if (m.stopped || session.latestSnapshot!.journey?.phase !== 'cruising') continue;
-      if (m.windshield) lines.add(m.windshield);
-      else clear++;
-    }
-    expect(clear).toBeGreaterThan(10);
-    for (const line of lines) expect(line).toMatch(/^(Approaching|Leaving|Through the tunnel)/);
+    type();
+    clock.advance(5_000);
+    session.activeJourney!.progress = 0.545;
+    emit({ type: 'agent', agentId: 'claude:1', name: 'Claude', status: 'waiting', ask: 'question', detail: 'Has a question for you' });
+    clock.advance(25_000, 1_000);
+    const m = session.latestSnapshot!.motion;
+    expect(m.behavior).toBe('scenic-stop');
+    expect(m.stopName).toBe('Bixby Creek Overlook');
+    expect(m.caption).toBe('Scenic stop at Bixby Creek Overlook — Claude has a question for you');
   });
 
-  it('names a stop as a place: no article, a capital letter', () => {
-    expect(placeName('a Carmel Highlands gas station')).toBe('Carmel Highlands gas station');
-    expect(placeName('the Point Sur turnout')).toBe('Point Sur turnout');
-    expect(placeName('Bixby Creek Overlook')).toBe('Bixby Creek Overlook');
-  });
 
   it('replans a restored journey whose path no longer fits its pack, arrival included', () => {
     const first = makeSession();
