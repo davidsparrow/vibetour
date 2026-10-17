@@ -395,6 +395,23 @@ Round 2 (the user's tweaks, 16 October; mocks 60–63 in `docs/sample-videos/rev
   "Esc or click outside" hint.
 - Still to sign off: the user wants to see it running once.
 
+Round 3 (17 October; mocks 64–68, script `docs/sample-videos/photo-car-mock/mock3.mjs`):
+- The HUD dial panel and the stop pill above it centre in the **windshield glass**, not the whole frame: about
+  (800, 236) at 1280×720, from the car's `glass-mask.png` (x 300–1280, y 36–445). The renderer should centre the
+  HUD on the car's glass (add a `windshield` box to `car.json`, or use the mask's centre).
+- The GitHub repo (`owner/name`, linking to GitHub) shows along the bottom of the cluster display, under CONTEXT and
+  BUILD / EDIT (about 5 px tall at 1280 wide: legible on a high-density screen), and in the glovebox panel.
+- Glovebox panel: dark pill-shaped file pills like the Alerts tab's, smaller type, a file-type icon each (HTML orange,
+  Markdown blue), a blue border and dot on an uncommitted file; a scrolling list on the left with breathing room under
+  "✕ Esc"; on the right **License** (opens the model account, e.g. the Claude account page) and **Registration**
+  (opens VS Code's About, with the version). The VibeTour Cockpit Map is listed as the owner's manual.
+- Answered: editing `docs/signal-map.md` changes nothing in the app or the map (the map comes from screenshots and
+  `tools/cockpit-map/states.mjs`; tests check the Signal Map against the code).
+- Done in PR #17: the Controls Map is now the **Cockpit Map** (`docs/site/vibetour-cockpit-map.html`,
+  `npm run cockpit-map`, `tools/cockpit-map/`), and a **Cockpit Customization Guide**
+  (`docs/site/vibetour-cockpit-guide.html`, shared at https://claude.ai/artifact/6Xq9NCpVPQce2ztQFL2EPc). The user dislikes
+  single-centre-screen (Tesla-style) cockpits: the guide says so.
+
 ## Dashboard round 3 (the user's list, 16 October): PR #16, merged
 
 From the Controls Map. Review images: `docs/sample-videos/review/45-round3-dash-moving.png`, `46-round3-stopped.png`,
