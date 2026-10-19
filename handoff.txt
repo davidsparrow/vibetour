@@ -1,6 +1,6 @@
-# VibeTour: continuation prompt — California Coast: signs in the footage (step 1), then the IDE test and hi-res
+# VibeTour: continuation prompt — California Coast: fx-23 (mirrors, stops, weather), then the IDE test and hi-res
 
-Updated 17 October 2026 (after PR #17; next thread: the footage signs). Committed to the repo from 16 October (the repo is public: no secrets or balances here).
+Updated 18 October 2026 (after the user's review of fx-22; next thread: the fx-23 fixes). Committed to the repo from 16 October (the repo is public: no secrets or balances here).
 Replaces the 14 October prompt, which is kept as docs/sample-videos/handoff-history-14oct-prompt.txt (gitignored). That file holds the full notes of the four 14 October
 footage sittings: grand tourer, seated height, cut stops, dials, radio screen, mirrors, gas pull-off, sign, mist, costs.
 Older history: handoff-history-13oct-prompt.txt and handoff-history-13oct.txt, beside it.
@@ -26,73 +26,239 @@ on the windshield while the car just drives. Speak up when input is needed (the 
 says why, the bell lights) and when a phase ends (your turn, arrived, refuel). Dials and tabs are there when someone
 looks for them, and don't call for attention.
 
-## Your job in this session: signs in the California footage
+## Your job in the next session: fx-23, the user's review of fx-22 (18 October)
 
-The user asked (17 October) for this to start in a fresh thread. Everything app-side is merged; this thread is
-footage work on `footage/carmel-coast-final`, at preview resolution (step 1 of the release plan).
+**Read this first.** On 18 October the user reviewed fx-22 and came close to abandoning the project ("will we continue
+to fix one thing while 3 other things go backwards?").
+- I checked frame for frame: every problem they flagged was already in fx-20, so nothing regressed in the signs round
+  (`docs/sample-videos/review/fx-22-check-fx20-vs-fx22.jpg`).
+- But I had reviewed only the new signs and missed these old flaws, so to the user it looked like degradation.
+- Their trust now depends on two things: nothing that worked may change, and you find the flaws before they do.
 
-State on 17 October:
-- **Merged:** #12–#17. Main is `c95141d`. `footage/carmel-coast-final` has main merged in (`84c7fe5`), so it has the
-  scenic stops placed on the route, the Cockpit Map (renamed) and the Customization Guide.
-- **Decided:** decision A (renderer staged), decision B (hybrid photo car, refined in four mock rounds, below).
-- **Not started, and not for this thread unless the user asks:** renderer milestone 1 (it builds the photo car).
+So this round:
+- prove that untouched clips are unchanged;
+- review the whole tour, not just the new parts;
+- report old and new flaws plainly;
+- don't overclaim.
 
-### The task
+Before starting:
+- Load the `journey-footage` skill (`.claude/skills/journey-footage/SKILL.md` and its `prompts.md`).
+- Read the standard's sections The cockpit layer, Review checklist and World detail
+  (`docs/journey-video-standard.md`).
+- Run `git status` and `git fetch`, and check both budgets.
 
-Put real-looking roadside signs and billboards into the California tour's footage, so the world outside holds
-together: every name on a sign must match the pack (`packs/california-coast/manifest.json`: waypoints and the scenic
-stops' `at` positions), the Nav map and the stop pill. The windshield shows no names any more; signs and the Nav do.
+The user's decisions (18 October), in the order to do them:
 
-What to add (the user's list, 16 October):
-1. **Keep** the green distance sign on two wooden posts (`cliffs-sign`: "Big Sur 19 / San Simeon 85"). Distances true
-   from where each sign stands, facing south, nearest place first.
-2. **Town signs** at each town or landmark the tour passes (e.g. a Carmel-by-the-Sea city-limit sign; Garrapata State
-   Park, Bixby Creek Bridge, Point Sur, Big Sur as Caltrans brown or green signs, as the real road has them).
-3. **Scenic-stop signs:** an advance sign before a stop (e.g. "Vista Point 1/2 mile" before Bixby Creek Overlook) and
-   the stop's own sign where the car pulls in.
-4. **Blue services signs** ("Gas · Food · Lodging", next exit) only where they're real: the Monterey/Carmel freeway
-   part at the start.
-5. **A gas price board** at the gas stop (`gas-side-*`), a fictional brand.
-6. **Billboards only where real ones stand:** around Monterey at the start. The Big Sur coast bans them, and the user
-   wants the real road's look. Fictional local businesses only (an accident lawyer, a plumber, a radio station, a
-   fast-food place), a "Welcome to Monterey County"-style tourism ad, and road-safety messages ("Don't drink and
-   drive", "Speeding kills"). No real names, brands, logos or phone numbers (use 555 numbers).
-- References: `docs/sample-videos/sample-road-signs/` (the user's `new-*` billboards, gas prices, next-exit services and
-  rest-area signs, beside the older Caltrans ones). Read them; don't attach them to prompts.
+### 1. Mirrors: no generated view in any mirror (free)
 
-Where they go, in road order (`build_trip.sh` sequence; check `manifest-media.json` for each clip's place on the
-route before choosing):
-- `departure-low` (Monterey) and `carmel-golf-low`: billboards, blue services signs.
-- `carmel-trees-low` / `carmel-town-low`: the Carmel-by-the-Sea sign.
-- `hillside-homes-low-slow` and the `gas-side-*` set: the gas stop's own sign and price board (the holds stand still,
-  so a pasted board stays put without tracking).
-- `cliffs-3-low`, `cliffs-sign-trim`: Garrapata; the existing distance sign.
-- `bixby-low`, `bixby-approach-low-stop`, `overlook-hold-v3`: the Vista Point advance sign and the overlook's sign.
-- `coast-pointsur-low`: Point Sur. `coast-3-low-stop` / `arrival-hold-v3`: Big Sur.
+- **Rear-view mirror:** dark, auto-dimmed glass with no scene. The Alerts bell stays on it, as decided for the photo
+  car.
+- **Side (door) mirror:** housing only, zero glass showing. The user asked to "move the camera out" so only the
+  housing shows.
+- **Why:** the plates only look forward at a road that doesn't exist, so there is nothing true to show behind.
+  `mirrorfeed.py` (since fx-20) plays the road from 60 m back in reverse. That often lands in the previous clip, a
+  different invented place: an open field in the mirror while driving through trees, hard jumps at every join, still
+  images, cars in the wrong lane. Before fx-20 each clip ran in reverse: the scenery matched, but cars drove
+  backwards. Neither can be made right, and the user agreed nobody will miss the views.
+- **Where the code is:**
+  - `session.sh` line 24 runs `mirrorfeed.py` into `$W/mirror.mp4`.
+  - `composite.sh` draws that into the mirror masks (`cars/grand-tourer/mirror-mask.png`; `car.json` `mirrors`: rear
+    `[937, 0, 263, 54]`, side `[0, 375, 87, 118]` in the 1200×896 car still).
+- **The rear glass:** replace the feed with a dark blue-grey tint (about 25–35 of 255), a soft vertical gradient, a
+  faint sky sheen along the top, no scene, no motion. It goes light-to-dark with the cabin light at night.
+- **The side mirror:** mock both options as stills (`still.sh`) and show the user before choosing:
+  - (a) an edit of the 2K cockpit and cabin (sources in `docs/sample-videos/cars-src/grand-tourer/`, gitignored) that
+    turns the mirror so only the back of its silver housing shows, then rebuilt with `car-build.sh`;
+  - (b) the glass area painted as the housing's own silver from the cabin still.
+- **Take the mirror steps out of the session's path** (`mirrorfeed.py`, `mirrorlights.py`, and `traffic.py` if only
+  the mirrors use it); keep the tools in the repo:
+  - `glass.py` wets the mirrors, and `spray.py` speckles the door mirror's glass: drop those parts where the glass is
+    gone;
+  - the beads on the door mirror's housing can stay.
+- **Docs:** update the standard (mirrors, review checklist), the skill (step 5) and the tools README.
 
-How (the skill already has the method for the distance sign):
-- Video models garble text that grows as it nears. So: remove any model sign with an edit, **paste ours on the still**
-  (`tools/footage/sign.py paste`), make the clip from that still, then **repaint the face in every frame**
-  (`sign.py fix`, which tracks the sign's four corners). Extend `sign.py` for the new kinds (town, services, price
-  board, billboard faces); billboard faces are our own artwork drawn by the script, never generated text.
-- Place signs about 150 m down the road and small in frame; nothing behind the rear-view mirror or the A-pillar; a sign
-  must be readable for about five seconds.
-- A sign, once placed, never changes text or fades (review checklist). Run `drift.py` on every new clip.
-- Remake only the clips that get a sign. Stay at preview resolution.
+### 2. The overlook hold is too high (4:04 in fx-22); stops stay
 
-Budget: estimate 2–4 US dollars (stills 10 cents at 2K; HeyGen about 18 cents per 12 s; Seedance about 91 cents per
-10 s for holds). Up to 5 US dollars per batch without asking; report costs. Check both OpenRouter limits and the HeyGen
-quota first (see Money). HeyGen's launch price ends with October.
+- **The flaw:** `anchors-v2/overlook-v4.png` (14 October, with the SEAT block) still sits well above 1.1 m. The
+  people standing at the fence have their heads below the sea horizon, and the user sees it as "20 feet above the
+  parking lot". Pullouts are not being dropped; this one shot needs a true seated height.
+- **A new acceptance test for every stop still** (add it to the skill and the standard):
+  - from a seated driver's eye (about 1.1 m), a standing adult's head (about 1.7 m) is ABOVE the horizon at any
+    distance;
+  - we see the sides of parked cars, never their roofs;
+  - a fence's top rail sits near eye level.
 
-Deliver: rebuild the tour (`build_trip.sh`) as **fx-22** with close-ups of each new sign (`fx-22-*.png`) in
-`docs/sample-videos/review/`, shown as clickable workspace links. Commit and push to `footage/carmel-coast-final` only
-when the user asks.
+  Check it on the bare still and through the cockpit before anything is animated.
+- **Remake:**
+  - The still: try an edit of overlook-v4 that lowers the camera, or a fresh still with the SEAT block. Use the
+    seated-height `bixby-approach-low` still as the reference, and name the heads-above-horizon test in the prompt.
+  - Then the Seedance hold, with the still as both first and last frame, as in `plates-v1/stops-v3`
+    (`overlook-hold-v3.prompt.txt` is the prompt to reuse). About 0.91 US dollars per 10 s.
+- **Apply the same test to the other holds** (`gas-side-hold`, `gas-side-pump-hold`, `arrival-hold-v3`,
+  `checkpoint-hold`). In the gas hold the woman's head sits about at the horizon, so roughly 1.6 m: borderline. Report
+  it, and remake only if it fails or the user wants it.
 
-Read this file first. Then `.claude/skills/journey-footage/SKILL.md` and the `prompts.md` beside it, then these sections
-of the standard (`docs/journey-video-standard.md`): The cockpit layer, How much to make, Review checklist, World detail.
-Load the skill (`journey-footage`). Check the branch and both budgets. The guiding rule below still holds.
+### 3. The 2-second freeze at 3:50 (free)
 
-### After the signs (ask the user which)
+- **The flaw:** `plates-v1/low2/out/bixby-approach-low.mp4` opens almost still for frames 0–45 (frame-to-frame
+  difference about 0.5–2 of 255). Then it cuts hard to the wide bridge view at frame 46 (difference 63). In the tour it
+  reads as stopping on the highway for no reason. It was in fx-20 too, at 3:33.
+- **Fix:**
+  - Put a copy trimmed to start at frame 46 in `plates-v1/low-trim/bixby-approach-low.mp4` (`build_trip.sh`'s
+    `pick()` prefers it).
+  - Delete `plates-v1/stops-cut/bixby-approach-low-stop.mp4` so `ramp.py` remakes it.
+  - Redo that clip's sign repaint in `plates-v1/signs/fix_signs.sh`: BIXBY CREEK OVERLOOK, whose box was given at
+    frame 90, is now at frame 44. Drop the "VISTA;POINT" line; that sign is in the trimmed part.
+
+### 4. The gas stop as a cut, not a lane change (free)
+
+- **The flaw:** the user sees the car "float sideways" at 2:16. The lane change (`gas-side-in`, and `gas-side-out`
+  leaving) slides the camera one car width without the small turn a real car makes. It is the same clip as fx-20.
+- **Do it like the overlook:**
+  1. Approach in the lane, slowed to a crawl (`ramp.py ... stop`).
+  2. A dissolve to `gas-side-hold-sign`.
+  3. The creep to the pump (straight forward; it stays).
+  4. The pump hold.
+  5. A dissolve to the road picked up from a crawl: remake `highlands-cove-low-go` with `start 4 0.15` instead of
+     `start 3 0.7` (delete the cut file so `build_trip.sh` remakes it).
+- **The approach plate:** `plates-v1/low2/out/gas-approach-low.mp4` does NOT work: the station is gone by its end.
+  Use the first part of `gas-side-in`, before it starts to ease right (find the frame from the lane line's x
+  position), or the end of `hillside-homes-low-slow`.
+- **Signs:** the approach must carry the gas signs too. The shop board uses `sign.py fix` with `TRACK=colour`. The
+  pylon uses `sign.py place`, chained to the hold's start position (667 256 35 56 359) by running the approach
+  reversed. `plates-v1/signs/gas_signs.sh` has the pattern.
+- If the dissolve reads as a jump, end the crawl nearer the forecourt.
+
+### 5. Weather in the main tour: fog bank, heavier spray, a rainy stretch (the user: "OK if video gets longer")
+
+- **The user's words:** "Add fog bank, extra spray that requires windshield wipers, and even a rainy stretch with
+  windshield wipers... we had a couple rainy stretches before."
+- **Today:** the crashing waves and spray are only `cliffs-sign` (3:21–3:23, with `MIST`). Rain and fog exist only
+  as the separate variant clips of 13 October:
+  - stills: `anchors-v2/rain-1.png`, `rain-2.png`, `fog-1.png`;
+  - plates: `plates-v1/variants/out`, `motion-v3/out`;
+  - review: `17-rain-drive-with-wipers.mp4`, `18-fog-drive.mp4`, `28-rain-drive.mp4`, `fx-09-rain-grand-tourer.mp4`.
+
+  Those stills predate the seated-height fix and sit too high: remake them.
+- **Suggested place** (true to Big Sur's marine layer; show the plan with stills before animating, as the skill says):
+  1. After the Bixby overlook, the climb to Hurricane Point runs into a fog bank: one clip driving in, one in thick
+     fog.
+  2. Drizzle starts in the fog on the descent: two rain clips, wipers on, wet road.
+  3. It clears at the Little Sur valley into sun, the road still wet for one clip (`WET=1`).
+
+  `to-coast` is the sunny transition there now, and may need replacing.
+- **Extra spray:** where the road runs right above the surf (the Garrapata cliffs, the Highlands cove), add one or
+  two spray clips made like `plates-v1/sign`. The `cliffs-sign` prompt has the line that worked: "every few seconds a
+  wave hits and white spray explodes upward and drifts inland on the wind before falling back". Give them a heavier
+  spray level that drenches the glass so the wipers sweep at once.
+- **Tools to extend** (none of this exists yet):
+  - `RAIN` is whole-session today (`session.sh` line 69 runs `rain.py` over the whole plate). Make it a stretch, like
+    `MIST`: a per-frame strength from the clip names. The wipers start as the first drops build, keep going, and stop
+    a little after. `glass.py` wets the side window during the rain and dries it after.
+  - `CABIN` (cabin light: 1 midday, 0.6 in rain) is also per session: make it follow the clips (rain stretch 0.6,
+    fog about 0.7).
+  - `spray.py` takes a strength per frame from `MIST`. Add a heavy level per clip (e.g. `MIST=name:heavy`), with
+    `MISTRATE` per clip rather than per session.
+- **Prompts:**
+  - Stills: the SEAT block in every one; the matching midday still as the PLACE reference (`prompts.md`: the
+    reference gives the place, the prompt gives the light and weather). Never ask the video model for drops on the
+    glass.
+  - Transitions into and out of the weather: by driving, not fading (the standard). Chain two Veo shots with no
+    landing still, or use a 12 s HeyGen clip.
+  - `drift.py` on every new clip.
+
+### 6. Prove nothing degraded, then review the whole tour (new; required before you show fx-23)
+
+- **Regression check:** write `tools/footage/regress.py`.
+  - Store the md5 of every input clip in the build next to the build (e.g. `<out>.inputs.json`). The changed list
+    must equal the intended list.
+  - For each unchanged clip, compare the windshield region (the car's glass mask) of fx-22 and fx-23 at a few frames,
+    shifted by the new start times. The difference must be at encode-noise level (about 3–4 of 255 measured between
+    fx-20 and fx-22 on a held clip).
+- **Automated checks:** write `tools/footage/qa.py`, run it on every clip of the tour, and show the result as a table:
+  - frozen spans (frame difference near 0 for more than 0.5 s while the speed track says moving);
+  - hard cuts inside a clip (`ffmpeg` scene score above about 0.3, away from the joins);
+  - `drift.py`;
+  - the stop height test above.
+- **By eye:** 1 fps strips of the whole tour, 4 fps around every join, and one full watch of the composite, against
+  the standard's review checklist. List every flaw found, saying which are old.
+
+### 7. Deliver
+
+- Rebuild with `build_trip.sh` as **fx-23**, with close-ups (`fx-23-*.png`) of the mirrors, the overlook, the gas
+  stop, the fog, the rain with the wipers and the spray. Add the QA table and the regression result.
+- Show them as clickable workspace links.
+- **Budget:** estimate 3.5 to 5 US dollars (overlook about 1.20; fog 2 clips, rain 2–3 clips and spray 1–2 clips with
+  their stills about 2.5–3.5; retakes). Up to 5 per batch without asking; ask before more. Check both OpenRouter
+  limits and the HeyGen quota first (Money).
+- **When a fix works**, add it to the standard, the skill and `prompts.md`.
+- **Commit and push** to `footage/carmel-coast-final` only when the user asks. If `git status` shows `sign.py` and
+  the docs modified, that is the 17 October signs work, still uncommitted unless the user said otherwise.
+
+## Signs in the California footage: done (17 October), fx-22
+
+The user asked for this in a fresh thread on 17 October. Footage work on `footage/carmel-coast-final`, at preview
+resolution (step 1 of the release plan). Not committed yet: commit and push only when the user asks.
+
+The user's rule (saved to memory): a sign carries a place name only where a real one would: distance signs, vista
+points, landmarks and parks, a town's limit, and the odd shop named for its town ("Carmel Photo Framers"). Everything
+else stays generic.
+
+Their answers on 17 October:
+- **Two freeway clips** after the departure (Highway 1 leaving Monterey), for the billboards and the services sign.
+  The departure is a quiet street and 17-Mile Drive has neither.
+- **Billboards:** an accident lawyer and a tourism board.
+- **Gas station:** HIGHLANDS GAS · MARKET.
+- They raised the OpenRouter key's limit.
+
+What fx-22 has, in road order (`docs/sample-videos/review/fx-22-california-coast-full-trip-v5.mp4`, 5 min 31 s;
+close-ups `fx-22-01-…` to `fx-22-13-….png`, each the cockpit frame with the sign at 2×):
+1. **Freeway 1** (new, 0:11): BREAKWATER INJURY LAW billboard (yellow and navy, "HURT IN A CRASH?", 831-555-0142),
+   blue GAS · FOOD · LODGING / NEXT RIGHT.
+2. **Freeway 2** (new, 0:23): green Pebble Beach / 17-Mile Drive / 1/2 MILE exit sign (the next clip is 17-Mile
+   Drive), and the WELCOME TO MONTEREY COUNTY tourism board on the left (a sunset over the sea; no cypress, since the
+   Lone Cypress is Pebble Beach's trademark).
+3. **Carmel** (remade, 1:13): CARMEL-BY-THE-SEA / CITY LIMIT; the model's garbled SPEED LIMIT 25 repainted.
+4. **Gas stop** (2:10–2:47, clips not remade): HIGHLANDS / GAS · MARKET painted on the shop's blank roof board, and
+   a price pylon by the bins (Regular 5.89, Plus 6.09, Premium 6.29; no diesel, as at the real station). It stays put
+   through the pull-in, the waits, the creep and the pull-out, and the leaving pickup passes in front of it.
+5. **Garrapata** (remade, 3:14): brown GARRAPATA / STATE PARK; then the existing Big Sur 19 / San Simeon 85.
+6. **Bixby** (remade, 3:39): green BIXBY CREEK / BRIDGE, then VISTA POINT / 1/2 MILE (the model drew the second one
+   itself; repainted). At the pull-in: the model's own VISTA POINT and BIXBY CREEK OVERLOOK at the pullout, both
+   repainted.
+7. **After Hurricane Point** (`to-coast`, 4:25): the model's garbled distance sign repainted as Point Sur 4 / Big Sur
+   11 / San Simeon 77 (in step with the 26 and 19 before it).
+8. **Point Sur** (remade, 4:58): brown POINT SUR / STATE HISTORIC PARK.
+
+Not done, on purpose: no billboards past Monterey (the Big Sur coast bans them). No Big Sur town sign: the arrival
+clips have no free spot, and the stop pill says it. Ask if they want one.
+
+How (all in the repo's tools and docs, so the next pack starts from it):
+- **`tools/footage/sign.py`** grew:
+  - kinds via `KIND`: guide, park, services, regulatory, shop, gas pylon, and two billboards whose artwork is drawn by
+    the script, never generated;
+  - `quad`, which puts billboard art into a blank face;
+  - `fix`, rewritten: it follows the sign as the clip draws it, refreshed as it grows, with an ECC corner fit and a
+    prediction from the focus of expansion. From a box in any frame it also repaints signs the model drew itself;
+    `first`/`last` bound it at a cut, and `TRACK=colour` follows a blank board;
+  - `place`, which carries a sign through a clip that wasn't remade, behind nearer tracked vehicles, and prints where
+    it ends so clips can be chained, reversed to go backwards;
+  - streaming frames: whole clips in memory swapped this 24 GB Mac to a crawl (45 min for a 1 min job).
+- **Scripts in `plates-v1/signs/`:** `submit_signs.py` (the remakes: the approved prompt plus one sign sentence),
+  `fix_signs.sh` (every repaint), `gas_signs.sh` (the gas stop's board and pylon). `gen_freeway.sh` in the pack makes
+  the freeway stills. `build_trip.sh` uses all of it.
+- **Docs:** the standard (World detail), the skill, `prompts.md` (the billboard still's lines) and the tools README.
+
+Costs (17 October): 4 stills at 10 cents (freeway 1, retake 1b, freeway 2b, retake 2c) = 41 cents; 7 HeyGen clips at
+about 18 cents = 1.26 US dollars. About 1.67 US dollars in all.
+
+Known flaws in fx-22 (beyond fx-20's list below; the user's 18 October review and the fixes are in "Your job" above):
+- The pull-in at Bixby (`bixby-approach-low-stop`) opens with 2 s nearly still, then cuts hard to the wide bridge
+  view. This was already in fx-20, not from the signs.
+- `cliffs-3-sign` and that pull-in warn in `drift.py` (13%, under the 20% fail); Garrapata is trimmed to 8 s.
+- The lawyer billboard passes out of the top of the glass, as a high billboard would; it reads from 0:11 to 0:16.
+
+### After fx-23 (ask the user which)
 
 1. The rest of step 1: the known flaws in fx-20 (under "Review for step 1") and which variants ship.
 2. Renderer milestone 1 (decision A): the Video Director, packs from disk, the `media` schema and validator, the codec
@@ -230,7 +396,8 @@ Start with these, in `docs/sample-videos/review/`:
 
 | File | Shows |
 | --- | --- |
-| fx-20-california-coast-full-trip-v4.mp4 (+ fx-20-full-trip-v4-every-10s.png) | The current tour, 5 min 13 s |
+| fx-22-california-coast-full-trip-v5.mp4, fx-22-01- … 13-*.png | The current tour with the signs, 5 min 31 s, and a close-up of each sign |
+| fx-20-california-coast-full-trip-v4.mp4 (+ fx-20-full-trip-v4-every-10s.png) | The tour before the signs, 5 min 13 s |
 | fx-21-mirrors-gas-stop.png, fx-21-gas-stop-every-2s.png, fx-21-sign-approach.png, fx-21-sea-mist.png | Close-ups from fx-20 |
 | fx-19, fx-18, fx-17, fx-12 … fx-16, fx-10, fx-01 … fx-11 | Earlier rounds (described in the 14 October prompt) |
 | 34-, 35-, 36-radio-merged-dashboard-*.png | The 3D dashboard after the radio merge: FM, CB, Alerts and the mirror bell |
@@ -538,7 +705,8 @@ probably went to the phone's cloud session; this is the full version.
 
 ## Questions open
 
-1. Which variants ship (rain, night, sunset, fog)? Their stills predate the seated-height remake.
+1. Which full variant tours ship (rain, night, sunset, fog)? Their stills predate the seated-height remake. (On 18
+   October the user asked for a fog bank and a rainy stretch inside the main midday tour; that is in "Your job".)
 2. Renderer milestone 1: start after the signs, or alongside? Plan it with the user first.
 3. The refuel stop's name: "a Carmel Highlands gas station" shows while the car is at Big Sur or Monterey. Add a Big
    Sur gas stop to the pack, or name the refuel stop by position too.
@@ -583,7 +751,8 @@ that bottom-centre spot is the steering wheel. Each car gives the radio a screen
 - Check both OpenRouter limits before a batch: `GET /api/v1/key` (`limit_remaining`) and `/api/v1/credits`.
 - HeyGen: the CLI has no stored credential. Export `HG` from `.env.local`
   (`grep '^HEYGEN_API_KEY=' .env.local | cut -d= -f2- | tr -d "\"' "`) and pass it in headers, as the pack's submit
-  scripts do. Check `GET /v2/user/remaining_quota`.
+  scripts do. Check `GET /v2/user/remaining_quota` (HeyGen retires it on 31 October 2026; its replacement is
+  `GET /v3/users/me`).
 - Prices: stills 10 US cents (2K); Seedance 91 cents per 10 s; HeyGen 18 cents per 12 s (768p); Veo Lite 24 cents per 8 s.
 - Spend rule: up to 5 US dollars per batch without asking; report costs.
 
