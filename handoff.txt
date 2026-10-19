@@ -1,0 +1,767 @@
+# VibeTour: continuation prompt — California Coast: fx-23 (mirrors, stops, weather), then the IDE test and hi-res
+
+Updated 18 October 2026 (after the user's review of fx-22; next thread: the fx-23 fixes). Committed to the repo from 16 October (the repo is public: no secrets or balances here).
+Replaces the 14 October prompt, which is kept as docs/sample-videos/handoff-history-14oct-prompt.txt (gitignored). That file holds the full notes of the four 14 October
+footage sittings: grand tourer, seated height, cut stops, dials, radio screen, mirrors, gas pull-off, sign, mist, costs.
+Older history: handoff-history-13oct-prompt.txt and handoff-history-13oct.txt, beside it.
+
+## The plan to release (the user's, 15 October)
+
+1. **One last big low-res sprint.** The user reviews fx-20 (below) and sends one list. Stay at preview resolution.
+2. **Test the final low-res tour in the real project, in the IDE.** That means VibeTour in VS Code on a real coding
+   session, with the tour playing in the panel, not the composited mp4 in a video player. See "Blocker for step 2" below.
+3. **Pre-hi-res adjustments** from that test.
+4. **Retest once in low-res**, in the IDE.
+5. **Last adjustments.**
+6. **Render the hi-res version** (1080p). Spend nothing on hi-res before step 6, and ask before it.
+
+## The guiding rule for everything on screen (the user's, 16 October)
+
+"The less distractions the better, so users can just sit back and enjoy the scenery, only interrupted when their input
+is required, or when a work chunk or phase has finished and the car is paused, waiting to start the next chunk, the next
+session or a new thread."
+
+Apply it to every screen and every car: the 3D dashboard, the photo car of decision B, Tour mode above all. Nothing
+on the windshield while the car just drives. Speak up when input is needed (the car stops, the stop pill
+says why, the bell lights) and when a phase ends (your turn, arrived, refuel). Dials and tabs are there when someone
+looks for them, and don't call for attention.
+
+## Your job in the next session: fx-23, the user's review of fx-22 (18 October)
+
+**Read this first.** On 18 October the user reviewed fx-22 and came close to abandoning the project ("will we continue
+to fix one thing while 3 other things go backwards?").
+- I checked frame for frame: every problem they flagged was already in fx-20, so nothing regressed in the signs round
+  (`docs/sample-videos/review/fx-22-check-fx20-vs-fx22.jpg`).
+- But I had reviewed only the new signs and missed these old flaws, so to the user it looked like degradation.
+- Their trust now depends on two things: nothing that worked may change, and you find the flaws before they do.
+
+So this round:
+- prove that untouched clips are unchanged;
+- review the whole tour, not just the new parts;
+- report old and new flaws plainly;
+- don't overclaim.
+
+Before starting:
+- Load the `journey-footage` skill (`.claude/skills/journey-footage/SKILL.md` and its `prompts.md`).
+- Read the standard's sections The cockpit layer, Review checklist and World detail
+  (`docs/journey-video-standard.md`).
+- Run `git status` and `git fetch`, and check both budgets.
+
+The user's decisions (18 October), in the order to do them:
+
+### 1. Mirrors: no generated view in any mirror (free)
+
+- **Rear-view mirror:** dark, auto-dimmed glass with no scene. The Alerts bell stays on it, as decided for the photo
+  car.
+- **Side (door) mirror:** housing only, zero glass showing. The user asked to "move the camera out" so only the
+  housing shows.
+- **Why:** the plates only look forward at a road that doesn't exist, so there is nothing true to show behind.
+  `mirrorfeed.py` (since fx-20) plays the road from 60 m back in reverse. That often lands in the previous clip, a
+  different invented place: an open field in the mirror while driving through trees, hard jumps at every join, still
+  images, cars in the wrong lane. Before fx-20 each clip ran in reverse: the scenery matched, but cars drove
+  backwards. Neither can be made right, and the user agreed nobody will miss the views.
+- **Where the code is:**
+  - `session.sh` line 24 runs `mirrorfeed.py` into `$W/mirror.mp4`.
+  - `composite.sh` draws that into the mirror masks (`cars/grand-tourer/mirror-mask.png`; `car.json` `mirrors`: rear
+    `[937, 0, 263, 54]`, side `[0, 375, 87, 118]` in the 1200×896 car still).
+- **The rear glass:** replace the feed with a dark blue-grey tint (about 25–35 of 255), a soft vertical gradient, a
+  faint sky sheen along the top, no scene, no motion. It goes light-to-dark with the cabin light at night.
+- **The side mirror:** mock both options as stills (`still.sh`) and show the user before choosing:
+  - (a) an edit of the 2K cockpit and cabin (sources in `docs/sample-videos/cars-src/grand-tourer/`, gitignored) that
+    turns the mirror so only the back of its silver housing shows, then rebuilt with `car-build.sh`;
+  - (b) the glass area painted as the housing's own silver from the cabin still.
+- **Take the mirror steps out of the session's path** (`mirrorfeed.py`, `mirrorlights.py`, and `traffic.py` if only
+  the mirrors use it); keep the tools in the repo:
+  - `glass.py` wets the mirrors, and `spray.py` speckles the door mirror's glass: drop those parts where the glass is
+    gone;
+  - the beads on the door mirror's housing can stay.
+- **Docs:** update the standard (mirrors, review checklist), the skill (step 5) and the tools README.
+
+### 2. The overlook hold is too high (4:04 in fx-22); stops stay
+
+- **The flaw:** `anchors-v2/overlook-v4.png` (14 October, with the SEAT block) still sits well above 1.1 m. The
+  people standing at the fence have their heads below the sea horizon, and the user sees it as "20 feet above the
+  parking lot". Pullouts are not being dropped; this one shot needs a true seated height.
+- **A new acceptance test for every stop still** (add it to the skill and the standard):
+  - from a seated driver's eye (about 1.1 m), a standing adult's head (about 1.7 m) is ABOVE the horizon at any
+    distance;
+  - we see the sides of parked cars, never their roofs;
+  - a fence's top rail sits near eye level.
+
+  Check it on the bare still and through the cockpit before anything is animated.
+- **Remake:**
+  - The still: try an edit of overlook-v4 that lowers the camera, or a fresh still with the SEAT block. Use the
+    seated-height `bixby-approach-low` still as the reference, and name the heads-above-horizon test in the prompt.
+  - Then the Seedance hold, with the still as both first and last frame, as in `plates-v1/stops-v3`
+    (`overlook-hold-v3.prompt.txt` is the prompt to reuse). About 0.91 US dollars per 10 s.
+- **Apply the same test to the other holds** (`gas-side-hold`, `gas-side-pump-hold`, `arrival-hold-v3`,
+  `checkpoint-hold`). In the gas hold the woman's head sits about at the horizon, so roughly 1.6 m: borderline. Report
+  it, and remake only if it fails or the user wants it.
+
+### 3. The 2-second freeze at 3:50 (free)
+
+- **The flaw:** `plates-v1/low2/out/bixby-approach-low.mp4` opens almost still for frames 0–45 (frame-to-frame
+  difference about 0.5–2 of 255). Then it cuts hard to the wide bridge view at frame 46 (difference 63). In the tour it
+  reads as stopping on the highway for no reason. It was in fx-20 too, at 3:33.
+- **Fix:**
+  - Put a copy trimmed to start at frame 46 in `plates-v1/low-trim/bixby-approach-low.mp4` (`build_trip.sh`'s
+    `pick()` prefers it).
+  - Delete `plates-v1/stops-cut/bixby-approach-low-stop.mp4` so `ramp.py` remakes it.
+  - Redo that clip's sign repaint in `plates-v1/signs/fix_signs.sh`: BIXBY CREEK OVERLOOK, whose box was given at
+    frame 90, is now at frame 44. Drop the "VISTA;POINT" line; that sign is in the trimmed part.
+
+### 4. The gas stop as a cut, not a lane change (free)
+
+- **The flaw:** the user sees the car "float sideways" at 2:16. The lane change (`gas-side-in`, and `gas-side-out`
+  leaving) slides the camera one car width without the small turn a real car makes. It is the same clip as fx-20.
+- **Do it like the overlook:**
+  1. Approach in the lane, slowed to a crawl (`ramp.py ... stop`).
+  2. A dissolve to `gas-side-hold-sign`.
+  3. The creep to the pump (straight forward; it stays).
+  4. The pump hold.
+  5. A dissolve to the road picked up from a crawl: remake `highlands-cove-low-go` with `start 4 0.15` instead of
+     `start 3 0.7` (delete the cut file so `build_trip.sh` remakes it).
+- **The approach plate:** `plates-v1/low2/out/gas-approach-low.mp4` does NOT work: the station is gone by its end.
+  Use the first part of `gas-side-in`, before it starts to ease right (find the frame from the lane line's x
+  position), or the end of `hillside-homes-low-slow`.
+- **Signs:** the approach must carry the gas signs too. The shop board uses `sign.py fix` with `TRACK=colour`. The
+  pylon uses `sign.py place`, chained to the hold's start position (667 256 35 56 359) by running the approach
+  reversed. `plates-v1/signs/gas_signs.sh` has the pattern.
+- If the dissolve reads as a jump, end the crawl nearer the forecourt.
+
+### 5. Weather in the main tour: fog bank, heavier spray, a rainy stretch (the user: "OK if video gets longer")
+
+- **The user's words:** "Add fog bank, extra spray that requires windshield wipers, and even a rainy stretch with
+  windshield wipers... we had a couple rainy stretches before."
+- **Today:** the crashing waves and spray are only `cliffs-sign` (3:21–3:23, with `MIST`). Rain and fog exist only
+  as the separate variant clips of 13 October:
+  - stills: `anchors-v2/rain-1.png`, `rain-2.png`, `fog-1.png`;
+  - plates: `plates-v1/variants/out`, `motion-v3/out`;
+  - review: `17-rain-drive-with-wipers.mp4`, `18-fog-drive.mp4`, `28-rain-drive.mp4`, `fx-09-rain-grand-tourer.mp4`.
+
+  Those stills predate the seated-height fix and sit too high: remake them.
+- **Suggested place** (true to Big Sur's marine layer; show the plan with stills before animating, as the skill says):
+  1. After the Bixby overlook, the climb to Hurricane Point runs into a fog bank: one clip driving in, one in thick
+     fog.
+  2. Drizzle starts in the fog on the descent: two rain clips, wipers on, wet road.
+  3. It clears at the Little Sur valley into sun, the road still wet for one clip (`WET=1`).
+
+  `to-coast` is the sunny transition there now, and may need replacing.
+- **Extra spray:** where the road runs right above the surf (the Garrapata cliffs, the Highlands cove), add one or
+  two spray clips made like `plates-v1/sign`. The `cliffs-sign` prompt has the line that worked: "every few seconds a
+  wave hits and white spray explodes upward and drifts inland on the wind before falling back". Give them a heavier
+  spray level that drenches the glass so the wipers sweep at once.
+- **Tools to extend** (none of this exists yet):
+  - `RAIN` is whole-session today (`session.sh` line 69 runs `rain.py` over the whole plate). Make it a stretch, like
+    `MIST`: a per-frame strength from the clip names. The wipers start as the first drops build, keep going, and stop
+    a little after. `glass.py` wets the side window during the rain and dries it after.
+  - `CABIN` (cabin light: 1 midday, 0.6 in rain) is also per session: make it follow the clips (rain stretch 0.6,
+    fog about 0.7).
+  - `spray.py` takes a strength per frame from `MIST`. Add a heavy level per clip (e.g. `MIST=name:heavy`), with
+    `MISTRATE` per clip rather than per session.
+- **Prompts:**
+  - Stills: the SEAT block in every one; the matching midday still as the PLACE reference (`prompts.md`: the
+    reference gives the place, the prompt gives the light and weather). Never ask the video model for drops on the
+    glass.
+  - Transitions into and out of the weather: by driving, not fading (the standard). Chain two Veo shots with no
+    landing still, or use a 12 s HeyGen clip.
+  - `drift.py` on every new clip.
+
+### 6. Prove nothing degraded, then review the whole tour (new; required before you show fx-23)
+
+- **Regression check:** write `tools/footage/regress.py`.
+  - Store the md5 of every input clip in the build next to the build (e.g. `<out>.inputs.json`). The changed list
+    must equal the intended list.
+  - For each unchanged clip, compare the windshield region (the car's glass mask) of fx-22 and fx-23 at a few frames,
+    shifted by the new start times. The difference must be at encode-noise level (about 3–4 of 255 measured between
+    fx-20 and fx-22 on a held clip).
+- **Automated checks:** write `tools/footage/qa.py`, run it on every clip of the tour, and show the result as a table:
+  - frozen spans (frame difference near 0 for more than 0.5 s while the speed track says moving);
+  - hard cuts inside a clip (`ffmpeg` scene score above about 0.3, away from the joins);
+  - `drift.py`;
+  - the stop height test above.
+- **By eye:** 1 fps strips of the whole tour, 4 fps around every join, and one full watch of the composite, against
+  the standard's review checklist. List every flaw found, saying which are old.
+
+### 7. Deliver
+
+- Rebuild with `build_trip.sh` as **fx-23**, with close-ups (`fx-23-*.png`) of the mirrors, the overlook, the gas
+  stop, the fog, the rain with the wipers and the spray. Add the QA table and the regression result.
+- Show them as clickable workspace links.
+- **Budget:** estimate 3.5 to 5 US dollars (overlook about 1.20; fog 2 clips, rain 2–3 clips and spray 1–2 clips with
+  their stills about 2.5–3.5; retakes). Up to 5 per batch without asking; ask before more. Check both OpenRouter
+  limits and the HeyGen quota first (Money).
+- **When a fix works**, add it to the standard, the skill and `prompts.md`.
+- **Commit and push** to `footage/carmel-coast-final` only when the user asks. If `git status` shows `sign.py` and
+  the docs modified, that is the 17 October signs work, still uncommitted unless the user said otherwise.
+
+## Signs in the California footage: done (17 October), fx-22
+
+The user asked for this in a fresh thread on 17 October. Footage work on `footage/carmel-coast-final`, at preview
+resolution (step 1 of the release plan). Not committed yet: commit and push only when the user asks.
+
+The user's rule (saved to memory): a sign carries a place name only where a real one would: distance signs, vista
+points, landmarks and parks, a town's limit, and the odd shop named for its town ("Carmel Photo Framers"). Everything
+else stays generic.
+
+Their answers on 17 October:
+- **Two freeway clips** after the departure (Highway 1 leaving Monterey), for the billboards and the services sign.
+  The departure is a quiet street and 17-Mile Drive has neither.
+- **Billboards:** an accident lawyer and a tourism board.
+- **Gas station:** HIGHLANDS GAS · MARKET.
+- They raised the OpenRouter key's limit.
+
+What fx-22 has, in road order (`docs/sample-videos/review/fx-22-california-coast-full-trip-v5.mp4`, 5 min 31 s;
+close-ups `fx-22-01-…` to `fx-22-13-….png`, each the cockpit frame with the sign at 2×):
+1. **Freeway 1** (new, 0:11): BREAKWATER INJURY LAW billboard (yellow and navy, "HURT IN A CRASH?", 831-555-0142),
+   blue GAS · FOOD · LODGING / NEXT RIGHT.
+2. **Freeway 2** (new, 0:23): green Pebble Beach / 17-Mile Drive / 1/2 MILE exit sign (the next clip is 17-Mile
+   Drive), and the WELCOME TO MONTEREY COUNTY tourism board on the left (a sunset over the sea; no cypress, since the
+   Lone Cypress is Pebble Beach's trademark).
+3. **Carmel** (remade, 1:13): CARMEL-BY-THE-SEA / CITY LIMIT; the model's garbled SPEED LIMIT 25 repainted.
+4. **Gas stop** (2:10–2:47, clips not remade): HIGHLANDS / GAS · MARKET painted on the shop's blank roof board, and
+   a price pylon by the bins (Regular 5.89, Plus 6.09, Premium 6.29; no diesel, as at the real station). It stays put
+   through the pull-in, the waits, the creep and the pull-out, and the leaving pickup passes in front of it.
+5. **Garrapata** (remade, 3:14): brown GARRAPATA / STATE PARK; then the existing Big Sur 19 / San Simeon 85.
+6. **Bixby** (remade, 3:39): green BIXBY CREEK / BRIDGE, then VISTA POINT / 1/2 MILE (the model drew the second one
+   itself; repainted). At the pull-in: the model's own VISTA POINT and BIXBY CREEK OVERLOOK at the pullout, both
+   repainted.
+7. **After Hurricane Point** (`to-coast`, 4:25): the model's garbled distance sign repainted as Point Sur 4 / Big Sur
+   11 / San Simeon 77 (in step with the 26 and 19 before it).
+8. **Point Sur** (remade, 4:58): brown POINT SUR / STATE HISTORIC PARK.
+
+Not done, on purpose: no billboards past Monterey (the Big Sur coast bans them). No Big Sur town sign: the arrival
+clips have no free spot, and the stop pill says it. Ask if they want one.
+
+How (all in the repo's tools and docs, so the next pack starts from it):
+- **`tools/footage/sign.py`** grew:
+  - kinds via `KIND`: guide, park, services, regulatory, shop, gas pylon, and two billboards whose artwork is drawn by
+    the script, never generated;
+  - `quad`, which puts billboard art into a blank face;
+  - `fix`, rewritten: it follows the sign as the clip draws it, refreshed as it grows, with an ECC corner fit and a
+    prediction from the focus of expansion. From a box in any frame it also repaints signs the model drew itself;
+    `first`/`last` bound it at a cut, and `TRACK=colour` follows a blank board;
+  - `place`, which carries a sign through a clip that wasn't remade, behind nearer tracked vehicles, and prints where
+    it ends so clips can be chained, reversed to go backwards;
+  - streaming frames: whole clips in memory swapped this 24 GB Mac to a crawl (45 min for a 1 min job).
+- **Scripts in `plates-v1/signs/`:** `submit_signs.py` (the remakes: the approved prompt plus one sign sentence),
+  `fix_signs.sh` (every repaint), `gas_signs.sh` (the gas stop's board and pylon). `gen_freeway.sh` in the pack makes
+  the freeway stills. `build_trip.sh` uses all of it.
+- **Docs:** the standard (World detail), the skill, `prompts.md` (the billboard still's lines) and the tools README.
+
+Costs (17 October): 4 stills at 10 cents (freeway 1, retake 1b, freeway 2b, retake 2c) = 41 cents; 7 HeyGen clips at
+about 18 cents = 1.26 US dollars. About 1.67 US dollars in all.
+
+Known flaws in fx-22 (beyond fx-20's list below; the user's 18 October review and the fixes are in "Your job" above):
+- The pull-in at Bixby (`bixby-approach-low-stop`) opens with 2 s nearly still, then cuts hard to the wide bridge
+  view. This was already in fx-20, not from the signs.
+- `cliffs-3-sign` and that pull-in warn in `drift.py` (13%, under the 20% fail); Garrapata is trimmed to 8 s.
+- The lawyer billboard passes out of the top of the glass, as a high billboard would; it reads from 0:11 to 0:16.
+
+### After fx-23 (ask the user which)
+
+1. The rest of step 1: the known flaws in fx-20 (under "Review for step 1") and which variants ship.
+2. Renderer milestone 1 (decision A): the Video Director, packs from disk, the `media` schema and validator, the codec
+   check, baked clips, and the photo-car dashboard as mocked (rounds 1–4 below). Plan it with the user first.
+
+## Blocker for step 2: VibeTour can't play video packs yet
+
+The standard says so (status line, and "Engine work this standard assumes"). The tours so far are mp4s that
+`build_trip.sh` and `composite.sh` render offline. Playing the tour in the IDE needs some engine work first:
+- a Video Director that turns the `motion` and `journey` snapshot into a playlist (cruise clips, stop sets, transitions,
+  dissolves, playback rate from speed);
+- the cockpit layer in the webview;
+- packs loaded from disk (today packs are bundled at build time, in `src/packs/index.ts`), with `localResourceRoots` and a
+  static route on the companion server;
+- the `media` block in `JourneyPack` and its validator;
+- a codec check for H.264 in VS Code webviews.
+
+**Decision A: decided on 16 October, staged, as recommended.** Asked again, the user said "build Hybrid version per your
+own recommendation". That recommendation is the "suggested fit" below:
+- Milestone 1 plays baked clips, and step 2's IDE test uses it.
+- The live compositor is built during step 3, and step 4's retest runs on it.
+- Hi-res is then plates at 1080p and the car at 2K.
+
+If the user meant something else by "Hybrid" for A, they'll say; the reply on 16 October stated this reading. The
+options, as set out to them: both are the same
+architecture up to the last layer. The Director, packs from disk, the schema, the codec check and the dashboard over
+the video are shared, and they are most of the work. The options differ only in where the car is drawn:
+- **Baked first.** `composite.sh` bakes plate, car, wheel, dials, mirrors, glass and screens into each clip offline, and
+  the Director plays those clips. This is milestone 1 of the real renderer, not a fork: milestone 2 swaps baked clips
+  for plates plus the live compositor, and the Director doesn't change. A baked test is real for:
+  - footage playing in a VS Code webview (codec, two video elements, decode cost);
+  - the Director's logic (stops when an agent waits, refuel, scenes, dissolves);
+  - how the drive feels while coding, and how the dashboard reads over video;
+  - the radio in VS Code.
+
+  It does not test:
+  - the live compositor's GPU and battery cost in the webview;
+  - picking a car;
+  - the radio face showing the real station (a baked clip shows the stand-in from `headunit.py`; an HTML overlay on
+    `screens.console` would fix that).
+
+  A baked pack is also one car only, against the standard's rule that packs ship plates only.
+- **Live from the start.** Build the standard's renderer in full first (port `composite.sh`'s graph to WebGL). That
+  means more engine work before any IDE test.
+- **Either way**, some of what the standard calls "at play time" is too heavy to run live in a webview: the mirror
+  feed's traffic tracking and painting out (`traffic.py`, `mirrorfeed.py`), the spray (`spray.py`) and the sign fix.
+  Those get computed when the pack is built and shipped with each clip (a mirror plate, tracks), in both options.
+- **Suggested fit with the user's plan (chosen):** step 2 tests milestone 1 (baked). The live compositor is built during step 3,
+  and step 4's retest uses it, so the release is tested on the real pipeline. Step 6's hi-res is then plates at 1080p
+  and the car at 2K, with nothing to bake.
+- This is app work: give it its own branch and PR (e.g. `feat/video-renderer`), apart from the footage branch.
+- Milestone 1's dashboard is the hybrid photo car (decision B, below). Use the radio spec at the end of this file, the
+  red zones of round 2, and the guiding rule above: in Tour mode, the clean car.
+
+**Decision B: decided on 16 October, option 3, the hybrid.** Where the dashboard's instruments go on the photo car. On the 3D dashboard they are an HTML band
+along the bottom. On the photo car the bottom of the frame is a real dash: wheel, cluster, centre screen. The cluster's
+dials already show the car's own speed and revs, which match the footage. Instruments to place:
+- Activity and Agents & Tools: the 3D dash's speedometer and tach.
+- Journey, Context, Changes and Issues.
+- The warning lights, PRND, the Glovebox, and the console tabs (Nav, Radio, PRs, Trip, Console, Alerts).
+- The crew agents. The 3D dash shows them in the side mirrors; the photo car's door mirror shows the road behind.
+
+The options:
+1. **Built into the car.** Each instrument takes over a real part of the photo: speedometer for Activity, rev counter
+   for Agents & Tools, the cluster display for the small gauges, tell-tales for the warning lights, the shifter for
+   PRND, the glovebox door for the Glovebox, the centre screen for the tabs.
+   - Pro: the car looks real, and nothing covers the cabin or the view.
+   - Note (16 October): the red zones of dashboard round 2 apply to whatever shows Agents & Tools, Changes and Issues
+     on the photo car too.
+   - Con: the car's dials stop showing the car's speed. The needle would jump with coding activity while the car
+     cruises steadily, which breaks the physical plausibility the user ranks first.
+   - Con: the cluster display is about 78×68 px, which is small to read.
+   - Con: every car needs every spot mapped in `car.json`, and the hands cover parts of the dash on turns.
+2. **Today's dashboard laid over the photo.**
+   - Pro: readable, the same for every car, and already built.
+   - Con: it covers the interior that was paid for, and shows two sets of gauges (the car's and ours).
+   - Con: it looks like a game HUD stuck on a photo.
+3. **Hybrid (the user's choice).**
+   - The car's dials keep showing the car.
+   - Things with a natural home move in: the Alerts bell on the mirror's glass; warning lights as cluster tell-tales;
+     a few readings (Journey, Context, Issues) on the cluster display; the radio face and console tabs on the centre
+     screen.
+   - Everything else (Activity, Agents & Tools, Changes, PRND, Glovebox, the crew) lives in the full panel that slides
+     up over the lower dash on a tap or a key, as in the radio spec.
+   - The modes could split it: Tour shows the clean car, Dash slides the panel up, Work keeps today's panels.
+   - Con: Activity and the rest aren't always in view in Tour mode.
+
+The user's rule from #10 holds in every option: keep the rear-view mirror, no HUD elements on it, and the Alerts bell
+on its top-right corner, on the glass (see e2 below). On the photo car it sits inside the car's mirror box.
+
+## Branch and PRs (17 October)
+
+- PRs #1–#17 are merged. Main is `c95141d` (#17: stops on the route, no windshield line, check engine from GitHub CI
+  and deployments, the Cockpit Map rename, the Customization Guide).
+- This checkout is on `footage/carmel-coast-final`, with main merged in (`84c7fe5`). Footage work goes here. Commit,
+  push and open a PR only when the user asks; `handoff.txt` updates are committed and pushed here so the phone session
+  can read them. The repo is public: keep secrets and account balances out of it.
+- Commit messages end with the Co-Authored-By line from the session's attribution reminder; PR bodies end with the
+  Claude Code line.
+- `../vibetour-context` is a second worktree for app branches (on `main` now). Its `node_modules` is a symlink to this
+  checkout's, which is why git lists it as untracked there. Leave it.
+- The user also works from their phone through a cloud Claude Code session; its history isn't on this Mac. Run
+  `git fetch` and `gh pr list` before trusting this file.
+- If an e2e test is flaky on CI, re-run it with `gh run rerun <id> --failed`.
+
+## What main has now
+
+- **Footage (#9).** The `cars/grand-tourer` default car (cognac and ivory nappa, burl, wood-and-leather wheel, a screen
+  in the dash). Seated-height stills and plates. Stops are cut, not driven (`ramp.py`). Live dials. A lit night dash. The
+  head unit face and the cluster temperature (`headunit.py`). Mirrors from tracked traffic (`traffic.py`,
+  `mirrorfeed.py`). The gas stop as a pull-off (`gas-side-*`). The southbound sign (`sign.py`). Sea mist (`spray.py`).
+- **Dashboard (#10).** An Alerts tab, a Changes gauge, a PRs tab, and the stop card says why the car stopped. The
+  rear-view mirror is plain glass with the Alerts bell on its top-right corner; the HUD keeps only the location and
+  caption.
+- **Radio (#11).** The Radio tab is a head unit:
+  - FM plays internet radio (SomaFM presets, stations near the journey, Radio Browser search), with tone controls,
+    presets and equalizer lights.
+  - CB lists the agents.
+  - Streams go through the companion server's `/radio/stream`. `vibetour.radio.enabled` / `--no-radio` turn it off.
+  - Not yet checked by hand: playback inside a VS Code webview (F5) with Power as the user gesture, an SSH/WSL remote
+    window, and how the tone controls sound. Do these in step 2.
+
+- **Dashboard rounds 2 and 3 (#13, #16) and stops (#17).** One stop pill (the alert, then what resumes the drive);
+  Activity, Agents and Tools dials (Activity reads 0 when stopped, with pins); no side-mirror crew, no warning lights,
+  no Tour strip, no windshield line; a glovebox handle and the demo's controls behind a Demo pill; in Tour mode the
+  dash rises at a stop. California's scenic stops sit on the route and are named only where the car stops; the Nav map
+  marks them. Check engine counts failing GitHub CI and failed deployments on the branch's PR.
+- **Docs.** The Cockpit Map (`docs/site/vibetour-cockpit-map.html`, `npm run cockpit-map`, a footage still behind the
+  dashboard, shared at https://claude.ai/artifact/UXJK2Ed8zA9G8CDKv3E8J4) and the Cockpit Customization Guide
+  (`docs/site/vibetour-cockpit-guide.html`, shared at https://claude.ai/artifact/6Xq9NCpVPQce2ztQFL2EPc).
+
+## Review for step 1
+
+Start with these, in `docs/sample-videos/review/`:
+
+| File | Shows |
+| --- | --- |
+| fx-22-california-coast-full-trip-v5.mp4, fx-22-01- … 13-*.png | The current tour with the signs, 5 min 31 s, and a close-up of each sign |
+| fx-20-california-coast-full-trip-v4.mp4 (+ fx-20-full-trip-v4-every-10s.png) | The tour before the signs, 5 min 13 s |
+| fx-21-mirrors-gas-stop.png, fx-21-gas-stop-every-2s.png, fx-21-sign-approach.png, fx-21-sea-mist.png | Close-ups from fx-20 |
+| fx-19, fx-18, fx-17, fx-12 … fx-16, fx-10, fx-01 … fx-11 | Earlier rounds (described in the 14 October prompt) |
+| 34-, 35-, 36-radio-merged-dashboard-*.png | The 3D dashboard after the radio merge: FM, CB, Alerts and the mirror bell |
+| 37- … 40-dash-polish-*.png | The dashboard edits of PR #12: before and after, 12 files, departure HUD, phone |
+
+Known flaws in fx-20, already reported to the user. Fold them into the sprint unless the user says otherwise:
+- The sign fades into the next clip instead of being driven past. The sign clip turns to the sea after 8 s, so it was
+  trimmed there.
+- The sea mist covers only the one sign clip (`MIST=cliffs-sign`). Other spray clips can be added to `MIST`.
+- After the gas-stop pull-out, the mirror still shows the pickup at its pump, though it left earlier.
+- A faint lens-flare orb shows late in `gas-side-out`.
+- The car ends the creep to the pump turned about 6° toward the station.
+- At night, the vehicles drawn into the mirrors have no lit taillights.
+
+Also still from the old, higher stills: the transitions (`to-cliffs`, `to-coast`), the tree-tunnel checkpoint set and the
+variants (rain, night, sunset, fog). If they're in the release, remake them with the SEAT block in this sprint
+(8 to 12 US dollars per variant). Ask the user which variants ship.
+
+Every earlier list (the mirror, height, the gas stop, the interior and wheel, the top rows, live dials, temperature,
+stops, the night dash, the radio screen) is done.
+
+## Dashboard edits (the user's E list, 15 October): done, PR #12
+
+From `docs/sample-videos/review/36-radio-merged-dashboard-alerts.png`, the 3D dashboard after the radio merge. Done on
+`feat/dash-polish` (PR #12). See before and after in `39-dash-polish-before-after.png`, the 12-file Alerts tab in
+`37-dash-polish-alerts-12-files.png`, the departure HUD in `38-dash-polish-departing.png`, and the phone bell in
+`40-dash-polish-phone.png`. To screenshot the demo: `PORT=5177 node scripts/serve-demo.mjs`, then Playwright at
+1280×760. The notes below are kept for reference.
+
+- **Done in #12:**
+  - e1: the bell is centred in its tab.
+  - e2: the bell is a glyph on the mirror glass, keeping its disc where the mirror hides.
+  - e3: the user chose "hide when it repeats" (`hudLocationLine()` in `cockpit.ts`).
+  - e4: the user chose scrolling. Each column scrolls with a fade; one column on a phone.
+- **e5:** the user is happy with the normal VS Code editor tab, which already opens on a click. No reader is wanted.
+
+- **e1. Centre the bell in the Alerts tab.** It hugs the left edge of the tab's blue underline. Cause: the 46 px tab
+  (`.tab.tab-alerts` in `src/webview/styles.css`) holds the icon as a block element, which `text-align` doesn't centre.
+  Fix with `display: grid; place-items: center` on the tab, or `margin: 0 auto` on its icon.
+- **e2. Put the mirror's bell on the glass**, inside the upper-right corner, like a HUD reading on the mirror. Today
+  `.alert-bell` is a 38 px dark disc hung off the corner (`top: -10px; right: -14px`). Move it inside `.mirror-glass`'s
+  area, smaller, with no disc: a glowing glyph on the glass, lit red, orange or blue as now, and still a button that
+  opens the Alerts tab. Check it on a phone width too (the media rules near line 2770 move the bell).
+- **e3. Remove "LEAVING MONTEREY" from the windshield**: the caption under it already says "Departing Monterey". The
+  line is `.hud-location`, fed by `Journey.location()` in `src/core/journey.ts`. It reads "Leaving X" only for the
+  first 6% of the trip. After that it says "Near Carmel", "Approaching Big Sur", "Final approach to …" or
+  "Arrived in …", while the caption says only "Cruising". Suggested: hide it while it repeats the caption (the
+  departure), and keep it after. Confirm with the user, who has also asked for fewer HUD elements and may want the line
+  gone for good. The Nav tab and the status bar show the location either way.
+- **e4. More changed files than fit in the Alerts tab.** The user's first choice is (a) scrolling. If scrolling can't
+  work, (b) two sub-tabs, Alerts and Files, with pills that shrink to fit more. Today `.pane` already has
+  `overflow: auto`, so the whole pane should scroll. Test with many changed files. Better: let each column scroll on
+  its own, with a fade at the bottom edge so it's clear there's more. (b) isn't needed if (a) works.
+- **e5. Clicking a file pill opens it in VS Code.** This already works in VS Code: the pills are buttons that send
+  `openFile`, and the extension opens the file in an editor tab (`openWorkspaceFile` in
+  `src/extension/displayCommands.ts`). The user's screenshot came from the browser demo, where pills can't open files
+  and so aren't buttons. Tell the user. Their bigger idea, reading the file inside the dashboard, comes in two
+  versions: (1) a focused reader that dims the tour and shows the document alone, with font-size controls and a reading
+  font, or (2) a floating, resizable window. Neither is crazy, but both break the README's promise that VibeTour
+  "reads metadata only … never source code". Before building either, ask the user:
+  - Which files: docs only, or code too? VS Code's Markdown preview already gives docs a clean reader; the Glovebox
+    uses it.
+  - Where: only in the VS Code panel, or on the Companion Display too, which would send file contents over the local
+    server?
+  - The promise: switch it off in Streaming Mode, and reword the README's privacy sentence.
+
+  Suggested: (1) for Markdown and text files, in the VS Code panel only, on click only, off in Streaming Mode; code
+  files keep opening in VS Code.
+
+## Dashboard edits, round 2 (the user's list, 16 October): merged, PR #13
+
+Seen in `37-dash-polish-alerts-12-files.png`. App work, on `feat/dash-round2` from main (after #12 merged). The
+windshield items replace #12's e3 rule. The user's decisions on 16 October:
+- **At a stop**, the line names just the place ("Bixby Creek Overlook"); the stop card says why.
+- **A checkpoint with no tunnel** shows its line only if the car stops there; otherwise nothing.
+- **Towns along the route** show "Approaching Carmel" (and "Leaving Monterey" at the start) as the car nears them.
+- **Red zones** are always marked faintly on the dial, like a real tachometer's redline, and saturate when the needle
+  reaches them. They apply to Agents & Tools, Activity, Changes and Issues (a deeper red on Issues, which is already
+  red).
+- **Rescale** Changes (20 files at 75%) and Issues (a score of 4 at 75%).
+- **Context** gets a red zone at the low end: under 25% left. Journey doesn't.
+
+**What PR #13 does** (screenshots `41-` … `44-round2-*.png` in `docs/sample-videos/review/`):
+- The snapshot carries the line as `motion.windshield`, from `VibeTourSession.windshield()` and `JourneyEngine.passing()`.
+  Towns show over the last 2.5% of the trip before them and the first 1.2% after. Stops show the place, without its
+  article ("Carmel Highlands gas station"). Pulled over or parked shows where the car stands ("Near Garrapata").
+- An old rule hid the line while stopped; it's gone, so the place shows at the bottom while the stop card sits at the
+  top.
+- The screen reader, the status bar, the tour strip and the Work panel keep the full caption.
+- Red zones:
+  - `Gauge` takes `zone: 'high' | 'low'`. A faint redline band is painted on the scale, and a second, saturated arc
+    fills the zone.
+  - `zoneSplit()` in `gauges.ts`; `changesDial()` and `issuesDial()` in `cockpit.ts`. Issues is rescaled from
+    `errorIntensity` without touching the engine.
+- Also: the Nav tab no longer says "Leaving Monterey · Leaving Monterey".
+- **Tour mode's strip:** the user chose to trim it like the windshield (16 October). PR #15: on the road the strip shows
+  just the route and the progress, since the windshield line above carries the news.
+
+1. **The windshield line shows only when something is happening.** Nothing at the bottom of the windshield while
+   cruising. Show it only:
+   - when the car is stopped (a scenic stop, pulled over, refuelling, parked);
+   - going through a tunnel;
+   - departing or arriving at a town or city on the route.
+
+   No "Steady autopilot cruise — agent at work": the Agents & Tools dial says that already. Captions today
+   (`caption()` in `src/core/session.ts`):
+
+   | Caption | Shows? |
+   | --- | --- |
+   | Cruising, Steady autopilot cruise — agent at work, Easy pace — reviewing changes, Gentle cruising — thinking time, Slowing down — taking a breather | Hidden |
+   | Departing Monterey, Final approach to …, Arrived in … | Shown |
+   | Scenic stop at … — …, Pulled over safely — …, Refuelling at …, Parked … | Shown, as one short line (see 2) |
+   | Through the tunnel — verification running | Shown, as "Through the tunnel" |
+   | Checkpoint — verification running (no tunnel) | Probably hidden; ask the user |
+
+   Towns along the way: `Journey.location()` already knows "Approaching X" (within 7% of a waypoint) and "Leaving X"
+   (the start). Show those as the line while they hold, if the user agrees.
+
+   Change only the windshield. The full caption still feeds the screen reader's announcements, the VS Code status bar,
+   the tour strip and the Work panel; don't take it from them.
+2. **One line, not two.** Keep the bold line (`.hud-caption`) and drop the small all-caps line (`.hud-location`). The
+   one line names the place when that's the news: "Departing Monterey", "Approaching Carmel", "Through the tunnel",
+   "Arrived in Big Sur". At a stop, the stop card already says why the car stopped, so the line should be short, e.g.
+   "Bixby Creek Overlook" or "Scenic stop · Bixby Creek Overlook", not the full caption with the reason (ask the user
+   which). This replaces #12's `hudLocationLine()` rule; update its tests and the Signal Map's HUD row.
+3. **A red zone on Agents & Tools.** The last 25% of the dial is red: the arc is the gauge's colour (cyan) up to 75%
+   and red past it, "75% blue, 25% red". Where a gauge is already red (Issues), its zone is a deeper, brighter red.
+   The gauge (`src/webview/ui/gauges.ts`) draws one SVG value arc today, filled by `strokeDashoffset`. Give `Gauge` a
+   `redline` option (from 0.75) that splits the value arc into two: the tone colour up to the redline, red past it.
+   Ask the user whether the zone should also be marked faintly on the track all the time, like a real tachometer's
+   redline, or only turn red when the needle gets there.
+4. **The same on the Changes ring, from 20 files.** Today the ring is full at 20 files (`files / 20` in
+   `updateChangesGauge`), so 75% is 15. Rescale so 20 files sits at 75% (full at about 27), and red covers 21 and up.
+   Proposed; confirm.
+5. **The same on Issues, from "above 3".** The dial is `errorIntensity = 1 − e^(−score/5)` in `src/core/activity.ts`.
+   The score counts each error as 1, each warning as 0.2, and adds 2 for a failing check. So 75% is a score of about
+   7 today; 3 errors read 45%. To put "above 3" in the red, rescale to `k ≈ 2.9`, so a score of 4 sits at 75%. That
+   changes how the dial reads everywhere. Since `errorIntensity` may feed other things (grep it), add a separate value
+   for the dial rather than change the engine's. Proposed; confirm.
+
+## Signs and stops (the user's answers, 16 October)
+
+- The user does not like the low-poly 3D world ("that 3D fake world"); the Controls Map now shows a footage still
+  behind the dashboard. They thought the 3D scene was a static picture: explain the two worlds plainly if it comes up
+  (3D = what VS Code draws live today; footage = the release, needs renderer milestone 1).
+- When an agent needs you, the car stops at once; a stop is named only where the pack places one (PR #17).
+- No windshield line at all; names live on signs outside and on the Nav screen.
+- Signs go in the **footage**, California first, made like the distance sign (paste on the still with
+  `sign.py paste`, let the model drive up, `sign.py fix` repaints the face; extend sign.py for new kinds):
+  - keep the green distance signs on two wooden posts ("Big Sur 19 / San Simeon 85": true distances, facing south);
+  - town signs at each town or landmark on the route;
+  - scenic-stop signs: an advance sign (Vista Point / Bixby Creek Overlook, 1 mi) and the stop's own sign;
+  - blue services signs ("Gas · Food · Lodging", next exit) where they're real (the Monterey/Carmel freeway part);
+  - a gas price board at the gas stop;
+  - billboards **only where real ones stand** (around Monterey at the start); the Big Sur coast bans them. Fictional
+    local businesses only (accident lawyer, plumber, radio station, fast food), a "Welcome to …" tourism ad, and
+    road-safety messages ("Don't drink and drive", "Speeding kills"). No real names, brands or phone numbers.
+  - The user's references: `docs/sample-videos/sample-road-signs/new-*` (billboards, gas prices, next-exit services,
+    rest area) beside the older ones.
+- Every name must agree: signs, the Nav map's stop diamonds, the stop pill and caption, and later the Director's choice
+  of stop set (gas station vs Bixby overlook) by position.
+- Open: the refuel stop is named "a Carmel Highlands gas station" while the car is at Big Sur/Monterey; give Big Sur a
+  gas stop or name the refuel by position too. Pfeiffer Beach sits just past Big Sur village (placed at 0.98).
+
+## Photo car, refined (the user's answers on 56/57, 16 October)
+
+Mocks: `docs/sample-videos/review/58-photo-car-mock-driving.png` and `59-photo-car-mock-panel.png` (scripts and parts in
+`docs/sample-videos/photo-car-mock/`, gitignored).
+1. Rear-view mirror: the Alerts bell on its glass, top right. Yes.
+2. The car's own speedometer and rev counter keep showing the car. Yes.
+3. Cluster display: the **Context** reading, and the **Alerts bell only when lit**. Journey and Issues are not there.
+4. Centre screen: the radio face plus the console tabs (Nav, Radio, PRs, Trip, Console, Alerts), and the **glovebox
+   handle under the screen**.
+5. Slide-up panel (Activity, Agents, Tools, Journey, Changes, Issues, gear): keep it to the right part of the screen,
+   right of the cluster, unless it truly needs more; the user must see it running once before signing off.
+6. Cluster lamps: no blue dots. Proposed (mocked in 58): the bell (when lit) plus only the warm lamps that say
+   something the bell doesn't: check engine (amber: a failing test, build or lint) and warnings (yellow: errors in
+   Problems). Hazard is dropped because the red bell says the car pulled over. Awaiting the user's OK. Add the lamps to
+   the photo-car Controls Map when it's made.
+
+Round 2 (the user's tweaks, 16 October; mocks 60–63 in `docs/sample-videos/review/`, script `mock2.mjs`):
+- Cluster display: lamps grouped in a top band, room for four (bell when lit, check engine, warnings); below it the
+  Context dial on the left and a **mini gear selector** (P R N D) on the right, its bottom edge level with the dial's;
+  labels CONTEXT and BUILD / EDIT on one line each (never wrap). The gear leaves the panel.
+- Check engine also lights for failing GitHub CI and failed deployments on the branch's PR (built in PR #17).
+- The dial panel (Activity, Agents, Tools, Journey, Changes, Issues) is a **HUD on the windshield**, glass like the
+  stop pill, centred in the window; a stop pill rises above it while both show. The solid black slide-up panel was
+  "too stark" and is dropped. (b2, the alternative: widen the centre screen over the vent and show the dials inside
+  it.)
+- The solid lower-right panel style is fine for the **glovebox opening**, at about 60% of that height: it lists the
+  project docs (click one to open it in VS Code).
+- Closing any panel: the grab bar at the top centre (a button) and a white "X  Esc" at the top left; Esc closes. No
+  "Esc or click outside" hint.
+- Still to sign off: the user wants to see it running once.
+
+Round 3 (17 October; mocks 64–68, script `docs/sample-videos/photo-car-mock/mock3.mjs`):
+- The HUD dial panel and the stop pill above it centre in the **windshield glass**, not the whole frame: about
+  (800, 236) at 1280×720, from the car's `glass-mask.png` (x 300–1280, y 36–445). The renderer should centre the
+  HUD on the car's glass (add a `windshield` box to `car.json`, or use the mask's centre).
+- The GitHub repo (`owner/name`, linking to GitHub) shows along the bottom of the cluster display, under CONTEXT and
+  BUILD / EDIT (about 5 px tall at 1280 wide: legible on a high-density screen), and in the glovebox panel.
+- Glovebox panel: dark pill-shaped file pills like the Alerts tab's, smaller type, a file-type icon each (HTML orange,
+  Markdown blue), a blue border and dot on an uncommitted file; a scrolling list on the left with breathing room under
+  "✕ Esc"; on the right **License** (opens the model account, e.g. the Claude account page) and **Registration**
+  (opens VS Code's About, with the version). The VibeTour Cockpit Map is listed as the owner's manual.
+- Answered: editing `docs/signal-map.md` changes nothing in the app or the map (the map comes from screenshots and
+  `tools/cockpit-map/states.mjs`; tests check the Signal Map against the code).
+- Done in PR #17: the Controls Map is now the **Cockpit Map** (`docs/site/vibetour-cockpit-map.html`,
+  `npm run cockpit-map`, `tools/cockpit-map/`), and a **Cockpit Customization Guide**
+  (`docs/site/vibetour-cockpit-guide.html`, shared at https://claude.ai/artifact/6Xq9NCpVPQce2ztQFL2EPc). The user dislikes
+  single-centre-screen (Tesla-style) cockpits: the guide says so.
+
+Round 4 (17 October; mocks 69–71, `mock4.mjs`):
+- HUD dial panel glass darker and more saturated (navy, about 80% opaque, blur 18 px, saturate 1.4): every dial
+  readable over the bright coast.
+- Cluster display, top to bottom: the GitHub repo path (wraps to two lines, then ends in "…"), the lamps under it with
+  no rule between, then the smaller Context dial (32 px at 1280) and the gear, with CONTEXT and BUILD / EDIT at the
+  very bottom.
+- License opens the connected agent's account page (Claude account settings for Claude Code); Registration opens
+  VS Code's About. The user agreed.
+- PR #17 merges when the user approves these mocks.
+
+## Dashboard round 3 (the user's list, 16 October): PR #16, merged
+
+From the Controls Map. Review images: `docs/sample-videos/review/45-round3-dash-moving.png`, `46-round3-stopped.png`,
+`47-round3-tour-stopped.png`, `48-round3-phone.png`. The shared map was republished (version 3).
+- **Stop card → one pill**: the alert, then what resumes the drive (*Answer to resume your journey.*), at most 440 px
+  wide, wrapping taller. Stops with no alert (parked, refuel, breather) get the same kind of pill.
+- **Mirror bell**: 20 px like the Alerts tab's, 10 px from the mirror's right end, centred top to bottom, 32 px target.
+- **Agents & Tools split**: *Agents* = agents at work now, crew included, 0–8, red from 6 (usage goes fastest);
+  *Tools* = tool calls (`PreToolUse`) and commands started in the last minute, full at 30, no red zone (a busy agent
+  is no fault). Activity, Agents and Tools are one size, side by side. Snapshot: `activity.agentsWorking`,
+  `activity.toolCalls`.
+- **Activity reads 0 while stopped**; each left dial leaves a white pin where it stood when the car stopped.
+- **Side mirrors**: no crew list any more (the Agents dial and CB have it).
+- **Windshield**: empty unless stopped in a town or at a landmark on the route (`JourneyEngine.town()`, ±2.5% of the
+  trip), or arrived. Nothing while moving, nothing while refuelling. Tour mode: no strip at all.
+- Follow-up on the same PR (the user's review of 47/48): in Tour mode the dashboard comes up while the car is stopped
+  (class `car-stopped` on the cockpit) and goes when it drives on; the stop pill is centred top to bottom in the
+  window; on a phone the three dials sit in one centred row, the four gauges centred under them, then the gear.
+  Images 49-round3b-tour-stopped.png, 50-round3b-phone.png. Map republished (version 4).
+- Last list on the same PR (16 Oct): warning lights removed with `cues.ts` and the Your-turn "Blue light" setting
+  (decision B's "tell-tales in the cluster" for the photo car needs re-asking); the Glovebox is a drawn lid and chrome
+  handle; the demo's controls open from a Demo pill on the glovebox into a lower-right panel with a × (hidden on
+  phones, like the glovebox); stop pins take their scale's colour (red in a red zone); the Controls Map is captured
+  at 2× (5.0 MB). Images 51- … 55-round3c-*.png. Map republished (version 5).
+- Found on the way: scenic stops' names are picked at random from the pack's list, not by position (the demo stopped
+  at 1% near Monterey as "Cliffside café in Big Sur"). The windshield now uses the route's waypoints instead; the
+  caption and the refuel pill still use the stop name. Follow-up to offer: give each scenic stop an `at` on the route.
+
+## Controls map (the user's request, 15–16 October): merged, PR #14 (renamed the Cockpit Map in #17)
+
+Done. The page is `docs/site/controls-map.html`, published to share (privately, until the user shares it) at
+https://claude.ai/artifact/UXJK2Ed8zA9G8CDKv3E8J4.
+- It has 13 pictures, in `docs/site/images/controls/`, 2.7 MB: dashboard, stopped, Nav, Radio FM playing, FM nearby,
+  FM search, Radio CB, PRs, Trip, Console, Alerts, Tour, Work.
+- `npm run controls-map` re-makes it. Put `--fragment <file>` after `node tools/controls-map/capture.mjs` to also write
+  the page without its wrapper; republish that file to the same artifact URL.
+- The data is in `tools/controls-map/states.mjs`; `--only <ids>` re-takes just those pictures.
+- A photo-car version is still to come, after the renderer.
+- Tooling to-do: a full run re-takes every picture, and the scene is animated, so all 13 PNGs change each time (about
+  2.7 MB of churn). Let `--only` rewrite the page from a saved list of each picture's numbered controls (e.g.
+  `docs/site/images/controls/map.json`), so a change to one screen re-takes one picture.
+- The shared page was republished on 16 October with the trimmed strip (version 2).
+
+The request, as it was specified:
+
+The user wants a visual map of every control: each element numbered on a picture, with a key below giving its input
+source (what feeds it) and its click behaviour (what it opens or reveals, and its key, if any). The first request
+probably went to the phone's cloud session; this is the full version.
+- **One picture per state.** Each console tab: Nav, Radio FM, Radio CB, PRs, Trip, Console, Alerts. Also:
+  - the windshield cruising (after round 2: clear) and stopped (the stop card and its alert pill);
+  - the mirror bell lit;
+  - Tour, Dash and Work modes;
+  - other states reached from a tab, if possible.
+- **Radio FM with music playing:**
+  - the station and song from the stream (ICY), LIVE, and the equalizer lights moving;
+  - presets 1–6 (tap to tune, hold to save), power, previous/play/next, volume, bass, treble, fader, balance,
+    surround, ST MIX;
+  - local stations and search;
+  - the input source: SomaFM presets and the Radio Browser directory, streamed through the companion server's
+    `/radio/stream`;
+  - the behaviour: it plays on its own volume, stops when the panel closes, and keeps playing on the Companion Display.
+
+  The demo can't play FM ("needs the VS Code extension or the CLI"). For these pictures run the CLI companion
+  (`npm run companion`, radio on) and point Playwright at its URL.
+- **Make it reproducible:** a Playwright script (e.g. `tools/controls-map/`) that sets each state, screenshots it and
+  draws numbered markers, so the map can be re-made after UI changes.
+- **Where it lives (the user's choice, 16 October):** an HTML page in `docs/site/` (like `footage-study.html`),
+  published as a shareable page too, with the PNGs in `docs/images/controls/`, and a link from the Signal Map. Keep
+  `test/docs.test.ts` in step if the Signal Map changes.
+- A photo-car version follows once decision B is made.
+
+## Decisions of 16 October
+
+- #12–#17 merged at the user's word.
+- The windshield line: removed for good on 17 October (#17). Names live on signs outside and on the Nav screen.
+- Red zones: always marked, saturating at 75%, on Activity, Agents & Tools, Changes (rescaled so 20 files sit at 75%)
+  and Issues (more than three issues). Context turns red under 25% left.
+- Tour mode's strip: removed (#16).
+- The guiding rule: as few distractions as possible (see the top of this file).
+- The Controls Map: a shareable page, plus PNGs in the repo.
+- Decision A: staged, as recommended. Decision B: the hybrid.
+- `handoff.txt` is committed, so the phone session can read it.
+
+## Questions open
+
+1. Which full variant tours ship (rain, night, sunset, fog)? Their stills predate the seated-height remake. (On 18
+   October the user asked for a fog bank and a rainy stretch inside the main midday tour; that is in "Your job".)
+2. Renderer milestone 1: start after the signs, or alongside? Plan it with the user first.
+3. The refuel stop's name: "a Carmel Highlands gas station" shows while the car is at Big Sur or Monterey. Add a Big
+   Sur gas stop to the pack, or name the refuel stop by position too.
+4. Photo car: the user wants to see it running once before signing off (renderer milestone 1).
+
+## Other open items
+
+1. The pack's `approach` slot is now a ramped cruise plate (`coast-3-stop`); the schema may want a name for a re-timed clip.
+2. The app's refuel flow (PR #8) should play the pump set: Fillup (new thread) and Quick-stop (compact context).
+3. Hi-res (step 6): a 2K cockpit is in `docs/sample-videos/cars-src/`. The clips need regenerating (about 20 to 30 US
+   dollars). HeyGen bills 1080p at 3× its 768p price, and its launch price ends with October.
+4. The 12 October work queue (GitHub Pages, brand, engine work) is unchanged. Real car logos: trademark risk, flagged
+   earlier; no logos for now.
+
+## Radio on the photo car: spec for the video renderer
+
+The user chose this on 14 October. Today's radio is the Radio tab of the console panel at the bottom centre of the 3D
+dashboard (`src/webview/ui/radioDeck.ts`). When a video pack plays, the dashboard is a photo of a car (`cars/<id>`), and
+that bottom-centre spot is the steering wheel. Each car gives the radio a screen instead.
+
+- **Where.** `car.json` `screens.console` is the screen's glass, `[x, y, w, h]` in the car still's pixels (1200×896; the
+  view shows rows 0–675, scaled to the panel's width). Grand tourer: `[902, 472, 164, 154]`, about 175×165 px at 1280×720.
+  The face sits under the wheel-and-hands layer: the right hand passes in front of the screen's left edge on turns.
+- **Two sizes.**
+  - The **face** is always on while the car is shown. It has the deck's head only: FM|CB, LIVE, equalizer lights,
+    station, song (artist and title on two lines), power, previous, play/pause, next, and presets 1–6. No SET, volume,
+    tone controls or lists. Text sizes: station about 15/190 of the screen's width, song 9.5/190, band and LIVE 8/190.
+    `tools/footage/headunit.py` is the stand-in (see fx-19).
+  - The **full radio** is the whole deck, in a panel that slides up from the bottom over the lower dashboard, right of
+    centre, with the road still in view (fx-18 mockup C). A click on the face (not on a transport or preset button) or
+    R opens it; R, Esc or a click outside closes it. It can keep the console's tabs, which makes the screen the
+    console's home in the photo car.
+- **Lights.** The equalizer lights run whenever the face is on screen, not only on the Radio tab (`Cockpit.syncRadio`
+  today). Reduced motion still stills them.
+- **CB on the face.** The co-pilot's name and status, and a dot per crew agent, amber while one waits or needs help.
+- **Night.** Screens dim to 0.55 + 0.45 × the cabin light (about 70% at night).
+- **Cluster display.** `screens.cluster` (grand tourer `[562, 458, 78, 68]`) shows the station and band, and the water
+  temperature as a bar from C to H that warms to half over the first 45 s. The temperature is the car's, not the radio's.
+
+## Money
+
+- Check both OpenRouter limits before a batch: `GET /api/v1/key` (`limit_remaining`) and `/api/v1/credits`.
+- HeyGen: the CLI has no stored credential. Export `HG` from `.env.local`
+  (`grep '^HEYGEN_API_KEY=' .env.local | cut -d= -f2- | tr -d "\"' "`) and pass it in headers, as the pack's submit
+  scripts do. Check `GET /v2/user/remaining_quota` (HeyGen retires it on 31 October 2026; its replacement is
+  `GET /v3/users/me`).
+- Prices: stills 10 US cents (2K); Seedance 91 cents per 10 s; HeyGen 18 cents per 12 s (768p); Veo Lite 24 cents per 8 s.
+- Spend rule: up to 5 US dollars per batch without asking; report costs.
+
+## Tools reminder
+
+- `PYTHON=docs/sample-videos/.venv/bin/python`.
+- `CAR=cars/<id>` picks the car (default grand-tourer).
+- In `tools/footage/`: `still.sh`, `session.sh`, `composite.sh`, `drift.py`, `vp.py` (`CENTRE=1` for stop stills),
+  `sheet.py`, `car-build.sh`, `mirror.py`, `headunit.py`, `speed.py`, `ramp.py`, `traffic.py`, `mirrorfeed.py`,
+  `spray.py`, `sign.py`.
+- `build_trip.sh <out>` in the pack (`docs/sample-videos/pack-california-coast/`) builds the whole tour in road order.
+- Clean up with literal paths. In skill files, write prices without a dollar sign before a digit.

@@ -118,3 +118,16 @@ The pull-out is the same move to the left ("steers gently to the left and eases 
 A hold must not grow anything: say what stays as it is and that "nothing new appears anywhere, no building, no kiosk, no person". The first pump hold drew a kiosk and a woman ahead, then lost them.
 
 An older pull-in that turns into the stop said how far the car turns: "turns gently right off the road onto the forecourt, straightens up to face the pump island and the shop, and rolls to a smooth complete stop about fifteen metres short of the pumps, exactly as in the last frame. The camera is fixed to the car and turns only as the car turns, through about forty degrees to the right." Through the cockpit it looked like the car swung round on the highway; the user asked for the lane change instead.
+
+## Signs (17 October)
+
+Each remade clip kept the approved take's prompt word for word, with one sentence for the sign before the LOOK sentence:
+> The green CARMEL-BY-THE-SEA CITY LIMIT sign on its two posts, ahead on the right beyond the parked cars, comes steadily closer through the whole clip, stays rooted where it stands, keeps its exact shape, colours and white lettering, and slides past on the right near the end.
+
+**Billboard still** (the freeway leaving Monterey): a lane block for four lanes, and the board asked for blank, far and small:
+> Americans drive on the right. This is a four-lane divided freeway, two lanes each way: the camera is in the RIGHT-HAND of the two southbound lanes, so a dashed white lane line runs on the camera's LEFT with the left-hand southbound lane beyond it, then a low grey concrete median barrier, and beyond the barrier the two northbound lanes; a solid white edge line and a paved grey shoulder run on the camera's right.
+
+> Far down the freeway on the right, about three hundred metres away, just right of where the freeway curves out of sight, a single roadside billboard stands above the trees on one tall rusty-grey steel pole, with a narrow catwalk under its face, its wide landscape face angled a little towards us, its face a flat, plain, pale grey blank panel with a thin dark frame, no picture and no text on it. The billboard is far away and SMALL in the frame: its face is only about one twelfth of the frame's width, and its top edge is only a little above the treetops, low in the sky near the horizon, never high up in the sky.
+
+Asked for "about two hundred metres away" without the size, the first take put the board close and high, where the rear-view mirror hides it once cropped. A second freeway still made from the first copied its layout, billboard and all: say what differs (the board on the other side, a sound wall, oleanders in the median).
+
