@@ -6,7 +6,15 @@
 # rain and wipers (rain.py); MIRRORLIGHTS=<dark> turns the mirrors' car lights round (mirrorlights.py);
 # rain or WET=1 wets the side window and mirrors, and at night the side window shows taillights (glass.py);
 # FLARE=<strength> adds lens flare for a sun in frame (flare.py).
-T="$(cd "$(dirname "$0")" && pwd)"; V="${PYTHON:-python3}"; OUT="$1"; shift
+# Weather for a stretch of the session (18 Oct 2026), named by clip (a name, or part of one; several, comma-separated):
+#   RAIN=<clip[:drops],…>  rain and wipers over those clips only (drops a second, 900): the drops build over the first
+#                          seconds, the wipers start as they build and stop a little after the rain; the side glass gets
+#                          wet with it and dries after (rain.py, glass.py). A number alone is still the whole session.
+#   WET=<clips>            a wet road without rain: wet side glass over those clips (WET=1 alone: the whole session).
+#   CABINS=<clip:level,…>  the cabin's light over those clips (fog about 0.7, rain 0.6), CABIN being the rest (cabinlight.py).
+#   MIST=<clip[:level],…>  sea spray over those clips: light (1, the default), heavy (2.5: drenches the glass and the
+#                          wipers sweep at once), or a number; MISTRATE sets the droplets a second at level 1 (spray.py).
+T="$(cd "$(dirname "$0")" && pwd)"; V="${PYTHON:-python3}"; OUT="$1"; shift; CLIPS=("$@")
 W="$(mktemp -d)"; n=0; ins=""
 for c in "$@"; do
   ins="$ins -i \"$c\""; d="$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$c")"; durs+=("$d"); n=$((n+1))
@@ -20,11 +28,15 @@ dissolve() {
   eval ffmpeg -v error -y ${4:-$ins} -filter_complex "\"${fc%;}\"" -map "[out]" -an -c:v libx264 -crf ${3:-20} -pix_fmt yuv420p "\"$2\""
 }
 dissolve "fps=24,scale=1280:720:flags=lanczos,setsar=1,format=yuv420p" "$W/plate.mp4"
-"$V" "$T/traffic.py" "$@" | sed 's/^/  traffic: /'
-"$V" "$T/mirrorfeed.py" "$W/mirror.mp4" "$@" | tail -1
-# MIRRORLIGHTS (night about 0.35, dusk or rain 1) turns the mirrors' car lights round: taillights on cars driving away,
-# headlights on a car following us, and the rest of the mirror darkened by that factor.
-if [ -n "${MIRRORLIGHTS:-}" ]; then "$V" "$T/mirrorlights.py" "$W/mirror.mp4" "$W/mirror-lit.mp4" "$MIRRORLIGHTS" | tail -1; mv "$W/mirror-lit.mp4" "$W/mirror.mp4"; fi
+# The mirrors show no generated view (18 Oct 2026): the rear-view is dark glass, the door mirror housing only (composite.sh).
+# MIRRORS=feed brings back the road already driven (traffic.py, mirrorfeed.py, and MIRRORLIGHTS at night, dusk or in rain).
+FEED=none
+if [ "${MIRRORS:-none}" = "feed" ]; then
+  "$V" "$T/traffic.py" "$@" | sed 's/^/  traffic: /'
+  "$V" "$T/mirrorfeed.py" "$W/mirror.mp4" "$@" | tail -1
+  if [ -n "${MIRRORLIGHTS:-}" ]; then "$V" "$T/mirrorlights.py" "$W/mirror.mp4" "$W/mirror-lit.mp4" "$MIRRORLIGHTS" | tail -1; mv "$W/mirror-lit.mp4" "$W/mirror.mp4"; fi
+  FEED="$W/mirror.mp4"
+fi
 "$V" "$T/steer.py" "$W/plate.mp4" "$W/steer" 12.5 | tail -1
 # The speedometer and rev counter follow the clips: a clip made by ramp.py has a <clip>.speed.csv with its speed factor per
 # frame, a *hold* clip stands still, and every other clip cruises at CRUISE km/h (55) with a slow wander. Speeds blend
@@ -64,39 +76,64 @@ print(f"dials: {n} frames, cruise {cruise:.0f} km/h")
 PY
 export DIALS="$W/dials.cmd"
 fi
-# RAIN (drops a second, e.g. 900) puts rain on the windshield and turns the wipers on. Steering comes from the dry plate,
-# since the wipers would read as camera yaw.
-P="$W/plate.mp4"; [ -n "${RAIN:-}" ] && "$V" "$T/rain.py" "$W/plate.mp4" "$W/wet.mp4" "${CAR:-}" | tail -1 && P="$W/wet.mp4"
-# FLARE=<strength> (about 0.8) adds the lens-flare layer, for variants with the sun in frame only.
-FL=""; [ -n "${FLARE:-}" ] && "$V" "$T/flare.py" "$W/plate.mp4" "$W/flare.mp4" "$FLARE" | tail -1 && FL="$W/flare.mp4"
-"$T/composite.sh" "$P" "$W/mirror.mp4" "$W/steer.cmd" "$OUT" $FL
-# The side glass: wet whenever it rains (or WET=1 for a wet road), and at night (MIRRORLIGHTS below 1) any lamp in the
-# side window shown as a taillight, since a car beside us has passed.
-WETG="${WET:-}"; [ -n "${RAIN:-}" ] && WETG=1
-NIGHTG=""; [ -n "${MIRRORLIGHTS:-}" ] && python3 -c "import sys; sys.exit(0 if float('$MIRRORLIGHTS') < 1 else 1)" && NIGHTG=1
-if [ -n "$WETG$NIGHTG" ]; then WET="$WETG" NIGHT="$NIGHTG" "$V" "$T/glass.py" "$OUT" "$W/glass.mp4" "${CAR:-}" | tail -1 && mv "$W/glass.mp4" "$OUT"; fi
-# MIST=<clip names, comma-separated, or parts of them> puts sea spray on the car during those clips: a fine mist on the
-# windshield that the wipers clear now and then, beads on the door mirror's silver housing (spray.py). Its strength rises
-# and falls over 1.5 s at each end and gusts gently.
-if [ -n "${MIST:-}" ]; then
-python3 - "$W/mist.csv" "$MIST" "${durs[@]}" -- "$@" <<'PY'
+# track <out.csv> <column> <spec> <default> <ramp in> <ramp out> [gust] [base]: a per-frame value from clips named in a spec
+# (name[:value],…; a name matches any clip whose file name contains it), ramping up over the first seconds of each named
+# clip and down over its last, the farthest from the base where two overlap, the base (0) elsewhere. The clips' dissolves overlap by 1 s.
+track() {
+python3 - "$W/$1" "$2" "$3" "$4" "$5" "$6" "${7:-0}" "${8:-0}" "${durs[@]}" -- "${CLIPS[@]}" <<'PY'
 import math, os, sys
-out, names = sys.argv[1], [n for n in sys.argv[2].split(",") if n]
-rest = sys.argv[3:]; k = rest.index("--"); durs = [float(x) for x in rest[:k]]; clips = rest[k + 1:]
+out, col, spec, default, rin, rout, gust, base = sys.argv[1], sys.argv[2], sys.argv[3], float(sys.argv[4]), float(sys.argv[5]), float(sys.argv[6]), int(sys.argv[7]), float(sys.argv[8])
+rest = sys.argv[9:]; k = rest.index("--"); durs = [float(x) for x in rest[:k]]; clips = rest[k + 1:]
+LEVELS = {"light": 1.0, "heavy": 2.5}
+want = []
+for item in [x for x in spec.split(",") if x]:
+    name, _, val = item.partition(":")
+    want.append((name, default if col == "wet" or not val else LEVELS.get(val, None) if val in LEVELS else float(val)))
 offs = [0.0]
 for d in durs[:-1]: offs.append(offs[-1] + d - 1.0)
-spans = [(offs[i], offs[i] + durs[i]) for i, c in enumerate(clips) if any(n in os.path.basename(c) for n in names)]
+spans = [(offs[i], offs[i] + durs[i], v) for i, c in enumerate(clips) for n, v in want if n in os.path.basename(c)]
 n = int((offs[-1] + durs[-1]) * 24)
 with open(out, "w") as f:
-    f.write("frame,mist\n")
+    f.write(f"frame,{col}\n")
     for k in range(n):
-        t = k / 24; m = 0.0
-        for a, b in spans:
-            m = max(m, min(1.0, (t - a) / 1.5, (b - t) / 1.5))
-        m = max(m, 0.0) * (0.75 + 0.25 * math.sin(t * 1.3) * math.sin(t * 0.47 + 1))
+        t = k / 24; m = base
+        for a, b, v in spans:                          # from the base to the clip's value over the ramps, the farthest from base winning
+            r = max(0.0, min(1.0, (t - a) / rin if rin else 1.0, (b - t) / rout if rout else 1.0)); x = base + (v - base) * r
+            m = x if abs(x - base) > abs(m - base) else m
+        if gust: m *= 0.75 + 0.25 * math.sin(t * 1.3) * math.sin(t * 0.47 + 1)
         f.write(f"{k},{m:.3f}\n")
-print(f"mist: {len(spans)} clips")
+print(f"{col}: {len(spans)} clips")
 PY
+}
+isnum() { python3 -c "import sys; float(sys.argv[1])" "$1" 2>/dev/null; }
+# RAIN (drops a second, e.g. 900) puts rain on the windshield and turns the wipers on. Steering comes from the dry plate,
+# since the wipers would read as camera yaw. Named clips make it a stretch (RAINCSV).
+P="$W/plate.mp4"; RAINCSV=""
+if [ -n "${RAIN:-}" ] && ! isnum "$RAIN"; then track rain.csv rain "$RAIN" 900 2.5 2.5; RAINCSV="$W/rain.csv"; fi
+[ -n "${RAIN:-}" ] && RAINCSV="$RAINCSV" "$V" "$T/rain.py" "$W/plate.mp4" "$W/wet.mp4" "${CAR:-}" | tail -1 && P="$W/wet.mp4"
+# FLARE=<strength> (about 0.8) adds the lens-flare layer, for variants with the sun in frame only.
+FL=""; [ -n "${FLARE:-}" ] && "$V" "$T/flare.py" "$W/plate.mp4" "$W/flare.mp4" "$FLARE" | tail -1 && FL="$W/flare.mp4"
+"$T/composite.sh" "$P" "$FEED" "$W/steer.cmd" "$OUT" $FL
+# CABINS=<clip:level,…>: the cabin's light follows the clips (fog, rain), from the composite's CABIN level (cabinlight.py).
+if [ -n "${CABINS:-}" ]; then
+  track cabin.csv level "$CABINS" "${CABIN:-1}" 1 1 0 "${CABIN:-1}"
+  BASE="${CABIN:-1}" "$V" "$T/cabinlight.py" "$OUT" "$W/cabin-lit.mp4" "$W/cabin.csv" "${CAR:-}" | tail -1 && mv "$W/cabin-lit.mp4" "$OUT"
+fi
+# The side glass: wet whenever it rains (or WET=1 for a wet road), and at night (MIRRORLIGHTS below 1) any lamp in the
+# side window shown as a taillight, since a car beside us has passed. Named clips (WET=<clips>, or a RAIN stretch) make
+# the wet a stretch (WETCSV): the glass dries off between showers.
+WETG="${WET:-}"; WETCSV=""
+if { [ -n "${WET:-}" ] && [ "$WET" != "1" ]; } || [ -n "$RAINCSV" ]; then
+  track wet.csv wet "${WET:-}${WET:+,}${RAIN:-}" 1 2.5 1; WETCSV="$W/wet.csv"; WETG=""
+  if [ -n "${WET:-}" ] && [ "$WET" = "1" ]; then WETG=1; WETCSV=""; fi
+elif [ -n "${RAIN:-}" ]; then WETG=1; fi
+NIGHTG=""; [ -n "${MIRRORLIGHTS:-}" ] && python3 -c "import sys; sys.exit(0 if float('$MIRRORLIGHTS') < 1 else 1)" && NIGHTG=1
+if [ -n "$WETG$WETCSV$NIGHTG" ]; then WET="$WETG" WETCSV="$WETCSV" NIGHT="$NIGHTG" "$V" "$T/glass.py" "$OUT" "$W/glass.mp4" "${CAR:-}" | tail -1 && mv "$W/glass.mp4" "$OUT"; fi
+# MIST=<clip[:level],…> puts sea spray on the car during those clips: a fine mist on the windshield that the wipers clear
+# now and then, beads on the door mirror's housing (spray.py). Its strength rises and falls over 1.5 s at each end and
+# gusts gently; heavy (2.5) drenches the glass so the wipers sweep at once.
+if [ -n "${MIST:-}" ]; then
+track mist.csv mist "$MIST" 1 1.5 1.5 1
 "$V" "$T/spray.py" "$OUT" "$W/spray.mp4" "$W/mist.csv" "${CAR:-}" | tail -1 && mv "$W/spray.mp4" "$OUT"
 fi
 cp "$W/plate.mp4" "${OUT%.mp4}-plate.mp4"; rm -rf "$W"

@@ -1,5 +1,5 @@
 #!/bin/bash
-# composite.sh <plate.mp4> <mirrorfeed.mp4> <steer.cmd> <out.mp4> [flare.mp4]
+# composite.sh <plate.mp4> <mirrorfeed.mp4|none> <steer.cmd> <out.mp4> [flare.mp4]
 # A car from cars/ (1200x896, 4:3; CAR picks the folder, default cars/grand-tourer), 16:9 crop taken from the top. Plate centred: its vanishing point
 # sits over the wheel hub. Layers: plate, mirror feeds inside the glass, keyed cockpit with light bleed,
 # wheel+hands rotated by the steering track, windshield bloom, then the glass and camera: the dash reflected
@@ -77,14 +77,28 @@ if [ -n "${SCON:-}" ] && [ "${HEADUNIT:-1}" != "0" ]; then
   HU_FC="color=c=black:s=1200x896:r=24:d=${T},format=rgb24[hu0];[$HI:v]format=rgb24[hcon];[$HC:v]format=rgb24[hclu];[hu0][hcon]overlay=${CNX}:${CNY}[hu1];[hu1][hclu]overlay=${CLX}:${CLY},lutrgb=r=val*${HB}:g=val*${HB}:b=val*${HB},format=rgb24[hu];[c1d][hu]blend=all_mode=screen:shortest=1,format=rgb24[c1h];"
 fi
 if [ -n "$FLARE" ]; then EXTRA="$EXTRA -i $FLARE"; FL=$N; N=$((N+1)); FLARE_FC="[$FL:v]scale=1200:896,format=rgb24[fl0];[glass2]lutyuv=y='max(val,38)',format=rgb24[fgm];[fl0][fgm]blend=all_mode=multiply,format=rgb24[fl];[lit2b][fl]blend=all_mode=screen,format=rgb24[lit3];"; else FLARE_FC="[glass2]nullsink;[lit2b]null[lit3];"; fi
-ffmpeg -v error -y -i "$PLATE" -i "$FEED" -loop 1 -i "$C/cabin.png" -loop 1 -i "$C/wheel.png" -loop 1 -i "$C/mirror-mask.png" -loop 1 -i "$C/glass-mask.png" $EXTRA -filter_complex "
-[0:v]scale=1440:810:flags=lanczos,crop=1200:675:120:${PY0},pad=1200:896:0:0:color=black,eq=saturation=1.08:contrast=1.04,format=rgb24,split=4[plate][pb][ph][pg];
-[1:v]scale=320:180,setpts=PTS-STARTPTS,split=2[f1][f2];
+# The mirrors (18 Oct 2026): no generated view in any mirror. The plates only look forward at a road that doesn't exist, so
+# there is nothing true to show behind, and the user agreed nobody will miss it. The rear-view glass is dark auto-dimmed
+# glass: a blue-grey tint with a soft vertical gradient and a faint sky sheen along the top, darker with the cabin light at
+# night; the Alerts bell goes on it in the app. The door mirror's glass is gone from the car still (housing only), so its box
+# in car.json keys nothing. FEED=none (session.sh's default) draws that; a feed file (mirrorfeed.py) still works for a car that wants one.
+if [ -z "$FEED" ] || [ "$FEED" = "none" ]; then
+  FEEDIN="-f lavfi -i color=c=black:s=16x16:d=1"; MG=$(python3 -c "print(round(0.5 + 0.5 * $CABIN, 3))")
+  MIRROR_FC="gradients=s=${RW}x${RH}:c0=0x3a4452:c1=0x262c36:c2=0x141820:nb_colors=3:x0=0:y0=0:x1=0:y1=${RH}:d=${T}:r=24,format=rgb24,lutrgb=r=val*${MG}:g=val*${MG}:b=val*${MG}[rear];
+color=c=black:s=1200x896:d=${T},format=rgb24[cv];
+[cv][rear]overlay=${RX}:${RY}:format=auto,format=rgb24[mirrors];"
+else
+  FEEDIN="-i $FEED"
+  MIRROR_FC="[1:v]scale=320:180,setpts=PTS-STARTPTS,split=2[f1][f2];
 [f1]crop=300:${FH}:10:${FY},scale=${RW}:${RH}[rear];
 [f2]crop=150:120:0:30,scale=${SW}:${SH}[side];
 color=c=black@0:s=1200x896:d=${T}[cv];
 [cv][rear]overlay=${RX}:${RY}:format=auto[cv1];
-[cv1][side]overlay=${SX}:${SY}:format=auto,format=rgb24,lutrgb=r=val*0.8:g=val*0.8:b=val*0.8[mirrors];
+[cv1][side]overlay=${SX}:${SY}:format=auto,format=rgb24,lutrgb=r=val*0.8:g=val*0.8:b=val*0.8[mirrors];"
+fi
+ffmpeg -v error -y -i "$PLATE" $FEEDIN -loop 1 -i "$C/cabin.png" -loop 1 -i "$C/wheel.png" -loop 1 -i "$C/mirror-mask.png" -loop 1 -i "$C/glass-mask.png" $EXTRA -filter_complex "
+[0:v]scale=1440:810:flags=lanczos,crop=1200:675:120:${PY0},pad=1200:896:0:0:color=black,eq=saturation=1.08:contrast=1.04,format=rgb24,split=4[plate][pb][ph][pg];
+${MIRROR_FC}
 [4:v]format=gray[mm];
 [mirrors][mm]alphamerge[mirrorlayer];
 [plate][mirrorlayer]overlay=format=auto:eof_action=endall,format=rgb24[p1];

@@ -12,6 +12,8 @@ The wipers are the car's (car.json "wipers"), drawn through the windshield only.
 import json, os, sys
 import cv2
 import numpy as np
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from vwrite import Reader, Writer
 
 src, out, csv = sys.argv[1], sys.argv[2], sys.argv[3]
 car = sys.argv[4] if len(sys.argv) > 4 and sys.argv[4] else os.environ.get("CAR", os.path.join(os.path.dirname(__file__), "../../cars/grand-tourer"))
@@ -80,9 +82,9 @@ def blade_angle(u):
 
 ys, xs = np.nonzero(housing | mglass)
 BOX = (max(ys.min() - 6, 0), min(ys.max() + 6, H), max(xs.min() - 6, 0), min(xs.max() + 6, W)) if len(ys) else (0, 1, 0, 1)
-cap = cv2.VideoCapture(src)
-fps = cap.get(cv2.CAP_PROP_FPS) or 24
-vw = cv2.VideoWriter(out + ".tmp.mp4", cv2.VideoWriter_fourcc(*"mp4v"), fps, (W, H))
+cap = Reader(src)
+fps = cap.fps
+vw = Writer(out, fps, (W, H))
 since, wipe_t, quiet, f = 0, None, 0.0, 0
 prev_a = park
 while True:
@@ -94,7 +96,8 @@ while True:
     if m > 0.01:
         n = rng.poisson(RATE * m / fps)
         i = rng.integers(0, len(gx), n)
-        stamp(A, HL, RIM, gx[i] + rng.random(n), gy[i] + rng.random(n), np.clip(rng.lognormal(-0.2, 0.35, n), 0.5, 1.8))
+        heavy = 1 + 0.5 * max(m - 1, 0)                    # MIST=<clip>:heavy drenches the glass: more and bigger droplets
+        stamp(A, HL, RIM, gx[i] + rng.random(n), gy[i] + rng.random(n), np.clip(rng.lognormal(0.0, 0.35, n) * heavy, 0.7, 3.2))
         since += n
         nb = rng.poisson(40 * m / fps)                      # the housing faces the wind: it collects beads quickly
         if len(hx) and nb:
@@ -108,7 +111,7 @@ while True:
     else:
         quiet += 1 / fps
     # One sweep when the mist has built up, and one to clear the last of it once the spray has gone.
-    if wipe_t is None and (since > RATE * 4.5 or (since > RATE * 0.8 and abs(quiet - 2.5) < 0.5 / fps)):
+    if wipe_t is None and (since > RATE * 7 or (since > RATE * 0.8 and abs(quiet - 2.5) < 0.5 / fps)):     # let the mist build before a sweep
         wipe_t, since = t, 0
     a = park
     if wipe_t is not None:
@@ -121,8 +124,11 @@ while True:
             for r, ang in POLAR:
                 hit = (r > reach * 0.28) & (r < reach) & (ang >= lo) & (ang <= hi)
                 A[hit] = 0; HL[hit] = 0; RIM[hit] = 0
-    # Beads dry off slowly once the spray has gone.
-    if quiet > 4:                                           # dry off over about a minute
+    # Once the spray has gone, the mist the wipers don't reach dries off over about twenty seconds, and the beads over a minute.
+    if quiet > 2:
+        A *= 0.996; HL *= 0.996; RIM *= 0.996
+        A[A < 0.02] = 0; HL[A == 0] = 0; RIM[A == 0] = 0
+    if quiet > 4:
         BA *= 0.999; BHL *= 0.999; BRIM *= 0.999
     wet, beads = A.max() > 0.01, BA.max() > 0.01
     if not wet and not beads and wipe_t is None:            # nothing on the car: the frame goes through untouched
@@ -131,11 +137,11 @@ while True:
     img = frame.astype(np.float32)
     if wet:
         blur = cv2.GaussianBlur(frame, (0, 0), 2.0).astype(np.float32)
-        veil = cv2.GaussianBlur(A, (0, 0), 5) * 0.55
+        veil = np.clip(cv2.GaussianBlur(A, (0, 0), 5) * 1.7, 0, 0.8)     # a milky film the wipers' arc cuts a clear window into
         small = cv2.resize(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY), (W // 8, H // 8), interpolation=cv2.INTER_AREA).astype(np.float32)
         bright = cv2.resize(cv2.GaussianBlur(small, (0, 0), 3), (W, H)) / 255.0
         g = glass[..., None]
-        img = np.where(g, img * (1 - veil[..., None]) + (blur * 1.04 + 10 + 40 * bright[..., None]) * veil[..., None], img)
+        img = np.where(g, img * (1 - veil[..., None]) + (blur * 1.02 + 22 + 60 * bright[..., None]) * veil[..., None], img)
         a3 = (A * g[..., 0])[..., None]
         img = img * (1 - a3 * 0.35) + blur * a3 * 0.35
         img *= (1 - 0.35 * RIM * glass)[..., None]
@@ -162,5 +168,4 @@ while True:
     prev_a = a
     f += 1
 vw.release()
-os.system(f'ffmpeg -v error -y -i "{out}.tmp.mp4" -c:v libx264 -crf 18 -pix_fmt yuv420p -movflags +faststart "{out}" && rm "{out}.tmp.mp4"')
 print(f"{out}: {f} frames, sea spray mist")

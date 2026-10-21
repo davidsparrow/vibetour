@@ -1,6 +1,6 @@
-# VibeTour: continuation prompt — California Coast: fx-23 (mirrors, stops, weather), then the IDE test and hi-res
+# VibeTour: continuation prompt — California Coast: fx-24 (pace across joins, three signs, driving gloves), then the IDE test and hi-res
 
-Updated 18 October 2026 (after the user's review of fx-22; next thread: the fx-23 fixes). Committed to the repo from 16 October (the repo is public: no secrets or balances here).
+Updated 20 October 2026 (fx-23 reviewed twice by the user and fixed; next thread: the fx-24 tweaks below, then step 2). Committed to the repo from 16 October (the repo is public: no secrets or balances here).
 Replaces the 14 October prompt, which is kept as docs/sample-videos/handoff-history-14oct-prompt.txt (gitignored). That file holds the full notes of the four 14 October
 footage sittings: grand tourer, seated height, cut stops, dials, radio screen, mirrors, gas pull-off, sign, mist, costs.
 Older history: handoff-history-13oct-prompt.txt and handoff-history-13oct.txt, beside it.
@@ -26,7 +26,206 @@ on the windshield while the car just drives. Speak up when input is needed (the 
 says why, the bell lights) and when a phase ends (your turn, arrived, refuel). Dials and tabs are there when someone
 looks for them, and don't call for attention.
 
-## Your job in the next session: fx-23, the user's review of fx-22 (18 October)
+## Your job in the next session: fx-24, the user's final tweaks (20 October). Read this first.
+
+The user reviewed the second fx-23 build ("Looking much better!") and asked for five things. Work on `footage/carmel-coast-final`
+at preview resolution. **Nothing is committed since 17 October**: `git status` shows about 19 files (tools, car, docs, pack scripts,
+this file); commit and push only when the user asks. Before starting: load the `journey-footage` skill, read the standard's
+Review checklist, run `git status` and `git fetch`, check both budgets (Money, below). The rules of 18 October still hold: prove
+nothing else changed (`regress.py`, baseline `review/fx-23-california-coast-full-trip-v6.inputs.json`), run `qa.py` on every
+clip, review the whole tour at 1 fps and every join at 4 fps, and list every flaw, old and new, before showing fx-24.
+
+The facts below were measured on 20 October so the thread starts from them (times are in the current fx-23 build, 6 min 24 s).
+
+### a) Keep the speed across the joins (except the stops)
+
+- **The user:** "it always starts each new scene really slow. It would be much better to just keep the speed from the previous
+  clip if possible." Stops and pauses the IDE triggers may still slow down and pick up (the `ramp.py` crawls stay).
+- **What it is:** the dials cruise at 55 km/h through every cruise clip, but the plates' apparent speed differs clip by clip, so
+  a dissolve into a slower plate reads as slowing down. Optical flow in the road band (px per frame at 336 px wide, start / mid /
+  end of each clip): freeway-1 2.5/1.3/1.5, freeway-2 2.0/1.6/2.0, carmel-golf 2.9/3.1/3.6, checkpoint-out 5.7/10.8/4.7,
+  carmel-trees 3.6/4.1/4.0, carmel-town 3.2/6.7/3.2, carmel-beach 1.3/2.4/3.4, edge-of-town 4.8/4.8/6.7, hillside-homes 2.2/2.9/2.8,
+  to-cliffs 5.1/4.9/4.3, cliffs-sign 4.5/3.2/2.8, spray-garrapata 5.6/4.9/5.8, bixby-sign 2.7/1.4/1.4, fog-thick 5.0/3.9/4.1,
+  coast-3-stop 3.2/8.3/1.9. The worst joins: carmel-beach opens at a third of edge-of-town's pace before it; the freeway clips
+  crawl against the departure; bixby-sign halves mid-clip; checkpoint-out and carmel-town double in the middle and drop back.
+- **Suggested fix, a tool:** `tools/footage/pace.py <clip> <out> [target]`: measure the road-band flow per frame (as above, smoothed
+  over a second), then retime the clip (frame blending as `ramp.py` does) so its flow is steady at a target, the pack's cruise pace
+  (about 3.5 px per frame at 336 wide, the median of the cruise clips), and write `<out>.speed.csv` so the dials follow any
+  residual. A clip that is uniformly slow gets shorter (the freeway clips at 1.5 would run at about half their length: trim the
+  dissolve budget, or accept 6 s clips, or retake them at a higher stated speed); a clip that surges gets its surge flattened.
+  Keep the ramped stop clips as they are (their crawl is the point), but match the cruise part of each ramp to the target too.
+  `build_trip.sh` would run `pace.py` on every cruise clip into `plates-v1/paced/` and pick from there. Check the dials still read
+  right through a paced clip, and that frame blending doesn't smear the signs (test on carmel-trees-sign-fixed and cliffs-sign-short:
+  if the repainted faces smear, repaint after pacing instead of before).
+- Cheaper first step if the tool is too much: trim the slow openings and surges by hand, and raise the stated speed in the prompts
+  of any retake. But the user asked for the speed to carry across every join, which only the retime gives.
+
+### b) 1:06: the yellow sign pops in from behind the grass (`finish/out/checkpoint-out.mp4`, about 5 s in)
+
+- The model drew a yellow diamond on the right that appears from nowhere behind a grass clump at 1:05–1:06. The user: a sign
+  should be visible from far away unless truly hidden; here its top and colour would show over the grass as we approach.
+- **Fix:** put our own warning sign in with `sign.py place` (a new `KIND=warning`, yellow diamond, say a curve arrow), starting far
+  down the road so it grows in naturally, and paint the model's sign out of the frames it shows in (frames about 110–150;
+  `sign.py fix` with a blank face of the background colour, or the place pass drawing over it). Or edit the clip's still and retake
+  (`finish/` is Seedance, about 0.91): not worth it for one sign. Check the exit at 4 fps.
+
+### c) 1:17: the Carmel city-limit sign is two signs (`signs/out/carmel-trees-sign-fixed.mp4`, about 4.5 s in)
+
+- The repainted green face is tilted counterclockwise over the model's own level face, which shows behind it. `sign.py fix`'s ECC
+  corner fit rotated the quad as the face grew (the clip's posts lean in the plate's perspective).
+- **Fix in `sign.py fix`:** constrain the fitted quad: keep the top and bottom edges parallel to the original's (allow scale,
+  translation and the mild perspective of a sign coming closer; no rotation), e.g. fit a similarity with the rotation fixed at
+  the paste's angle, or add `LEVEL=1` that re-levels the fitted quad about its centre each frame. Also paint the model's face out
+  under ours with a margin (the repaint should cover the model's face fully: grow the drawn face by a few percent, `GROW`).
+  Then rerun `fix_signs.sh` for that clip and check 4 fps from 1:14 to 1:18.
+
+### d) 3:23: the Big Sur 19 / San Simeon 85 distance sign shakes (`sign/out/cliffs-sign-short.mp4`, about 4 s in)
+
+- The repainted face jitters frame to frame while the post stays still: the tracker's per-frame corner fit is noisy on this clip
+  (the face is small against a bright sky). The user: turn the shake off or remove the sign.
+- **Fix in `sign.py fix`:** smooth the tracked corners over time (a median or Savitzky-Golay over about ±3 frames, `SMOOTH=7`), and
+  reject a frame's fit when it jumps more than a few px from the smoothed track. Apply it to every sign (the user sees "others shake a
+  little bit"), so every repaint in `fix_signs.sh`, `gas_signs.sh` and `weather/fix_weather.sh` is redone and checked at 4 fps.
+  If the smoothing can't settle this one, drop its repaint: the model's own face was garbled (fx-20), so then trim the clip before
+  the sign is readable rather than show garbled text.
+
+### e) Leather driving gloves on the driver's hands (the user: "big change?")
+
+- **The user:** gloves so no skin shows, so the driver can't be read as any gender or race and every user can imagine their own
+  hands. They asked how hard and how expensive, and for one or two mocks first, then only the final renders.
+- **How:** an image edit of the car's cockpit still ("put dark brown leather driving gloves on both hands, covering all skin to
+  the cuff; same grip, same wheel, keep everything else pixel for pixel"), on the 2K source
+  (`docs/sample-videos/cars-src/grand-tourer/cockpit-2k.png`, then the screen edit region re-pasted as `car.json` describes, or
+  simply on the 1200 px `cars/grand-tourer/cockpit.png` for the preview), about 0.10 per take, two or three takes: under 0.50. The
+  cabin still has no hands, so it is untouched. Then `car-build.sh`: `wheel.py` keeps hand pixels outside the wheel's disc only
+  where they are skin-coloured (a YCrCb range), so with gloves it would drop the forearms; change that test to "differs from the
+  cabin and is connected to the wheel" with the glove's colour range, or add a `GLOVES=1` path. Restore the committed `wheel.png`
+  is no longer the rule once the car's hands change: the new matte is the asset. Keep the originals in `cars-src`.
+- **Mocks first:** `still.sh` of two stills (a cruise plate and the overlook) with the gloved car, shown to the user, before any
+  rebuild. If they approve, the gloved car is the car from then on: it is the still every build uses, so "only the final renders"
+  comes free. Cost: a few stills, no clips.
+- A sleeve cuff that reads as a specific jacket is also a tell: ask for a plain dark cuff or the shirt that is there now.
+
+### Deliver fx-24
+
+- `build_trip.sh` into `review/fx-24-california-coast-full-trip-v7.mp4`, with close-ups of the four fixes and the gloves, the QA
+  table, the regression result against fx-23 (`EXPECT` the paced clips, the three sign clips; `CARRY` as before), the 1 fps strip
+  and the join sheets, and the cost. Show them as clickable workspace links. Budget: this round is almost free (signs and pacing are
+  tool work; gloves under 0.50; the arrival hold, still failing the height test, is 1.10 if the user wants it). Ask before anything
+  above 5.
+- When a fix works, add it to the standard, the skill and `prompts.md`; the tools README for any new tool or flag.
+
+## fx-23: done (19 October). Read this first.
+
+The brief of 18 October (kept below as "The fx-23 brief") is done, at preview resolution, on `footage/carmel-coast-final`.
+**Not committed yet**: `git status` shows the tools, the car, the docs, the pack scripts and this file modified. Commit and push
+only when the user asks.
+
+**Review files** (`docs/sample-videos/review/`):
+- `fx-23-california-coast-full-trip-v6.mp4`: the tour, 6 min 28 s, 37 clips (fx-22 was 5 min 31 s; the weather and spray add 7 clips, to-coast is out).
+- `fx-23-00-mirrors-before-and-options.png`: the door mirror in fx-22, the two mocks (a: image edit, b: painted, used), the dark rear glass.
+- `fx-23-01-…` to `fx-23-11-…png`: close-ups (mirrors, cockpit, overlook, fog in and thick, rain with wipers, clearing, spray, gas hold).
+- `fx-23-12-…` to `fx-23-18-…png`: 4 fps strips around the gas cut, the pump-to-road join, the Bixby pull-in (where the freeze was),
+  the overlook cut, the fog entry, the rain start and stop.
+- `fx-23-full-trip-v6-every-1s.jpg`: the whole tour at 1 fps.
+- `fx-23-qa-table.txt`: `tools/footage/qa.py` over all 37 clips. `fx-23-regression.txt`: `tools/footage/regress.py` against fx-22.
+- `fx-23-california-coast-full-trip-v6.inputs.json`: every input clip with its md5 (the regression baseline for the next round).
+
+**What changed, in road order** (`build_trip.sh` has the list and the comments):
+1. **Mirrors**: no generated view. The rear-view is dark auto-dimmed glass (a gradient drawn by `composite.sh` with `FEED=none`,
+   darker with the cabin light); the door mirror's glass is painted over in `cars/grand-tourer/cockpit.png` and `cabin.png` as
+   the back of its housing (option b: free, nothing else in the car changed; the originals are in
+   `docs/sample-videos/cars-src/grand-tourer/*-1200-mirror-glass.png`). Option (a), a Gemini edit of the cockpit, came out as
+   dark glass too, no better, so (b) was used; the user can flip to (a) with the still in `scratchpad` gone, i.e. redo the edit.
+   `session.sh` no longer runs `traffic.py`, `mirrorfeed.py`, `mirrorlights.py` unless `MIRRORS=feed`. `wheel.png` is the
+   committed one: `car-build.sh` makes a different matte (52k px), so after any rebuild restore it from git.
+2. **Gas stop as a cut** (2:10): the first 2.5 s of the old pull-in (in the lane, both signs on it) slowed to a crawl
+   (`stops-cut/gas-side-approach.mp4`, speed track from 0.55), dissolve to the parked hold, the creep to the pump, the pump hold,
+   dissolve to the road from a crawl (`highlands-cove-low-go` remade with `start 4 0.15`). The lane changes in and out are gone.
+3. **Heavy spray** at the Highlands cove (2:49, `spray-cove`) and on the Garrapata cliffs (3:29, `spray-garrapata`):
+   `MIST=<clip>:heavy` drenches the glass and the wipers sweep at once. The sign clip keeps its light mist.
+4. **The 3:50 freeze**: the Bixby pull-in plate is trimmed to start at its frame 46 (`plates-v1/low-trim/bixby-approach-low.mp4`),
+   re-ramped, and the BIXBY CREEK OVERLOOK sign repainted from its new frame (`fix_signs.sh`). The VISTA POINT repaint is gone with
+   the trimmed part. Now at 4:03.
+5. **The overlook** (4:14, `plates-v1/stops-v4/out/overlook-hold-v4.mp4`): remade from `anchors-v2/overlook-v8.png`. It took eight
+   stills: the model keeps a stop scene at standing height whatever the SEAT block says. What passed the heads-above-horizon test
+   was a low-angle take (v7) edited to bring the fence and the people within 4 m (v8); that edit dropped the parked vans and
+   motorcycles, so the pullout is quieter than the brief's "busy pullout" (people, sign, trash can, gulls, a raven remain).
+   `qa.py`: lowest head 11% of the height above the horizon.
+6. **Weather** after the overlook climb (`plates-v1/weather/`, HeyGen 12 s each, from chained seated-height stills):
+   `fog-in` (4:36, sun into the fog bank), `fog-thick` (4:47), `rain-descent-1-fixed` (4:59, drizzle starts; the model drew two
+   garbled green signs, repainted as VISTA POINT 1/4 MILE and HURRICANE POINT by `weather/fix_weather.sh`), `rain-descent-2` (5:10,
+   an oncoming car with lights, the valley below), `clearing-valley` (5:21, sun breaking through, road wet). `to-coast` (the sunny
+   "coming down off Hurricane Point" transition) is **out**: the descent now happens in the rain, and it played after the valley, so
+   the car came down twice with the sun flipping on and off. Its repainted distance sign (Point Sur 4 / Big Sur 11 / San Simeon 77)
+   goes with it; the mileage chain (26, 19, then Point Sur) now jumps to the Point Sur park sign. A sign on a valley clip could bring it back.
+   In the build: `RAIN=rain-descent-1:700,rain-descent-2:900` (the wipers finish early in the clearing clip), `WET=clearing-valley`,
+   `CABINS=fog-in:0.75,fog-thick:0.7,rain-descent-1:0.6,rain-descent-2:0.6,clearing-valley:0.8`.
+7. **Tools** (`tools/footage/`, all in the README): `session.sh` per-clip tracks for `RAIN`, `WET`, `CABINS`, `MIST` levels;
+   `rain.py RAINCSV` (wipers start as the drops build, stop two sweeps after, drops dry); `glass.py WETCSV` (dries after, no drops
+   on the rear-view); `cabinlight.py` (cabin light per frame, after the composite); `spray.py` heavy level; `qa.py` (freeze, cut,
+   drift, stop height); `regress.py` (inputs list + windshield diff); `still.sh` with no mirror view by default.
+8. **Levels** (found by the regression check): OpenCV's decode and its VideoWriter each lose about 1.2 of 255 of brightness,
+   so the three new post-passes made the first fx-23 build 7 darker than fx-22 everywhere. `tools/footage/vwrite.py` now reads
+   and writes frames through ffmpeg with accurate rounding (drift 0.03 per pass); `rain.py`, `glass.py`, `spray.py` and
+   `cabinlight.py` use it. Still on OpenCV's writer, so about 2.4 darker than their plates: `ramp.py` (the crawl clips), `sign.py`,
+   `mirrorfeed.py`, `headunit.py`, `flare.py`, `speed.py`. Worth moving to `vwrite` before the hi-res render; fx-22 had the same.
+9. **Docs**: the standard (mirrors, per-stretch weather, the stop height test, freezes and cuts, the no-regression proof), the
+   skill (steps 3, 4, 5, keep it honest), `prompts.md` (the overlook wording that worked, the weather and spray lines), the README.
+
+**The user's review of the first fx-23 (20 October) and what was done:**
+- *Gas stop: people appear from nowhere.* The hold's first seconds walked the woman across the forecourt and popped the man in at
+  the pump, while the approach it cuts from has her at the shop door and him behind the pickup. The hold now starts 2 s in
+  (`signs/gas/gas-side-hold-sign-trim.mp4`), where both are where the approach left them; it still ends on its loop frame, which
+  the creep starts from. Free.
+- *Point Sur sign grows big all of a sudden (6:02).* Measured in the plate, the growth was true perspective (each doubling in half
+  the time of the one before) but the sign stood right beside the lane and reached 290 px wide before leaving sideways in 0.6 s.
+  Two retakes with the same still did the same. Fixed by pasting the sign smaller and beyond the fence
+  (`signs/anchors/pointsur-sign-far.png`, 1150 445 80 32 on the still) and retaking: the first far take turned to the sea (16%),
+  take s23 holds (3%) and peaks at 153 px (`pointsur-sign-far-fixed.mp4`). Four retakes, about 0.90.
+- *3:20 and 3:28: the car veers right into the barrier.* The ends of the two cliff sign clips, where the model's camera turns
+  toward the sea (the 13% drift warns of fx-22). They now end where the turn begins: Garrapata at 6.75 s (its sign has passed),
+  the distance sign clip at 7.3 s (its sign is still in frame and fades into the spray clip, as it did in fx-22 at 8 s; the model
+  pans instead of passing it). `cliffs-3-sign-short.mp4`, `cliffs-sign-short.mp4`. Free.
+- *4:13 veer right*: fine (the pullout). *Mirrors*: fine.
+- *2:51: want visible fine mist, the wipers clearing a window.* `spray.py` heavy mist is now a milky film (bigger droplets, a
+  stronger veil, lit by the sky behind) that builds for about 3 s before the first sweep, so the swept arc reads clear against it.
+  The mist the wipers don't reach now dries over about twenty seconds after the spray: before, it stayed on the corners of the
+  glass for the rest of the tour, which the regression check caught as a 9-12 of 255 difference on every later clip.
+
+**Checks** (the full results are in the files above):
+- `qa.py`: no freeze and no hard cut in any of the 37 clips; drift ok everywhere but the three known warns (the creep to the pump,
+  Garrapata, the Bixby pull-in, all under 20% and all old); stop height: overlook pass, gas holds pass (the automated test puts the
+  horizon at the frame's centre; by eye the woman's head in the gas hold sits about at the horizon, so about 1.6 m, borderline,
+  as the brief said), **arrival hold FAIL** (heads 5% of the height below the horizon: an old flaw, the lodge still was made before
+  the SEAT block). Remaking it is about 1.10 US dollars (a still and a Seedance hold); ask the user.
+- `regress.py`: the changed, new and gone clips equal the intended list exactly (nothing unexpected). Of the unchanged clips, the
+  windshield differs from fx-22 by 3.0-3.8 of 255 before the gas stop (the film grain, which is random per build) and 4.3-6.5 after it,
+  the frames checked aligned at ±2 frames; the highest are the clips right after the new spray and rain stretches, which carry the
+  wipers' last sweep and the drying drops. By eye (1 fps strip, 4 fps round every join) nothing else moved.
+
+**Known flaws in fx-23, old and new** (from the whole-tour review; nothing hidden):
+- Old: the arrival hold is too high (see the QA line above); the gas hold is borderline; the creep to the pump ends turned about 6°
+  toward the station; the pump creep, Garrapata and the Bixby pull-in warn in drift.py (13%, under the 20% fail); the lawyer
+  billboard passes out of the top of the glass; the sign clip on the cliffs is trimmed at 8 s. Gone with the mirrors and the lane
+  changes: the pickup still in the mirror, the flare orb late in the pull-out, no taillights in the mirrors at night.
+- Old, seen on 20 October: `to-cliffs` (3:02) carries the model's own green ANDREW MOLERA STATE PARK sign, a real park 10 miles
+  south of here: repaint it (`sign.py fix`) or let it be. The distance sign clip on the cliffs fades with its sign still in frame.
+- New: the overlook hold has no parked vans while the pull-in before it shows a pullout full of them (the people, the sign and
+  the trash can match); the first drizzle clip's two signs are repaints of the model's own (clean, but check the exit at 4 fps);
+  the rain drops dry within about fifteen seconds of the rain stopping; the valley clips end the mileage
+  chain early (to-coast gone); ramp.py's crawl clips are about 2.4 darker than their plates (OpenCV's writer; fx-22 had it too).
+
+**Costs, 18-20 October**: 16 stills at about 0.10 (8 overlook takes, 7 weather and spray, 1 mirror edit) = 1.62; 7 HeyGen clips
+at 0.18 = 1.26; 1 Seedance hold 0.91; 5 Point Sur retakes 0.90. About 4.69 US dollars (estimate was 3.50-5). OpenRouter credits left about 7.3 (limit remaining
+about 9.0); HeyGen 514 credits. In `costs.log`.
+
+**Next**: the fx-24 tweaks at the top of this file; then the arrival hold at seated height (about 1.10) if the user wants it; the rest
+of the fx-20 list below and which variants ship; then step 2 (the IDE test), see "Blocker for step 2".
+
+## The fx-23 brief (18 October), done above
+
+### The brief as written on 18 October
 
 **Read this first.** On 18 October the user reviewed fx-22 and came close to abandoning the project ("will we continue
 to fix one thing while 3 other things go backwards?").
