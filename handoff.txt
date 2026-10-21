@@ -1,6 +1,6 @@
 # VibeTour: continuation prompt — California Coast: fx-24 built (pace, signs); gloves wait on credit; then the IDE test and hi-res
 
-Updated 21 October 2026 (fx-24 built on branch footage/fx-24; PR #19 holds fx-23; next thread: the user's fx-24 review, the gloves once OpenRouter is topped up, then step 2). Committed to the repo from 16 October (the repo is public: no secrets or balances here).
+Updated 21 October 2026 (fx-24 built on branch footage/fx-24, rebased on main after #19; next thread: the user's fx-24 review, the gloves, then step 2). Committed to the repo from 16 October (the repo is public: no secrets or balances here).
 Replaces the 14 October prompt, which is kept as docs/sample-videos/handoff-history-14oct-prompt.txt (gitignored). That file holds the full notes of the four 14 October
 footage sittings: grand tourer, seated height, cut stops, dials, radio screen, mirrors, gas pull-off, sign, mist, costs.
 Older history: handoff-history-13oct-prompt.txt and handoff-history-13oct.txt, beside it.
@@ -29,33 +29,42 @@ looks for them, and don't call for attention.
 ## Your job in the next session: the user's review of fx-24, then step 2 (the IDE test)
 
 Read "fx-24: done" below first. The user reviews `review/fx-24-california-coast-full-trip-v7.mp4` and sends a list. Work on
-`footage/fx-24` (branched from PR #19's head; rebase onto main once #19 is merged). Before starting: load the `journey-footage`
+`footage/fx-24` (rebased onto main after PR #19; open its PR when the user says). Before starting: load the `journey-footage`
 skill, read the standard's Review checklist, `git status`, `git fetch`, check both budgets (Money, below). The rules of 18 October
 hold: prove nothing else changed (`regress.py`, baseline `review/fx-24-california-coast-full-trip-v7.inputs.json`), `qa.py` on
 every clip, `joins.py` for every join, the 1 fps strip, and list every flaw, old and new, before showing a build.
 
-**Still open from the fx-24 brief:** e) the driving gloves. Blocked on money: OpenRouter has 0.49 of credit left and the key refuses
-image requests under 1 dollar. Once topped up (2 to 3 dollars is plenty): one or two image edits of `cars/grand-tourer/cockpit.png`
-("dark brown leather driving gloves on both hands, covering all skin to the cuff; same grip, same wheel, everything else pixel for
-pixel"; a plain dark cuff), two `still.sh` mocks (a cruise plate, the overlook) shown to the user before any rebuild, then
-`car-build.sh` with `wheel.py` taught the glove colour (its skin test, a YCrCb range, keeps the forearms; add a `GLOVES=1` range or
-test "differs from the cabin and is connected to the wheel"). Keep the originals in `cars-src`.
+**Still open from the fx-24 brief:** e) the driving gloves (OpenRouter is topped up now, 10.49 on 21 October): one or two image
+edits of `cars/grand-tourer/cockpit.png` ("dark brown leather driving gloves on both hands, covering all skin to the cuff; same
+grip, same wheel, everything else pixel for pixel"; a plain dark cuff), two `still.sh` mocks (a cruise plate, the overlook) shown
+to the user before any rebuild, then `car-build.sh` with `wheel.py` taught the glove colour (its skin test, a YCrCb range, keeps
+the forearms; add a `GLOVES=1` range or test "differs from the cabin and is connected to the wheel"). Keep the originals in `cars-src`.
+
+**The sign reading time, still short (the honest state):** the three sign plates (freeway-1, freeway-2, Bixby) drive at half the
+pack's pace, so paced they are 6 to 8 s and their signs pass in 1 to 3 s. Two kinds of retake failed on 21 October (below). The
+fix that is left is in the still: paste each sign much farther off (smaller, nearer the vanishing point, as the Point Sur sign was
+on 20 October: "pasted smaller and beyond the fence it peaked at half that size and passed gently", 9 s paced), retake on HeyGen
+(0.18 each), and repaint with `sign.py fix` from frame 0 with the smaller box. Three stills, three clips, about 0.54. Ask the user
+first; they may accept the signs as they are.
 
 ## fx-24: done (21 October). Read this first.
 
-Four of the five fx-24 items are built, at preview resolution, on branch `footage/fx-24` (PR #19 holds the fx-23 work and is
-waiting for the user to merge). Cost this round: 0 (all tool work; no stills, no clips).
+Built at preview resolution on branch `footage/fx-24` (rebased onto main after #19 was merged). The user's 21 October asks: the
+HeyGen retakes for the speed issue (done, and they taught something), fix the old flaws (the arrival hold is remade; the
+checkpoint crawl is paced), gloves still to do. Cost this round: 4.38 (HeyGen x3 0.54, stills x2 0.20, Seedance x3 sign plates
+2.73, Seedance arrival hold 0.91). OpenRouter after: about 6.9; HeyGen quota 439.
 
 **Review files** (`docs/sample-videos/review/`):
-- `fx-24-california-coast-full-trip-v7.mp4`: the tour, 5 min 56 s, 37 clips (fx-23 was 6 min 28 s: the slow plates got shorter).
+- `fx-24-california-coast-full-trip-v7.mp4`: the tour, 5 min 55 s, 37 clips (fx-23 was 6 min 28 s: the slow plates got shorter).
 - `fx-24-01-pace-before-after.png`: road flow through the windshield per second, fx-23 over fx-24, joins ticked.
 - `fx-24-02-checkpoint-exit-4fps.png` (+ `02b` the old one): the tree-tunnel exit, now cut before the model's yellow signs.
 - `fx-24-03-carmel-sign-4fps.png` (+ `03b` old): the city-limit sign, level and single.
-- `fx-24-04-bigsur-sign-4fps.png`: the distance sign with steadied corners. `fx-24-05-bixby-sign-clip-4fps.png`: the paced Bixby sign clip.
-- `fx-24-joins/`: every join at 4 fps (`joins-NN-<from>-<to>.png`, `joins-all.jpg`). `fx-24-full-trip-v7-every-1s.jpg`: the tour at 1 fps.
-- `fx-24-qa-table.txt`, `fx-24-pace-table.txt` (`pace.py measure` over every moving clip), `fx-24-regression.txt` (against fx-23: ALL OK).
-- `fx-24-california-coast-full-trip-v7.inputs.json`: the regression baseline for the next round. `fx-24-v7a-first-build.mp4`: the
-  first build of the night (before checkpoint-in was paced and the Bixby sign clip re-paced); can be deleted.
+- `fx-24-04-bigsur-sign-4fps.png`: the distance sign with steadied corners. `fx-24-05-bixby-sign-clip-4fps.png`: the Bixby sign clip (Seedance).
+- `fx-24-06-arrival-v4b-through-cockpit.png`: the new arrival still through the cockpit.
+- `fx-24-joins/`: every join at 4 fps (`joins-NN-<from>-<to>.png`, `joins-all.jpg`). `fx-24-full-trip-v7-every-1s.jpg`: the tour at 1 fps (from the first build of the night; the later builds changed only the Bixby clip, the checkpoint hold and the arrival hold).
+- `fx-24-qa-table.txt` (all 37 clips pass), `fx-24-pace-table.txt` (`pace.py measure` over every moving clip), `fx-24-regression.txt` (against fx-23: ALL OK).
+- `fx-24-california-coast-full-trip-v7.inputs.json`: the regression baseline for the next round. `fx-24-v7a-first-build.mp4`,
+  `v7b`, `v7c`: the earlier builds of the night (v7c has the Seedance freeway-2 with its doubled signs); can be deleted.
 
 **What changed**
 1. **a) Pace across the joins: `tools/footage/pace.py`** (new). Measures each plate's road-band optical flow per frame (px per frame
@@ -64,39 +73,43 @@ waiting for the user to merge). Cost this round: 0 (all tool work; no stills, no
    `minterpolate` (about a minute per 12 s plate) and the picks come from that, so nothing smears and repainted signs stay crisp.
    Rate clamp 0.35 to 3; where it bites, `<out>.speed.csv` carries the residual for the dials. `build_trip.sh` paces every cruise
    plate into `plates-v1/paced/` (same names; `paced()` helper) and ramps the paced plate for the stops. Holds, the gas creeps and
-   the crawls are untouched. Measured after: every cruise clip now reads 3.0 to 3.6 at its start, middle and end (table), where
-   before it ran 1.3 to 7. `pace.py measure` under-reads above about 4 px per frame, so the sped-up clips read low in that table
-   (documented in the tool). Pacing was done before ramping and after the sign repaints.
-   - Lengths: the slow plates got short: freeway-1 5.8 s, freeway-2 6.1 s, bixby-sign 5.8 s, bixby approach 6.3 s before its ramp,
-     carmel-beach 8.2 s; the surging ones got long: to-cliffs 18.4 s, coast-3 19.9 s before its ramp, checkpoint-in 14.2 s.
-   - **Known trade-off (new, list it to the user):** the signs in the three sped-up clips pass fast: BIXBY CREEK BRIDGE in about
-     1.2 s and VISTA POINT 1/2 MILE in under 1 s (`fx-24-05`), the freeway billboards and the services sign in 2 to 3 s. The fix is a
-     retake of those three plates at a higher stated speed (HeyGen, 0.18 each; `prompts.md` now says so), not a slower pace.
-   - `ramp.py` fix: a `start` ramp used to blend two frames for the whole clip after the ramp (fractional positions); it now snaps
-     to whole frames once at full speed, so the road after the gas stop and after the overlook is crisp.
-   - `regress.py` now compares the best of three frames (one either side): the dissolves' offsets round to whole frames and an
-     unchanged clip can sit one frame off, which read as a 21-of-255 regression on checkpoint-in.
-2. **b) checkpoint-out:** the model drew not one but five yellow warning signs from 5.3 s on, a new one every two seconds, each popping
-   in from behind the verge (`fx-24-02b`). The clip is used up to frame 126 (`finish/out/checkpoint-out-head.mp4`), before the
-   first shows; paced, that is 8.9 s. `sign.py` gained `KIND=warning` (a yellow diamond, `SIGN` left/right/winding, drawn for
-   `place`) but it is not used: placing one over five moving signs was not worth it. A HeyGen retake of the exit with "no road
-   signs" is the alternative (0.18) if the user wants the full exit back.
-3. **c) Carmel city limit:** `sign.py fix` gained `LEVEL=1` (the fitted quad re-levelled about its centre each frame: the ECC fit had
-   rotated it as the posts lean) and the clip uses `GROW=1.06` so the model's face is covered (`fix_signs.sh`). Single, level (`fx-24-03`).
-4. **d) Big Sur distance sign shake:** `sign.py fix` now steadies every tracked face over time (`SMOOTH=7`: a median throws out a
-   fit that jumped more than 3 px or 8% of the width, then a moving average), in both paths (box-tracked and the green finder).
-   Measured on the clip: jitter 1.48 -> 0.36 px per frame, frames with a jerk of 2 px or more 43 -> 1 of 109. Every repaint in
-   `fix_signs.sh`, `gas_signs.sh` and `fix_weather.sh` was rerun with it; the old repaints are in `plates-v1/pre-fx24/`.
-5. **Review tooling:** `tools/footage/joins.py` (every join at 4 fps, labelled). The standard, the skill, `prompts.md` and the tools
-   README carry the pace rule, the sign flags and the warning-sign note.
+   the crawls are untouched; the tree-tunnel checkpoint clips (in, hold, out) are paced too (the hold crept at a third of the pace
+   for 8 s while the dials read 55; it is 3 s now). Measured after: every cruise clip reads 3.0 to 3.6 at its start, middle and
+   end (table), where before it ran 1.3 to 7. `pace.py measure` under-reads above about 4 px per frame, so the sped-up clips read
+   low in that table (documented in the tool). Pacing is done before ramping and after the sign repaints.
+   - Lengths: the slow plates got short (freeway-1 5.8 s, freeway-2 6.1 s, carmel-beach 8.2 s), the surging ones long (to-cliffs
+     18.4 s, coast-3 19.9 s before its ramp, checkpoint-in 14.2 s).
+   - **Retakes for the speed (21 October, the user's ask):** three HeyGen retakes at "a brisk 110 km/h" with "the road streams
+     past quickly" drove at the same 1.5 to 1.9 as the 70 km/h takes: HeyGen ignores the stated speed. Three Seedance 2.0 Fast
+     takes from the same stills drove at 2.3 to 3.0 (nearer the pace, 10 s), but both freeway takes drew the billboard and the exit
+     sign a second time farther on (a repeat, and two Pebble Beach exits), so the freeway clips stay on HeyGen; the Bixby take is
+     used (8.5 s paced, VISTA POINT up for about 1.7 s instead of 0.75; it carries a faint flare orb chain top right, mostly under
+     the headliner). `prompts.md` and the standard say so. `tools/footage/seedance.py` (new) submits a Seedance clip from a still.
+   - `ramp.py` fix: a `start` ramp used to blend two frames for the whole clip after the ramp; it now snaps to whole frames once at
+     full speed. `regress.py` now compares the best of three frames (one either side) since the dissolves' offsets round to frames.
+2. **b) checkpoint-out:** the model drew five yellow warning signs from 5.3 s on, one every two seconds, each popping in from behind
+   the verge (`fx-24-02b`). The clip is used up to frame 126 (`finish/out/checkpoint-out-head.mp4`), before the first shows; paced,
+   8.9 s. `sign.py` gained `KIND=warning` (a yellow diamond, `SIGN` left/right/winding, for `place`) but it is not used.
+3. **c) Carmel city limit:** `sign.py fix` gained `LEVEL=1` (the quad re-levelled about its centre each frame) and the clip uses
+   `GROW=1.06` so the model's face is covered (`fix_signs.sh`). Single, level (`fx-24-03`).
+4. **d) Big Sur distance sign shake:** `sign.py fix` steadies every tracked face over time (`SMOOTH=7`: a median throws out a fit
+   that jumped more than 3 px or 8% of the width, then a moving average), in both paths. Measured: jitter 1.48 -> 0.36 px per
+   frame, jerks of 2 px or more 43 -> 1 of 109 frames. Every repaint (`fix_signs.sh`, `gas_signs.sh`, `fix_weather.sh`) was rerun;
+   the old repaints are in `plates-v1/pre-fx24/`.
+5. **The arrival hold at seated height (old flaw, fixed):** two low-angle edits of `anchors-v2/arrival-v3.png` (the overlook-v8
+   recipe: the family at the SUV and the porch brought close, the lens 1 m up); `arrival-v4b` chosen (v4a lost the family), cropped
+   with `vp.py CENTRE=1`, checked through the cockpit (`fx-24-06`), then a Seedance hold with the still as first and last frame
+   (`plates-v1/stops-arrival/v4/out/arrival-hold-v4.mp4`). QA: heads 6.9% above the horizon (v3 was 5.2% below). The whole QA
+   table passes now.
+6. **Review tooling:** `tools/footage/joins.py` (every join at 4 fps, labelled). The standard, the skill, `prompts.md` and the tools
+   README carry the pace rule, the sign flags, the warning-sign note, the HeyGen/Seedance pace finding.
 
 **Flaws in fx-24, all old unless marked:**
-- (new, trade-off) the three sped-up sign clips: their signs pass in 1 to 3 s (above).
-- arrival-hold-v3 fails the height test (QA: heads 5% below the horizon): the 1.10 remake is still waiting on the user's word.
-- checkpoint-hold creeps at about a third of the cruise pace (1.0 to 1.5 px per frame, 8 s) while the dials read 55: it is the
-  tree-tunnel checkpoint and was left alone (it is a hold by name); say so if the user asks why the tunnel slows.
+- (new, trade-off) the sign clips: their signs pass in 1 to 3 s (the far-paste fix above is the way out).
+- (new, minor) the Seedance Bixby clip has a faint chain of flare orbs top right, mostly behind the headliner and mirror.
 - the gas creep (`gas-side-to-pump-sign`) and the Bixby approach still show `drift: warn` in QA, as in fx-23.
 - the model's own small signs on the descent (rain) and at the Point Sur farm are repainted but still small.
+- the windshield dirt layer shows as a pale arc in bright skies (by design, `glass-dirt.png`); say so if the user asks.
 
 ## fx-23: done (19 October). Read this first.
 
@@ -930,7 +943,7 @@ that bottom-centre spot is the steering wheel. Each car gives the radio a screen
 
 ## Money
 
-- 21 October: OpenRouter credit 0.49 (key limit_remaining 2.18): image and video requests are refused under 1 dollar, so the gloves wait on a top-up. HeyGen quota 442.
+- 21 October: the user topped up OpenRouter (10.49 before the Seedance clips; about 6.9 after). HeyGen quota 439. The key refuses image and video requests under 1 dollar of credit.
 - Check both OpenRouter limits before a batch: `GET /api/v1/key` (`limit_remaining`) and `/api/v1/credits`.
 - HeyGen: the CLI has no stored credential. Export `HG` from `.env.local`
   (`grep '^HEYGEN_API_KEY=' .env.local | cut -d= -f2- | tr -d "\"' "`) and pass it in headers, as the pack's submit
