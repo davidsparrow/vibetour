@@ -13,9 +13,15 @@ there; a car beside us has passed, and what we'd see is its back.
 
 Works on the composite's 1280x720 frame: composite.sh crops the 1200x896 cockpit to 1200x675 and scales by 16/15."""
 import json, os, sys, cv2, numpy as np
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from vwrite import Reader, Writer
 src, out = sys.argv[1], sys.argv[2]
 car = sys.argv[3] if len(sys.argv) > 3 and sys.argv[3] else os.environ.get("CAR", os.path.join(os.path.dirname(__file__), "../../cars/grand-tourer"))
 WET, NIGHT = os.environ.get("WET") == "1", os.environ.get("NIGHT") == "1"
+# WETCSV (frame,wet 0..1; session.sh writes it from WET=<clips> or the rain stretches) wets the glass for a stretch of the session:
+# drops land while it is wet, and dry off over a dozen seconds after.
+wets = [float(l.split(",")[1]) for l in open(os.environ["WETCSV"]).read().split("\n")[1:] if l] if os.environ.get("WETCSV") else None
+WET = WET or wets is not None
 cfg = json.load(open(os.path.join(car, "car.json")))
 W, H, K = 1280, 720, 16 / 15
 def mask(name, box=None):
@@ -31,8 +37,9 @@ class Pane:
     def __init__(s, m, rate, rsize, drift, cap, life=None, soft=0.0, where=None):
         s.m = m > 0.5; s.ys, s.xs = np.nonzero(s.m if where is None else where); s.rate, s.rsize, s.drift, s.cap, s.life, s.soft = rate, rsize, drift, cap, life, soft
         s.D = np.zeros((0, 6), np.float32)          # x, y, r, moving (0/1), age, lifetime
-    def step(s, dt):
-        n = rng.poisson(s.rate * dt)
+    def step(s, dt, w=1.0):
+        n = rng.poisson(s.rate * dt * w)
+        if w <= 0: s.D = s.D[rng.random(len(s.D)) > dt / 10]          # drying off: the drops go one by one
         if n and len(s.xs):
             i = rng.integers(0, len(s.xs), n); r = np.clip(rng.lognormal(*s.rsize, n), 0.5, 6)
             life = rng.uniform(*s.life, n) if s.life else np.full(n, 1e9)
@@ -77,17 +84,20 @@ if WET:
         if sm[:, x].any(): top[first[x]:first[x] + 10, x] = sm[first[x]:first[x] + 10, x]
     panes = [Pane(side, 150, (0.85, 0.45), lambda r: (-(30 + 25 * r), -(5 + 4 * r)), 1400),
              Pane(side, 90, (1.1, 0.35), lambda r: (-(6 + 2 * r), -(3 + r)), 700, where=front | top),
-             Pane(door, 70, (0.35, 0.4), lambda r: (-(3 + 3 * r), 3 + 5 * r), 450),        # wind and gravity: to the bottom rim
-             Pane(rear, 22, (1.25, 0.3), lambda r: (0 * r, 0 * r), 110, life=(2.5, 7.0), soft=0.9)]
-    for p in panes:                                     # start already wet
-        for _ in range(int(4 * 24)): p.step(1 / 24)
+             Pane(door, 70, (0.35, 0.4), lambda r: (-(3 + 3 * r), 3 + 5 * r), 450)]        # wind and gravity: to the bottom rim
+    # (The rear-view mirror shows dark glass and no scene since 18 Oct 2026, so it takes no drops.)
+    if wets is None or wets[0] > 0:
+        for p in panes:                                 # start already wet
+            for _ in range(int(4 * 24)): p.step(1 / 24)
 yy0, xx0 = np.mgrid[:H, :W].astype(np.float32)
-cap = cv2.VideoCapture(src); fps = cap.get(cv2.CAP_PROP_FPS) or 24
-vw = cv2.VideoWriter(out + ".tmp.mp4", cv2.VideoWriter_fourcc(*"mp4v"), fps, (W, H)); f = 0
+cap = Reader(src); fps = cap.fps
+vw = Writer(out, fps, (W, H)); f = 0; level = 1.0 if wets is None or wets[0] > 0 else 0.0
 while True:
     ok, frame = cap.read()
     if not ok: break
     img = frame.astype(np.float32)
+    w = 1.0 if wets is None else wets[min(f, len(wets) - 1)]
+    level = max(w, level - 1 / (12 * fps))             # the wet film fades over a dozen seconds once the rain has stopped
     if NIGHT:
         # Anything bright in the side window is a car beside or behind us. Its headlights now point behind us, so their
         # glare, and the road they lit, go dark; each lamp's core becomes a small red taillight.
@@ -105,10 +115,12 @@ while True:
         tl = np.clip(tl + cv2.GaussianBlur(tl, (0, 0), 3.0) * 0.8, 0, 1) * side
         img = img * (1 - tl[..., None]) + tl[..., None] * np.float32([28, 22, 235])
     if WET:
-        for p in panes: p.step(1 / fps)
+        for p in panes: p.step(1 / fps, w)
+        if level <= 0.001 and not any(len(p.D) for p in panes):
+            vw.write(np.clip(img, 0, 255).astype(np.uint8)); f += 1; continue
         blur = cv2.GaussianBlur(img, (0, 0), 2.0); blur2 = cv2.GaussianBlur(img, (0, 0), 6.0)
         # Wet glass softens the view through it.
-        film = side * 0.35 + door * 0.30 + rear * 0.18
+        film = (side * 0.35 + door * 0.30) * level
         img = img * (1 - film[..., None]) + blur * film[..., None]
         mx, my = xx0.copy(), yy0.copy(); A = np.zeros((H, W), np.float32); RIM = np.zeros_like(A); HL = np.zeros_like(A); S = np.zeros_like(A)
         for p in panes:
@@ -123,12 +135,11 @@ while True:
                 RIM[y0:y1, x0:x1] = np.maximum(RIM[y0:y1, x0:x1], rim * al); HL[y0:y1, x0:x1] = np.maximum(HL[y0:y1, x0:x1], hl * al)
         src_ = blur * (1 - S[..., None]) + blur2 * S[..., None]
         lens = cv2.remap(src_, mx, my, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
-        glassm = np.clip(side + door + rear, 0, 1)
+        glassm = np.clip(side + door, 0, 1)
         A *= glassm; RIM *= glassm; HL *= glassm
         light = cv2.GaussianBlur(img.mean(2), (0, 0), 8) / 255             # highlights are as bright as the light around
         img = img * (1 - A[..., None]) + (lens * 1.04 + 4) * A[..., None]
         img *= (1 - 0.45 * RIM)[..., None]; img += (HL * (25 + 110 * light))[..., None]
     vw.write(np.clip(img, 0, 255).astype(np.uint8)); f += 1
 vw.release()
-os.system(f'ffmpeg -v error -y -i "{out}.tmp.mp4" -c:v libx264 -crf 18 -pix_fmt yuv420p -movflags +faststart "{out}" && rm "{out}.tmp.mp4"')
 print(f"{out}: {f} frames" + (", wet side glass and mirrors" if WET else "") + (", side-window lamps as taillights" if NIGHT else ""))
