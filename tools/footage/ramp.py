@@ -27,6 +27,7 @@ if mode == "stop":
 elif mode == "start":
     while pos < length - dt:
         v = v_start(t); out_frames.append(pos); speeds.append(v); pos += v * dt; t += dt
+        if v >= 0.999: pos = round(pos * fps) / fps     # at full speed again: whole frames, so the rest of the clip is not a blend of two
 else: sys.exit("mode is stop or start")
 h, w = frames[0].shape[:2]
 with tempfile.TemporaryDirectory() as tmp:

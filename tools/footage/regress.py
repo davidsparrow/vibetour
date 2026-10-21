@@ -79,11 +79,19 @@ for i, a in enumerate(A):
     diffs = []
     for frac in (0.3, 0.5, 0.7):                       # inside the clip, clear of both dissolves
         t = frac * a["duration"]
-        fa, fb = frame(capa, ta[i] + t), frame(capb, tb[j] + t)
-        if fa is None or fb is None: continue
+        fb = frame(capb, tb[j] + t)
+        if fb is None: continue
         # Compared at a quarter size: the composite's film grain is random per build and would read as 8 of 255 on its own.
-        sa, sb = (cv2.resize(x, (320, 180), interpolation=cv2.INTER_AREA).astype(np.float32) for x in (fa, fb))
-        d = np.abs(sa - sb).mean(2); diffs.append(float(d[small].mean()))
+        # The dissolves' offsets are rounded to whole frames, so a clip can sit one frame earlier or later than the sum of
+        # the durations says: the best of three frames (a frame either side) is the comparison.
+        sb = cv2.resize(fb, (320, 180), interpolation=cv2.INTER_AREA).astype(np.float32)
+        best = None
+        for k in (-1, 0, 1):
+            fa = frame(capa, ta[i] + t + k / fps)
+            if fa is None: continue
+            sa = cv2.resize(fa, (320, 180), interpolation=cv2.INTER_AREA).astype(np.float32)
+            d = float(np.abs(sa - sb).mean(2)[small].mean()); best = d if best is None or d < best else best
+        if best is not None: diffs.append(best)
     m = max(diffs) if diffs else float("nan"); worst = max(worst, m)
     rows.append((a["name"], m))
 carry = lambda n: any(c in n for c in CARRY)

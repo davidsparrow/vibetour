@@ -182,6 +182,31 @@ def tourism(W, H, lines):
     return im
 
 
+KEYCOL = (255, 0, 255)                                        # outside a diamond's face: made transparent by sprite()
+
+
+def warning(W, H, which="right"):
+    """A warning sign: a yellow diamond with a black border and a curve arrow (SIGN "left" or "right"; "winding" for a
+    winding road). Drawn on KEYCOL, which sprite() keys out."""
+    im = Image.new("RGB", (W, H), KEYCOL)
+    d = ImageDraw.Draw(im)
+    bw = max(2, int(W * 0.045))
+    d.polygon([(W / 2, 0), (W - 1, H / 2), (W / 2, H - 1), (0, H / 2)], fill=(255, 204, 0), outline=(20, 20, 20), width=bw)
+    d.polygon([(W / 2, bw * 1.4), (W - 1 - bw * 1.4, H / 2), (W / 2, H - 1 - bw * 1.4), (bw * 1.4, H / 2)], outline=(20, 20, 20), width=max(1, bw // 2))
+    s = W * 0.012                                             # the arrow: a stem that bends to one side, with a head
+    pts = [(0, 22), (0, 8), (1, 2), (4, -3), (8, -6)] if which != "winding" else [(0, 22), (0, 14), (-5, 8), (-5, 2), (0, -3), (0, -6)]
+    sgn = -1 if which == "left" else 1
+    line = [(W / 2 + sgn * px * s, H / 2 + py * s) for px, py in pts]
+    d.line(line, fill=(20, 20, 20), width=max(2, int(s * 3.2)), joint="curve")
+    tip = line[-1]
+    dx, dy = tip[0] - line[-2][0], tip[1] - line[-2][1]
+    L = max(np.hypot(dx, dy), 1e-3)
+    ux, uy = dx / L, dy / L
+    hl = s * 5
+    d.polygon([(tip[0] + ux * hl, tip[1] + uy * hl), (tip[0] - uy * hl * 0.6, tip[1] + ux * hl * 0.6), (tip[0] + uy * hl * 0.6, tip[1] - ux * hl * 0.6)], fill=(20, 20, 20))
+    return im
+
+
 def face(w, h, kind=None, text=None):
     """The sign's face, w x h, as an RGB array (drawn large and reduced, so small faces stay clean)."""
     kind, lines = kind or KIND, (text or SIGN).split(";")
@@ -195,6 +220,8 @@ def face(w, h, kind=None, text=None):
         im = caltrans(W, H, WHITE, lines, kind, ink=(20, 20, 20))
     elif kind == "shop":
         im = caltrans(W, H, FACE["shop"], lines, kind, ink=FACE["gas"])
+    elif kind == "warning":
+        im = warning(W, H, lines[0])
     else:
         im = {"gas": gas, "lawyer": lawyer, "tourism": tourism}[kind](W, H, lines)
     return np.asarray(im.resize((max(w, 1), max(h, 1)), Image.LANCZOS))
@@ -207,10 +234,17 @@ def sprite(w, h, ground_dy, kind=None):
     im = Image.new("RGBA", (w, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     pw = max(2, round(w * (0.07 if kind == "gas" else 0.035)))
-    for px in ((w * 0.5,) if kind == "gas" else (w * 0.22, w * 0.78)):   # galvanised posts, a little darker in shade
+    for px in ((w * 0.5,) if kind in ("gas", "warning") else (w * 0.22, w * 0.78)):   # galvanised posts, a little darker in shade
         d.rectangle([px - pw / 2, h - 2, px + pw / 2, H - 1], fill=(118, 116, 110, 255))
         d.rectangle([px + pw * 0.1, h - 2, px + pw / 2, H - 1], fill=(92, 90, 86, 255))
-    im.paste(Image.fromarray(face(w, h, kind)), (0, 0))
+    fc = face(w, h, kind)
+    if kind == "warning":                                     # a diamond: only the face itself, keyed off KEYCOL
+        a = 255 - np.clip(255 - np.abs(fc.astype(np.int16) - np.int16(KEYCOL)).sum(2) * 2, 0, 255).astype(np.uint8)
+        a = 255 - a
+        fcim = Image.fromarray(np.dstack([fc, a]).astype(np.uint8), "RGBA")
+        im.alpha_composite(fcim, (0, 0))
+    else:
+        im.paste(Image.fromarray(fc), (0, 0))
     return im
 
 
@@ -537,22 +571,72 @@ def sane(q, aspect):
     return abs(float(u @ v)) / (np.hypot(*u) * np.hypot(*v)) < 0.12          # within about 7 degrees of square
 
 
+def level(q):
+    """The quad re-levelled about its centre: the same centre, width and height, square to the frame. The ECC fit lets a
+    face rotate as it grows (the Carmel city-limit sign leaned over the model's level face, 20 October); a road sign on
+    its posts stays level however the posts lean in perspective."""
+    c = q.mean(0)
+    w = (np.hypot(*(q[1] - q[0])) + np.hypot(*(q[2] - q[3]))) / 2
+    h = (np.hypot(*(q[3] - q[0])) + np.hypot(*(q[2] - q[1]))) / 2
+    return np.float32([[c[0] - w / 2, c[1] - h / 2], [c[0] + w / 2, c[1] - h / 2], [c[0] + w / 2, c[1] + h / 2], [c[0] - w / 2, c[1] + h / 2]])
+
+
+def smooth(quads, n):
+    """The tracked corners steadied over time: in each run of consecutive frames, a median over n frames throws out a
+    frame whose fit jumped (a corner more than a few px, or 8% of the width, from the median track), then a moving
+    average over n. A repainted face that jitters while its post stands still (the Big Sur distance sign, 20 October)
+    is the per-frame fit's noise, not the sign's motion."""
+    if n < 3 or len(quads) < 3:
+        return quads
+    keys = sorted(quads)
+    runs, run = [], [keys[0]]
+    for a, b in zip(keys, keys[1:]):
+        if b == a + 1:
+            run.append(b)
+        else:
+            runs.append(run)
+            run = [b]
+    runs.append(run)
+    out = dict(quads)
+    half = n // 2
+    for run in runs:
+        if len(run) < 3:
+            continue
+        arr = np.stack([quads[k] for k in run]).reshape(len(run), 8)
+        med = np.stack([np.median(arr[max(0, i - half):i + half + 1], axis=0) for i in range(len(run))])
+        width = np.maximum(np.abs(arr[:, 2] - arr[:, 0]), 1)
+        jump = np.abs(arr - med).max(1) > np.maximum(3, 0.08 * width)
+        arr = np.where(jump[:, None], med, arr)
+        sm = np.stack([arr[max(0, i - half):i + half + 1].mean(0) for i in range(len(arr))])
+        for k, q in zip(run, sm):
+            out[k] = q.reshape(4, 2).astype(np.float32)
+    return out
+
+
 def fix(src, out, box=None, start=0, first=0, last=None):
     fr, fps = frames(src)
     wr, n, done = Writer(out, fps), 0, 0
     if box is None:                                           # the first distance sign: green, found anywhere
-        prev = None
-        for f in fr:
+        prev, quads = None, {}
+        for k, f in enumerate(fr):                            # pass 1: find it in every frame
             q = find(f, prev)
             if q is not None and prev is not None and np.abs(q - prev).max() < 30:
                 q = 0.6 * q + 0.4 * prev                       # steady the corners
             if q is not None:
                 prev = q
+                quads[k] = q
+            n += 1
+        if os.environ.get("LEVEL"):
+            quads = {k: level(q) for k, q in quads.items()}
+        quads = smooth(quads, int(os.environ.get("SMOOTH", 7)))
+        fr, _ = frames(src)                                   # pass 2: paint
+        for k, f in enumerate(fr):
+            q = quads.get(k)
+            if q is not None:
                 w, h = int(np.hypot(*(q[1] - q[0]))) + 1, int(np.hypot(*(q[3] - q[0]))) + 1
                 f = draw(f, q, w, h, None)
                 done += 1
             wr.write(f)
-            n += 1
     else:
         x, y, w, h = box
         q0 = np.float32([[x, y], [x + w, y], [x + w, y + h], [x, y + h]])
@@ -608,6 +692,9 @@ def fix(src, out, box=None, start=0, first=0, last=None):
                 hist.append(q)
                 prev = q
                 k += step
+        if os.environ.get("LEVEL"):                           # a road sign faces us level: no rotation in the fit
+            quads = {k: level(q) for k, q in quads.items()}
+        quads = smooth(quads, int(os.environ.get("SMOOTH", 7)))
         found = sorted(quads)                                 # short gaps between found frames: in between, corners eased
         for i, j in zip(found, found[1:]):
             for k in range(i + 1, j) if 1 < j - i <= 9 else ():
