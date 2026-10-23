@@ -1,5 +1,5 @@
 import type { AgentAsk, DevEvent } from './events';
-import type { AgentInfo, WorkspaceTracker } from './workspace';
+import { cacheSnapshot, type AgentInfo, type CacheSnapshot, type WorkspaceTracker } from './workspace';
 
 /**
  * Activity Engine (PRD §9): normalises development events into one abstract
@@ -73,6 +73,8 @@ export interface ActivityReading {
   reviewing: boolean;
   /** Context-window usage reported by an agent, if any. */
   context: number | null;
+  /** The prompt cache of that same agent's session, or of the latest one to report it. */
+  cache: CacheSnapshot | null;
   waitingAgent?: string;
   waitingAgentId?: string;
   /** What the waiting agent waits for, and the tool it wants approved. */
@@ -251,6 +253,10 @@ export class ActivityEngine {
               : undefined;
     const running = ws.processes.size;
     const contexts = agents.map((a) => a.context).filter((c): c is number => typeof c === 'number');
+    // The fullest context window's session, so both readouts describe one session; then the latest call.
+    const cached = agents
+      .filter((a) => a.cache)
+      .sort((x, y) => (y.context ?? -1) - (x.context ?? -1) || y.cache!.at - x.cache!.at)[0];
 
     return {
       state,
@@ -265,6 +271,7 @@ export class ActivityEngine {
       warning,
       reviewing: now - ws.lastReviewAt < cfg.reviewWindowMs,
       context: contexts.length ? Math.max(...contexts) : null,
+      cache: cached ? cacheSnapshot(cached.cache!) : null,
       waitingAgent: basis === 'WAITING_FOR_USER' ? waiting?.name : undefined,
       waitingAgentId: basis === 'WAITING_FOR_USER' ? waiting?.id : undefined,
       waitingAsk: basis === 'WAITING_FOR_USER' ? waiting?.ask : undefined,

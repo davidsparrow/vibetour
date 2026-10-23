@@ -2,12 +2,13 @@ import { waitingFor } from '../../core/attention';
 import { APPROACH_CAP } from '../../core/journey';
 import type { JourneyPack } from '../../core/packs';
 import type { PullRequestSnapshot, TourSnapshot } from '../../core/protocol';
+import type { CacheSnapshot } from '../../core/workspace';
 import { ROLE_LABEL, STATUS_LABEL } from './agents';
 import { alertLevel, alertPill, AlertsPane, bell, lightBell, notePill, shownAlerts } from './alerts';
 import type { AppContext } from './context';
 import { clear, formatDuration, formatElapsed, h, renderKeyed, text, timeAgo, toggle } from './dom';
 import { Gauge, RED_ZONE_FROM } from './gauges';
-import { branchIcon, gloveboxArt } from './icons';
+import { batteryIcon, branchIcon, gloveboxArt } from './icons';
 import { RouteMap } from './map';
 import type { RadioDeck } from './radioDeck';
 
@@ -50,14 +51,39 @@ export class Cockpit {
   /** The left dials' readings the last time the car moved; they become pins when it stops. */
   private lastMoving: { activity: number; agents: number; tools: number } | null = null;
   private stopPins: { activity: number; agents: number; tools: number } | null = null;
-  private readonly fuel = new Gauge({ label: 'Journey', size: 'small', tone: 'green', ends: ['E', 'F'], ticks: 5, ariaLabel: 'Fuel gauge: journey left' });
+  /** How far along the journey is: empty at the start, full on arrival. */
+  private readonly fuel = new Gauge({ label: 'Journey', size: 'small', tone: 'green', ticks: 5, ariaLabel: 'Journey progress' });
   private readonly contextGauge = new Gauge({ label: 'Context', size: 'small', tone: 'cyan', ends: ['E', 'F'], ticks: 5, zone: 'low', ariaLabel: 'Agent context window left' });
-  private readonly batteryGauge = new Gauge({ label: 'Battery', size: 'small', tone: 'green', ends: ['E', 'F'], ticks: 5, ariaLabel: 'Battery' });
+  /** Under Context, beside the gear: the prompt cache's hit share and the time until it goes cold. */
+  private readonly cacheHit = h('div', { class: 'cache-dot', role: 'img' });
+  private readonly cacheTimer = h('div', { class: 'cache-dot', role: 'img' });
+  private readonly cacheDots = h('div', { class: 'cache-dots' }, this.cacheHit, this.cacheTimer);
+  /** This computer's battery: five lights in a stack, a battery for their label. */
+  private readonly batteryLeds = h('div', { class: 'battery-leds', 'aria-hidden': 'true' }, ...Array.from({ length: BATTERY_LEDS }, () => h('span', {})));
+  private readonly battery = h(
+    'div',
+    { class: 'battery-meter', role: 'meter', 'aria-label': 'Battery', 'aria-valuemin': 0, 'aria-valuemax': 100 },
+    this.batteryLeds,
+    h('div', { class: 'gauge-label' }, batteryIcon()),
+  );
   private readonly temp = new Gauge({ label: 'Issues', size: 'small', tone: 'red', ends: ['C', 'H'], ticks: 5, zone: 'high', ariaLabel: 'Temperature: warnings and errors' });
   /** Files changed and not committed, like the editor's Source Control badge; clicking opens it. */
-  private readonly changesGauge = new Gauge({ label: 'Changes', size: 'small', tone: 'blue', ticks: 5, needle: false, zone: 'high', icon: branchIcon(), ariaLabel: 'Uncommitted changes' });
+  private readonly changesGauge = new Gauge({ label: 'Changes', size: 'small', tone: 'blue', ticks: 5, needle: false, zone: 'high', ariaLabel: 'Uncommitted changes' });
   private readonly changesButton = h('button', { class: 'gauge-btn', onclick: () => this.openSourceControl() }, this.changesGauge.el);
-  private readonly miniGauges = h('div', { class: 'mini-gauges' }, this.fuel.el, this.contextGauge.el, this.batteryGauge.el, this.changesButton, this.temp.el);
+  private readonly gear = h('div', { class: 'gear', 'aria-label': 'Gear selector' }, ...['P', 'R', 'N', 'D'].map((g) => h('span', { 'data-gear': g }, g)));
+  private readonly gearHint = h('div', { class: 'gear-hint' });
+  /** The dials in a row, the battery's lights at its end; under them the cache's dots (under Context), then the gear. */
+  private readonly instruments = h(
+    'div',
+    { class: 'instruments' },
+    this.contextGauge.el,
+    this.temp.el,
+    this.changesButton,
+    this.fuel.el,
+    this.battery,
+    this.cacheDots,
+    h('div', { class: 'gear-wrap' }, this.gear, this.gearHint),
+  );
   /** The glovebox: its handle opens the project's docs. The browser demo hangs its Demo pill here. */
   private readonly glovebox = h(
     'div',
@@ -69,8 +95,6 @@ export class Cockpit {
       h('span', { class: 'glovebox-label', 'aria-hidden': 'true' }, 'glovebox'),
     ),
   );
-  private readonly gear = h('div', { class: 'gear', 'aria-label': 'Gear selector' }, ...['P', 'R', 'N', 'D'].map((g) => h('span', { 'data-gear': g }, g)));
-  private readonly gearHint = h('div', { class: 'gear-hint' });
   private readonly tabs = new Map<Tab, HTMLElement>();
   private readonly panes = new Map<Tab, HTMLElement>();
   private readonly map = new RouteMap();
@@ -128,8 +152,7 @@ export class Cockpit {
       h(
         'div',
         { class: 'cluster cluster-right' },
-        this.miniGauges,
-        h('div', { class: 'gear-wrap' }, this.gear, this.gearHint),
+        this.instruments,
         this.glovebox,
       ),
     );
@@ -224,13 +247,13 @@ export class Cockpit {
     this.updateLeftDials(snap);
     this.updateFuel(snap);
     this.updateContextGauge(snap);
-    this.updateBatteryGauge();
+    this.updateBattery();
     this.updateChangesGauge(snap);
-    this.miniGauges.dataset.count = String([...this.miniGauges.children].filter((g) => !(g as HTMLElement).hidden).length);
+    this.layoutInstruments();
     const issues = snap.ide.diagnostics.errors;
     this.temp.set(issuesDial(a.errorIntensity), String(issues), `${issues} errors, ${snap.ide.diagnostics.warnings} warnings`);
     for (const el of this.gear.children) toggle(el, 'on', (el as HTMLElement).dataset.gear === a.gear);
-    text(this.gearHint, { P: 'Paused', R: 'Review', N: 'Thinking', D: 'Build / edit' }[a.gear]);
+    text(this.gearHint, { P: 'Paused', R: 'Review', N: 'Thinking', D: 'Build' }[a.gear]);
 
     this.updateNav(snap, pack);
     this.deck.updateAgents(snap.ide.agents);
@@ -266,26 +289,66 @@ export class Cockpit {
     this.toolsGauge.pin(pins?.tools ?? null);
   }
 
+  /** Journey fills as you go: empty on the left at the start, full on the right on arrival. A free drive has no end: ∞. */
   private updateFuel(snap: TourSnapshot): void {
     const j = snap.journey;
-    const remaining = j ? (j.scope === 'free-drive' ? 1 : 1 - j.progress) : 1;
-    this.fuel.set(remaining, j && j.scope !== 'free-drive' ? `${Math.round(j.progress * 100)}%` : '∞', `Journey ${j ? Math.round(j.progress * 100) : 0} percent complete`);
+    const done = j && j.scope !== 'free-drive' ? j.progress : 0;
+    const pct = Math.round(done * 100);
+    this.fuel.set(done, j && j.scope !== 'free-drive' ? `${pct}%` : '∞', j?.scope === 'free-drive' ? 'Free drive: no destination' : `Journey ${pct} percent complete`);
+  }
+
+  /** One column per instrument showing; the gear starts under Issues, or under the first dial when Context is off. */
+  private layoutInstruments(): void {
+    const row = [this.contextGauge.el, this.temp.el, this.changesButton, this.fuel.el, this.battery].filter((el) => !el.hidden);
+    this.instruments.style.setProperty('--cols', String(Math.max(1, row.length)));
+    this.instruments.dataset.count = String(row.filter((el) => el !== this.battery).length);
+    toggle(this.instruments, 'no-context', this.contextGauge.el.hidden);
   }
 
   private updateContextGauge(snap: TourSnapshot): void {
     this.contextGauge.el.hidden = !this.ctx.prefs.contextGauge;
+    this.updateCacheDots(snap);
     const used = snap.activity.context;
     if (used === null) return this.contextGauge.setUnknown('No agent has reported its context window yet');
     const left = Math.round((1 - used) * 100);
     this.contextGauge.set(1 - used, `${left}%`, `${left} percent of the agent context window left`);
   }
 
-  private updateBatteryGauge(): void {
+  private updateCacheDots(snap: TourSnapshot): void {
+    const p = this.ctx.prefs;
+    const dots = cacheDots(snap.activity.cache, snap.at, { hitPct: p.cacheHitWarn, minutes: p.cacheTimerWarn });
+    this.cacheDots.hidden = !p.contextGauge || (!dots.hit && !dots.timer);
+    for (const [el, dot] of [
+      [this.cacheHit, dots.hit],
+      [this.cacheTimer, dots.timer],
+    ] as const) {
+      el.hidden = !dot;
+      if (!dot) continue;
+      text(el, dot.text);
+      el.dataset.level = dot.level;
+      if (el.title !== dot.label) {
+        el.title = dot.label;
+        el.setAttribute('aria-label', dot.label);
+      }
+    }
+  }
+
+  private updateBattery(): void {
     const b = this.ctx.battery;
-    this.batteryGauge.el.hidden = !this.ctx.prefs.batteryGauge || b.kind !== 'battery';
+    this.battery.hidden = !this.ctx.prefs.batteryGauge || b.kind !== 'battery';
     if (b.kind !== 'battery') return;
+    const lit = batteryLit(b.level);
+    [...this.batteryLeds.children].forEach((led, i) => {
+      toggle(led, 'on', i < lit);
+      // Charging: the top light that's on pulses.
+      toggle(led, 'pulse', b.charging && i === lit - 1);
+    });
+    this.battery.dataset.level = b.level <= 0.1 ? 'critical' : b.level <= 0.25 ? 'low' : 'ok';
     const pct = Math.round(b.level * 100);
-    this.batteryGauge.set(b.level, `${pct}%`, `Battery ${pct} percent${b.charging ? ', charging' : ''}`);
+    const said = `Battery ${pct} percent${b.charging ? ', charging' : ''}`;
+    this.battery.setAttribute('aria-valuenow', String(pct));
+    this.battery.setAttribute('aria-valuetext', said);
+    this.battery.title = said;
   }
 
   private updateChangesGauge(snap: TourSnapshot): void {
@@ -594,6 +657,47 @@ export function changesDial(files: number): number {
 export function issuesDial(errorIntensity: number): number {
   const ei = Math.max(0, Math.min(1, errorIntensity));
   return 1 - Math.pow(1 - ei, (5 * Math.log(4)) / 4);
+}
+
+/** The battery's lights: five, one per fifth of a charge, so 62% lights four. */
+export const BATTERY_LEDS = 5;
+export function batteryLit(level: number): number {
+  return Math.max(0, Math.min(BATTERY_LEDS, Math.ceil(Math.round(Math.max(0, level) * 100) / (100 / BATTERY_LEDS))));
+}
+
+export interface CacheDot {
+  text: string;
+  label: string;
+  /** Blue; orange under the driver's threshold; red once the cache has gone cold. */
+  level: 'ok' | 'warn' | 'cold';
+}
+
+/**
+ * The prompt cache's two dots beside the gear: the session's hit share ("96%") and the time
+ * until the cache goes cold ("42m", "45s", then "0"), from its latest call and its lifetime.
+ * Each turns orange under the driver's threshold. A threshold as long as the cache itself (15
+ * minutes on a 5-minute cache) would never be anything but orange, so there it is a fifth of it.
+ */
+export function cacheDots(cache: CacheSnapshot | null, now: number, warn: { hitPct: number; minutes: number }): { hit?: CacheDot; timer?: CacheDot } {
+  const dots: { hit?: CacheDot; timer?: CacheDot } = {};
+  if (!cache) return dots;
+  if (cache.hit !== null) {
+    const pct = Math.round(cache.hit * 100);
+    const low = pct < warn.hitPct;
+    dots.hit = { text: `${pct}%`, level: low ? 'warn' : 'ok', label: `Prompt cache: ${pct}% of this session's input read from the cache${low ? `, under your ${warn.hitPct}%` : ''}` };
+  }
+  if (cache.ttl) {
+    const left = (cache.at + cache.ttl * 1000 - now) / 1000;
+    const life = cache.ttl >= 3600 ? '1-hour cache' : `${Math.round(cache.ttl / 60)}-minute cache`;
+    const threshold = warn.minutes * 60 < cache.ttl ? warn.minutes * 60 : cache.ttl / 5;
+    if (left <= 0) dots.timer = { text: '0', level: 'cold', label: `Prompt cache gone cold: the next reply writes it again (${life})` };
+    else {
+      const min = Math.floor(left / 60);
+      const when = left < 60 ? `${Math.ceil(left)} seconds` : `${min} minute${min === 1 ? '' : 's'}`;
+      dots.timer = { text: left < 60 ? `${Math.ceil(left)}s` : `${min}m`, level: left <= threshold ? 'warn' : 'ok', label: `Prompt cache goes cold in ${when} (${life})` };
+    }
+  }
+  return dots;
 }
 
 /** When a PR was opened, exactly: "Oct 14, 3:12 PM", with the year when it isn't this one. */

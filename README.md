@@ -77,11 +77,12 @@ Not in the standard yet:
   | Activity (speedometer) | Your coding; zero while the car is stopped |
   | Agents | How many agents are at work, crew included |
   | Tools | Tool calls and commands in the last minute |
-  | Fuel | Journey left |
   | Context | How much of your agent's context window is left |
+  | Prompt cache (two dots under Context) | How much of the session's input Claude read from its cache, and the minutes until the cache goes cold |
+  | Temperature (Issues) | Warnings and errors |
   | Changes | Files changed and not committed, like the Source Control badge; click it to open Source Control |
-  | Battery | Laptop battery, where the browser reports it (off by default) |
-  | Temperature | Warnings and errors |
+  | Journey | How far along the journey is: empty as you set off, full on arrival |
+  | Battery | Laptop battery as five lights, where the browser reports it |
   | Alerts (bell) | What needs you now: a question, a plan, an approval, an agent that stopped, a failing build, your turn, a PR of yours with failing CI, a conflict or requested changes, and changed files. The bells light red, orange or blue; the Alerts tab lists them, and the alert that stopped the car rides on the stop card. One click goes there |
   | Radio | Internet radio and your agents on CB |
   | PRs | The repository's open pull requests, with a lit branch on the ones on your branch (after you connect GitHub) |
@@ -155,7 +156,8 @@ Inside the view: `T` `D` `W` switch modes, `G` destinations, `P` passport, `C` c
 Each display also has its own settings for these:
 
 - the **Context** gauge: on by default
-- the **Battery** gauge: off by default
+- the **Battery** lights: on by default
+- the **prompt cache** warnings: orange under a 50% hit share and under 15 minutes left, by default
 - the **Changes** gauge: on by default
 - **Alerts**: a switch for each kind (questions, plans, approvals, agent stopped, build failing, your turn, pull requests, changed files), all on by default
 

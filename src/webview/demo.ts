@@ -86,6 +86,7 @@ export class DemoHost {
   private staged = 0;
   private fileIndex = 0;
   private context = 0.2;
+  private replies = 0;
   private procId = 0;
 
   constructor(
@@ -241,7 +242,10 @@ export class DemoHost {
         const f = this.nextFile();
         // The context window fills as Claude works, then a compaction frees it up.
         this.context = this.context >= 0.85 ? 0.3 : this.context + 0.05;
-        this.ev({ type: 'agent', agentId: 'claude:demo', name: 'Claude', role: 'copilot', status: 'tool', detail: ['Using Edit', 'Using Bash', 'Using Read', 'Using Grep'][this.fileIndex % 4], context: this.context });
+        // Each reply reads the conversation so far from the hour-long cache and writes its new turn to it.
+        const tokens = Math.round(this.context * 1_000_000);
+        const cache = { id: `msg_demo_${++this.replies}`, at: this.now(), read: tokens - 18_000, write: 17_998, fresh: 2, ttl: 3600 };
+        this.ev({ type: 'agent', agentId: 'claude:demo', name: 'Claude', role: 'copilot', status: 'tool', detail: ['Using Edit', 'Using Bash', 'Using Read', 'Using Grep'][this.fileIndex % 4], context: this.context, cache });
         this.ev({ type: 'fs.external', file: fileRef(f, 'TypeScript') });
         this.changes = Math.min(12, this.changes + 1);
         this.gitStatus();

@@ -7,7 +7,7 @@ VibeTour treats AI agents as cockpit entities (PRD §15):
 - **Activity:** agent activity moves the **tachometer** and keeps the journey cruising on autopilot.
 - **Waiting for you:** when an agent needs approval or a reply, the car pulls into a **scenic stop** until you answer.
 
-VibeTour only ever receives metadata: event names, tool names, ids, sub-agent types and how full the context window is. Prompts, tool inputs, diffs and outputs are dropped before anything is sent, and everything stays on `127.0.0.1`.
+VibeTour only ever receives metadata: event names, tool names, ids, sub-agent types, how full the context window is, and the last reply's prompt-cache token counts and time. Prompts, tool inputs, diffs and outputs are dropped before anything is sent, and everything stays on `127.0.0.1`.
 
 ## Claude Code
 
@@ -58,9 +58,16 @@ The forwarder finds the server through `VIBETOUR_URL` and `VIBETOUR_TOKEN` when 
 
 The Context gauge shows how much of Claude's context window is left. It works with the hooks above and needs no extra setup.
 
-- **From the hooks.** On `SessionStart`, `PostToolUse` and `Stop`, the forwarder reads the token counts of the last reply from the session's transcript (`transcript_path`). It sends one number: how full the window is. Nothing else is read from the transcript, and nothing else leaves your machine.
+- **From the hooks.** On `SessionStart`, `PostToolUse` and `Stop`, the forwarder reads the token counts of the last reply from the session's transcript (`transcript_path`). It sends how full the window is, and the cache figures below. Nothing else is read from the transcript, and nothing else leaves your machine.
 - **Window size.** Claude Code gives current models (Claude 5, and Opus 4.7 and later) a 1M window, and older ones 200K unless you use a `[1m]` model. The transcript doesn't record the window, so the forwarder works it out from the model name. It also respects `CLAUDE_CODE_DISABLE_1M_CONTEXT`. If it guesses wrong, set `VIBETOUR_CONTEXT_WINDOW` to the window size in tokens.
 - **Limits.** The transcript format is internal to Claude Code and can change between releases. If it does, the gauge reads — rather than a wrong number. Just after a compaction it keeps its last reading until Claude's next reply.
+
+Under the gauge, level with the gear, two small dots show the session's **prompt cache**, for example `97%` and `42m`:
+
+- **Hit share.** How much of the session's input Claude read from the cache rather than sending fresh, over every reply of the main agent so far. Each reply counts once. Sub-agents keep their own caches and aren't counted.
+- **Countdown.** How long until the cache goes cold, counted from the last call. At `0` it turns red: the next reply writes the whole conversation to the cache again. The cache's lifetime is not guessed from your plan. The forwarder reads which one Claude Code used, 5 minutes or an hour, from the reply's cache write. A prompt restarts the count as soon as you send it.
+- **Warnings.** Each dot is blue, and turns orange under the level you set in Settings: a hit share under 50% and under 15 minutes left, by default. On a 5-minute cache the timer warns in its last minute.
+- **An estimate.** The cache is kept on a best-effort basis, and the count starts when the reply is written, a few seconds after its call. Pressing Esc fires no hook, so calls just before it show up at the next one. The dots hide with the Context gauge, and until a reply has been read.
 
 For Claude Code's own exact figure, also use the forwarder as your status line. Claude Code runs it after every reply:
 

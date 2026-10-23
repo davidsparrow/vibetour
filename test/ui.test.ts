@@ -3,7 +3,7 @@ import type { Attention } from '../src/core/attention';
 import { DEFAULT_PREFS, mergePrefs } from '../src/core/protocol';
 import { alertClickable, alertLevel, shownAlerts } from '../src/webview/ui/alerts';
 import { batteryHiddenReason, batteryStatus } from '../src/webview/ui/battery';
-import { changesDial, issuesDial } from '../src/webview/ui/cockpit';
+import { batteryLit, cacheDots, changesDial, issuesDial } from '../src/webview/ui/cockpit';
 import { formatDuration, formatElapsed } from '../src/webview/ui/dom';
 import { zoneSplit } from '../src/webview/ui/gauges';
 
@@ -20,10 +20,15 @@ describe('duration labels', () => {
 });
 
 describe('dashboard gauges', () => {
-  it('shows the context gauge and hides the battery gauge by default', () => {
-    expect(DEFAULT_PREFS.contextGauge).toBe(true);
-    expect(DEFAULT_PREFS.batteryGauge).toBe(false);
-    expect(mergePrefs({ batteryGauge: true })).toMatchObject({ contextGauge: true, batteryGauge: true });
+  it('shows the context gauge and the battery lights by default', () => {
+    expect(DEFAULT_PREFS).toMatchObject({ contextGauge: true, batteryGauge: true, cacheHitWarn: 50, cacheTimerWarn: 15 });
+    // Prefs saved before the lights kept the old dial's default, off: they take the new one.
+    expect(mergePrefs({ batteryGauge: false, contextGauge: false })).toMatchObject({ contextGauge: false, batteryGauge: true });
+    expect(mergePrefs({ batteryGauge: false, cacheHitWarn: 70 })).toMatchObject({ batteryGauge: false, cacheHitWarn: 70 });
+  });
+
+  it('lights one battery light per fifth of a charge', () => {
+    expect([0, 0.01, 0.2, 0.21, 0.6, 0.62, 0.99, 1].map(batteryLit)).toEqual([0, 1, 1, 2, 3, 4, 5, 5]);
   });
 
   it('treats a full battery on mains power as no battery until one shows up', () => {
@@ -108,5 +113,38 @@ describe('red zones', () => {
     expect(issuesDial(intensity(3))).toBeLessThan(0.75);
     expect(issuesDial(intensity(4))).toBeCloseTo(0.75, 5);
     expect(issuesDial(intensity(10))).toBeGreaterThan(0.9);
+  });
+});
+
+describe('cache dots', () => {
+  const at = 1_000_000;
+  const min = 60_000;
+  const warn = { hitPct: 50, minutes: 15 };
+
+  it('shows the hit share and counts down to a cold cache, orange under the thresholds and red once cold', () => {
+    const hour = { hit: 0.974, at, ttl: 3600 };
+    expect(cacheDots(hour, at + 18 * min, warn)).toEqual({
+      hit: { text: '97%', level: 'ok', label: "Prompt cache: 97% of this session's input read from the cache" },
+      timer: { text: '42m', level: 'ok', label: 'Prompt cache goes cold in 42 minutes (1-hour cache)' },
+    });
+    expect(cacheDots(hour, at + 45 * min, warn).timer).toMatchObject({ text: '15m', level: 'warn' });
+    expect(cacheDots(hour, at + 59 * min + 15_000, warn).timer).toMatchObject({ text: '45s', level: 'warn' });
+    expect(cacheDots(hour, at + 60 * min, warn).timer).toMatchObject({ text: '0', level: 'cold' });
+    expect(cacheDots({ ...hour, hit: 0.42 }, at, warn).hit).toMatchObject({ text: '42%', level: 'warn', label: expect.stringContaining('under your 50%') });
+    // The driver's own thresholds.
+    expect(cacheDots({ ...hour, hit: 0.6 }, at + 45 * min, { hitPct: 70, minutes: 10 })).toMatchObject({ hit: { level: 'warn' }, timer: { level: 'ok' } });
+  });
+
+  it('warns in the last fifth of a cache shorter than the threshold', () => {
+    const five = { hit: 0.5, at, ttl: 300 };
+    expect(cacheDots(five, at + 3 * min, warn).timer).toMatchObject({ text: '2m', level: 'ok', label: expect.stringContaining('(5-minute cache)') });
+    expect(cacheDots(five, at + 4 * min, warn).timer).toMatchObject({ text: '1m', level: 'warn' });
+  });
+
+  it('shows what it knows, and nothing without a reading', () => {
+    expect(cacheDots(null, at, warn)).toEqual({});
+    expect(cacheDots({ hit: null, at }, at, warn)).toEqual({});
+    expect(cacheDots({ hit: 0.9, at }, at, warn)).toEqual({ hit: expect.objectContaining({ text: '90%' }) });
+    expect(cacheDots({ hit: null, at, ttl: 3600 }, at, warn)).toEqual({ timer: expect.objectContaining({ text: '60m' }) });
   });
 });

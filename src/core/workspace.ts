@@ -1,5 +1,5 @@
 import { isVerification } from './classify';
-import type { AgentAsk, AgentRole, AgentStatus, DevEvent, DiagnosticRef, FileRef, ProcessKind, PullRequestFeedState, PullRequestRef } from './events';
+import type { AgentAsk, AgentRole, AgentStatus, CacheReading, DevEvent, DiagnosticRef, FileRef, ProcessKind, PullRequestFeedState, PullRequestRef } from './events';
 
 /**
  * Aggregates raw development events into the workspace picture shown on the
@@ -21,6 +21,47 @@ export interface AgentInfo {
   lastActivityAt: number;
   parentId?: string;
   context?: number;
+  /** The session's prompt cache: what it read of its input, its latest call, how long its cache lasts. */
+  cache?: AgentCache;
+}
+
+export interface AgentCache {
+  /** Input tokens read from the cache, and all input tokens, over the session. */
+  read: number;
+  total: number;
+  /** The latest call, epoch ms, and the cache's lifetime in seconds once a reply has written to it. */
+  at: number;
+  ttl?: number;
+  /** The replies already counted, newest last. */
+  ids: string[];
+}
+
+/** What the cockpit shows of a session's cache: its hit share (null before any reply), latest call and lifetime. */
+export interface CacheSnapshot {
+  hit: number | null;
+  at: number;
+  ttl?: number;
+}
+
+export function cacheSnapshot(c: AgentCache): CacheSnapshot {
+  return { hit: c.total > 0 ? Math.round((c.read / c.total) * 1000) / 1000 : null, at: c.at, ...(c.ttl ? { ttl: c.ttl } : {}) };
+}
+
+/** Replies remembered per agent: parallel tool calls bring the same reply back a few times in a row. */
+const CACHE_IDS = 32;
+
+/** Adds a reply's cache reading to the session's: each reply counts once, the latest call wins. */
+export function addCacheReading(prev: AgentCache | undefined, r: CacheReading): AgentCache {
+  const base = prev ?? { read: 0, total: 0, at: 0, ids: [] };
+  const seen = !!r.id && base.ids.includes(r.id);
+  const counted = !seen && r.read !== undefined && r.write !== undefined && r.fresh !== undefined;
+  return {
+    read: counted ? base.read + r.read! : base.read,
+    total: counted ? base.total + r.read! + r.write! + r.fresh! : base.total,
+    at: Math.max(base.at, r.at),
+    ttl: r.ttl ?? base.ttl,
+    ids: counted && r.id ? [...base.ids, r.id].slice(-CACHE_IDS) : base.ids,
+  };
 }
 
 export interface ProcessInfo {
@@ -221,6 +262,7 @@ export class WorkspaceTracker {
           lastActivityAt: e.status === 'working' || e.status === 'tool' ? e.at : prev?.lastActivityAt ?? e.at,
           parentId: e.parentId ?? prev?.parentId,
           context: e.context ?? prev?.context,
+          cache: e.cache ? addCacheReading(prev?.cache, e.cache) : prev?.cache,
         });
         if (changed && (e.status === 'waiting' || e.status === 'done' || e.status === 'error')) {
           const verb = e.status === 'waiting' ? waitingVerb(e.name, e.ask) : e.status === 'done' ? `${e.name} finished` : `${e.name} hit a problem`;

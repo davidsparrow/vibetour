@@ -26,6 +26,12 @@ export const STATES = [
     title: 'The dashboard',
     intro: 'Dash mode, while you code and an agent works. Nothing sits on the windshield. Press `D` from anywhere to come here.',
     query: '?fresh&speed=5',
+    // A laptop's battery, so its lights are in the picture.
+    async init(page) {
+      await page.addInitScript(() => {
+        navigator.getBattery = async () => ({ level: 0.78, charging: false, dischargingTime: 9000, addEventListener() {} });
+      });
+    },
     async setup(page) {
       await depart(page);
       await demo(page, 'Type code', 'Agent edits', 'Agent edits');
@@ -40,10 +46,12 @@ export const STATES = [
       { sel: '.gauge[aria-label="Agents at work"]', name: 'Agents', fed: 'How many agents are at work now: your agent and the sub-agents it starts, until each reports back. 0 to 8; six or more at once is the red zone, where your plan’s usage goes fastest.', click: NONE },
       { sel: '.gauge[aria-label="Tool calls in the last minute"]', name: 'Tools', fed: 'Tool calls and commands started in the last minute. Full at 30. No red zone: a busy agent is no fault.', click: NONE },
       { sel: '.screen .tabs', name: 'Screen tabs', fed: 'Nav, Radio, PRs, Trip, Console, and the bell for Alerts. The PRs count turns amber when one needs you.', click: 'Switches the screen. Each tab has its own section below. `R` opens Radio.' },
-      { sel: '.gauge[aria-label="Fuel gauge: journey left"]', name: 'Journey', fed: 'How much of the journey is left, with the percent done. Full again after you refuel.', click: NONE },
       { sel: '.gauge[aria-label="Agent context window left"]', name: 'Context', fed: "How much of your agent's context window is left, as Claude Code reports it. Red under 25%.", click: NONE },
-      { sel: '.gauge-btn', name: 'Changes', fed: 'Files changed and not committed, from Git, like the Source Control badge. ↑N: commits to push. Red past 20 files.', click: 'Opens Source Control in VS Code.' },
       { sel: '.gauge[aria-label="Temperature: warnings and errors"]', name: 'Issues', fed: 'Errors and warnings in Problems, and failing checks. Red past three issues.', click: NONE },
+      { sel: '.gauge-btn', name: 'Changes', fed: 'Files changed and not committed, from Git, like the Source Control badge. ↑N: commits to push. Red past 20 files.', click: 'Opens Source Control in VS Code.' },
+      { sel: '.gauge[aria-label="Journey progress"]', name: 'Journey', fed: 'How far along the journey is, with the percent done: empty on the left as you set off, full on the right when you arrive. Empty again after you refuel. ∞ on a free drive.', click: NONE },
+      { sel: '.battery-meter', name: 'Battery', fed: "This computer's battery: five lights, one per fifth of a charge. Amber at 25% and under, red at 10%; the top light pulses while charging. Hidden where the browser reports no battery.", click: NONE },
+      { sel: '.cache-dots', name: 'Prompt cache', fed: "Claude's prompt cache for this session: how much of its input was read from the cache, and the minutes until the cache goes cold. Each dot turns *orange* under the level you set in Settings (50%, 15 min); the timer turns *red* at 0, when the next reply writes the cache again.", click: NONE },
       { sel: '.gear', name: 'Gear', fed: '*P* stopped, *R* reviewing a diff, *N* thinking, *D* coding, an agent at work or verifying. The hint beside it says which.', click: NONE },
       { sel: '.glovebox', name: 'Glovebox', fed: "Your project's docs: README, CONTRIBUTING, CHANGELOG and docs/. Pull the handle.", click: 'Lists the docs; picking one opens it in VS Code, Markdown in its preview. Hidden on a phone.' },
     ],
