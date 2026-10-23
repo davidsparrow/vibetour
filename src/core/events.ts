@@ -54,6 +54,18 @@ export interface PullRequestRef {
   behind?: number;
 }
 
+/** A local branch beside main: how far apart they are, from Git. */
+export interface BranchRef {
+  name: string;
+  /** Commits on the branch that main lacks, and main's commits it lacks; at most 1000 each. */
+  ahead: number;
+  behind: number;
+  /** Checked out here. */
+  current: boolean;
+  /** Pushed to a GitHub remote, so GitHub can compare it with main. */
+  link: boolean;
+}
+
 export interface DiagnosticRef {
   file: FileRef;
   line: number;
@@ -100,6 +112,13 @@ export type DevEventBody =
     }
   | { type: 'git.commit'; message?: string }
   | { type: 'git.branch'; branch: string }
+  | {
+      type: 'git.branches';
+      /** What they're compared with, e.g. `main`; none when the repository has no main or master. */
+      base?: string;
+      /** The branches with commits main lacks, and the one checked out; at most 30. */
+      items: BranchRef[];
+    }
   | {
       type: 'agent';
       agentId: string;

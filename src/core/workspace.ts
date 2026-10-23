@@ -1,5 +1,5 @@
 import { isVerification } from './classify';
-import type { AgentAsk, AgentRole, AgentStatus, CacheReading, DevEvent, DiagnosticRef, FileRef, ProcessKind, PullRequestFeedState, PullRequestRef } from './events';
+import type { AgentAsk, AgentRole, AgentStatus, BranchRef, CacheReading, DevEvent, DiagnosticRef, FileRef, ProcessKind, PullRequestFeedState, PullRequestRef } from './events';
 
 /**
  * Aggregates raw development events into the workspace picture shown on the
@@ -131,6 +131,8 @@ const MERGE_WINDOW_MS = 8_000;
 export class WorkspaceTracker {
   activeFile?: FileRef;
   git?: GitInfo;
+  /** The branches beside main; none until Git reports them, or when there's no main. */
+  branches?: { base: string; items: BranchRef[] };
   diagnostics: { errors: number; warnings: number; top: DiagnosticRef[] } = { errors: 0, warnings: 0, top: [] };
   readonly processes = new Map<string, ProcessInfo>();
   readonly agents = new Map<string, AgentInfo>();
@@ -242,6 +244,9 @@ export class WorkspaceTracker {
         this.git = { ...(this.git ?? { changes: 0, staged: 0, ahead: 0, behind: 0 }), lastCommit: { message: e.message, at: e.at } };
         this.bump('commits');
         this.push({ at: e.at, kind: 'commit', verb: 'Committed', subject: e.message, tone: 'good' });
+        break;
+      case 'git.branches':
+        this.branches = e.base ? { base: e.base, items: e.items.slice(0, 30) } : undefined;
         break;
       case 'git.branch':
         if (this.git) this.git.branch = e.branch;

@@ -1,14 +1,16 @@
 import { isAbsolute, relative } from 'node:path';
 import * as vscode from 'vscode';
 import type { DevEventBody } from '../core/events';
+import { BranchTracker, execGit, gitBranchSource } from '../host/branches';
 import { CommitTracker, commitSubject } from '../host/git';
 import { parseGitHubRemote, type GitHubRepo } from '../host/github';
 import { Debouncer } from '../host/throttle';
 
 /**
  * Git adapter: reads repository state from VS Code's built-in Git extension
- * (no extra `git` processes) and reports the rear-view-mirror events —
- * working-tree counts, branch switches and new commits.
+ * and reports the rear-view-mirror events — working-tree counts, branch
+ * switches and new commits. The one extra `git` process is the branches
+ * beside main, run with the Git extension's own binary at most every 30 s.
  */
 
 // Minimal slice of the `vscode.git` extension API (extensions/git/src/api/git.d.ts).
@@ -19,6 +21,8 @@ interface GitExtension {
 }
 
 interface GitAPI {
+  /** The `git` binary the Git extension runs. */
+  readonly git: { readonly path: string };
   readonly repositories: Repository[];
   readonly onDidOpenRepository: vscode.Event<Repository>;
   readonly onDidCloseRepository: vscode.Event<Repository>;
@@ -76,6 +80,7 @@ export class GitAdapter implements vscode.Disposable {
   private readonly commits = new CommitTracker();
   private readonly debouncer = new Debouncer(DEBOUNCE_MS, () => void this.publish());
   private api?: GitAPI;
+  private branches?: { root: string; tracker: BranchTracker };
   private lastState = '';
   private disposed = false;
 
@@ -105,6 +110,7 @@ export class GitAdapter implements vscode.Disposable {
   dispose(): void {
     this.disposed = true;
     this.debouncer.dispose();
+    this.branches?.tracker.dispose();
     for (const d of this.repos.values()) d.dispose();
     this.repos.clear();
     for (const d of this.disposables) d.dispose();
@@ -149,6 +155,19 @@ export class GitAdapter implements vscode.Disposable {
     return undefined;
   }
 
+  /** The branches beside main, for the primary repository: a new tracker when that changes. */
+  private updateBranches(repo: Repository, head: Branch | undefined): void {
+    const gitPath = this.api?.git?.path;
+    if (!gitPath) return;
+    const root = repo.rootUri.fsPath;
+    if (this.branches?.root !== root) {
+      this.branches?.tracker.dispose();
+      const source = gitBranchSource(execGit(gitPath, root), () => !!this.githubRepo());
+      this.branches = { root, tracker: new BranchTracker(source, (e) => this.emit(e), this.log) };
+    }
+    this.branches.tracker.update(`${head?.name ?? ''}@${head?.commit ?? ''}`);
+  }
+
   /** The repository for the first workspace folder, else the first one opened. */
   private primary(): Repository | undefined {
     const repos = [...this.repos.keys()];
@@ -186,6 +205,7 @@ export class GitAdapter implements vscode.Disposable {
       this.lastState = key;
       this.emit(state);
     }
+    this.updateBranches(repo, head);
 
     const { branchChanged, committed } = this.commits.update({
       repo: repo.rootUri.toString(),

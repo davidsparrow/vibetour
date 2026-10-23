@@ -8,7 +8,7 @@ import { normalizeDeck } from '../core/music';
 import type { ClientCommand, ClientPrefs, HostInfo, HostMessage } from '../core/protocol';
 import { VibeTourSession } from '../core/session';
 import { JsonFileStore } from '../host/fileStore';
-import { parseGitHubRemote, type GitHubRepo } from '../host/github';
+import { compareUrl, parseGitHubRemote, type GitHubRepo } from '../host/github';
 import { languageForPath } from '../host/paths';
 import { PrWatcher } from '../host/prWatcher';
 import { RadioService } from '../host/radio/service';
@@ -102,7 +102,7 @@ async function run(opts: CliOptions): Promise<void> {
     version: VERSION,
     projectName: opts.streaming ? undefined : project,
     companionUrl: opts.streaming ? undefined : server.url,
-    capabilities: { openFiles: false, openDocs: false, saveFiles: false, focusIde: false, openLinks: opts.prs, radio: !!radio },
+    capabilities: { openFiles: false, openDocs: false, saveFiles: false, focusIde: false, openLinks: true, radio: !!radio },
     ...(radio ? { radioStreamBase: `/radio/stream?token=${token}` } : { radioNote: 'Internet radio is off: the companion was started with --no-radio.' }),
   });
   const onCommand = (cmd: ClientCommand) => {
@@ -113,6 +113,13 @@ async function run(opts: CliOptions): Promise<void> {
       const url = session.pullRequestUrl(cmd.number);
       if (url && /^https:\/\/github\.com\//.test(url)) openBrowser(url);
     }
+    if (cmd.type === 'openBranchCompare') void openCompare(cmd.branch);
+  };
+  // GitHub's comparison needs no sign-in, so a pushed branch opens it with or without --prs.
+  const openCompare = async (name: string) => {
+    const b = session.comparableBranch(name);
+    const repo = b && (github ?? parseGitHubRemote(await originUrl(dir)));
+    if (b && repo) openBrowser(compareUrl(repo, b.base, b.branch));
   };
   server = new CompanionServer({
     port: opts.port,

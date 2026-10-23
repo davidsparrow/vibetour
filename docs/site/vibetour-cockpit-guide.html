@@ -147,7 +147,7 @@ footer{border-top:1px solid var(--line);padding-top:18px;color:var(--mute);font-
         <tr><td>Add or remove a dial</td><td>Make a <code>Gauge</code>, place it in <code>Cockpit</code>'s constructor, feed it in <code>update()</code></td><td>A new reading also goes in the snapshot: <code>src/core/protocol.ts</code> and <code>session.ts</code>.</td></tr>
         <tr><td>Rearrange the dash</td><td>The <code>.dash</code> grid (three columns) and its phone layout</td><td>Phones stack: the three dials, the small gauges, the gear, then the screen.</td></tr>
         <tr><td>Add a screen tab</td><td><code>TABS</code> and a pane in <code>cockpit.ts</code></td><td>The Alerts tab is a bell; the others are words.</td></tr>
-        <tr><td>Which alerts exist, and how loud</td><td><code>src/core/attention.ts</code>, <code>src/webview/ui/alerts.ts</code></td><td>Each kind gets a switch in Settings › Alerts.</td></tr>
+        <tr><td>Which alerts exist, and how loud</td><td><code>src/core/attention.ts</code>, <code>src/webview/ui/alerts.ts</code>; defaults in <code>DEFAULT_BELLS</code>, <code>src/core/protocol.ts</code></td><td>Each kind, and changed files, open PRs and branches, gets a bell colour in Settings › Alerts: Off, Blue, Orange or Red.</td></tr>
         <tr><td>What the stop pill says</td><td><code>updateStopCard()</code> in <code>cockpit.ts</code>; captions in <code>caption()</code>, <code>src/core/session.ts</code></td><td>The pill is the alert, then what resumes the drive.</td></tr>
         <tr><td>The radio's look</td><td><code>src/webview/ui/radioDeck.ts</code>, <code>eqLights.ts</code></td><td>FM plays internet radio; CB lists the agents.</td></tr>
       </tbody>

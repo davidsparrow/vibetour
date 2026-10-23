@@ -1,10 +1,10 @@
-import { waitingFor } from '../../core/attention';
+import { loudest, waitingFor } from '../../core/attention';
 import { APPROACH_CAP } from '../../core/journey';
 import type { JourneyPack } from '../../core/packs';
 import type { PullRequestSnapshot, TourSnapshot } from '../../core/protocol';
 import type { CacheSnapshot } from '../../core/workspace';
 import { ROLE_LABEL, STATUS_LABEL } from './agents';
-import { alertLevel, alertPill, AlertsPane, bell, lightBell, notePill, shownAlerts } from './alerts';
+import { alertPill, AlertsPane, bell, lightBell, litBells, notePill, orderedPullRequests } from './alerts';
 import type { AppContext } from './context';
 import { clear, formatDuration, formatElapsed, h, renderKeyed, text, timeAgo, toggle } from './dom';
 import { Gauge, RED_ZONE_FROM } from './gauges';
@@ -413,7 +413,7 @@ export class Cockpit {
       return;
     }
     // Yours on this branch first, then yours, then the newest.
-    const ordered = [...items].sort((a, b) => Number(b.onBranch) - Number(a.onBranch) || Number(b.mine) - Number(a.mine) || b.createdAt - a.createdAt);
+    const ordered = orderedPullRequests(items);
     const trouble = new Set(snap.attention.filter((a) => a.kind === 'pr' && a.target.type === 'pr').map((a) => (a.target as { number: number }).number));
     for (const pr of ordered) this.prs.append(this.pullRequestRow(pr, snap.at, trouble.has(pr.number), !!caps?.openLinks));
     if (feed.state === 'error') this.prs.append(h('p', { class: 'small muted' }, "GitHub didn't answer the last check; this list may be out of date."));
@@ -490,11 +490,10 @@ export class Cockpit {
   /** The Alerts tab and both bells. */
   private updateAlerts(snap: TourSnapshot): void {
     this.alertsPane.update(snap);
-    const level = alertLevel(snap, this.ctx.prefs);
-    const g = snap.ide.git;
-    const count = shownAlerts(snap.attention, this.ctx.prefs).length + (this.ctx.prefs.alertOnChanges && g && g.changes + g.staged > 0 ? 1 : 0);
-    lightBell(this.topBell, level, count);
-    lightBell(this.tabs.get('alerts')!, level, count);
+    const lit = litBells(snap, this.ctx.prefs);
+    const level = loudest(lit);
+    lightBell(this.topBell, level, lit.length);
+    lightBell(this.tabs.get('alerts')!, level, lit.length);
   }
 
   private updateNav(snap: TourSnapshot, pack?: JourneyPack): void {

@@ -339,6 +339,13 @@ export class VibeTourSession {
     return this.tracker.pullRequests.items.find((pr) => pr.number === n)?.url;
   }
 
+  /** A branch the host listed itself that GitHub can compare with main, and that main's name; a display can't make one up. */
+  comparableBranch(name: string): { base: string; branch: string } | undefined {
+    const b = this.tracker.branches;
+    const item = b?.items.find((i) => i.name === name && i.link);
+    return b && item ? { base: b.base, branch: item.name } : undefined;
+  }
+
   /** Called when the host shuts down: the journey parks in the garage (PRD §10). */
   shutdown(): void {
     if (this.journey && this.journey.moving) this.park('close');
@@ -723,6 +730,14 @@ export class VibeTourSession {
           cache: ag.cache ? cacheSnapshot(ag.cache) : undefined,
         })),
         pullRequests: { state: feed.state, items: pullRequests, fetchedAt: feed.fetchedAt },
+        branches: ws.branches
+          ? {
+              base: ws.branches.base,
+              count: ws.branches.items.length,
+              unmerged: ws.branches.items.filter((b) => b.ahead > 0).length,
+              items: s ? undefined : ws.branches.items.map((b) => ({ ...b })),
+            }
+          : undefined,
         history: ws.history.slice(0, 12).map((h) => ({ at: h.at, kind: h.kind, label: this.historyLabel(h), tone: h.tone })),
         session: { ...ws.counters, filesChanged: ws.touched.size, startedAt: this.sessionStartedAt },
       },

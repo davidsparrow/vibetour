@@ -68,7 +68,7 @@ code{font-family:var(--mono);font-size:.85em}
     <div class="brand">VibeTour</div>
     <h1>Cockpit Map</h1>
     <p class="lede">Every control on the dashboard, screen by screen. The numbers on each picture match its key: what feeds the control, and what a click or a key does.</p>
-    <div class="meta"><span>Made 2026-10-21</span><span>1280 × 760, 2× pixels</span><span>Re-make: npm run cockpit-map</span></div>
+    <div class="meta"><span>Made 2026-10-23</span><span>1280 × 760, 2× pixels</span><span>Re-make: npm run cockpit-map</span></div>
   </header>
   <nav aria-label="Screens">
     <a href="#dash">Dashboard</a>
@@ -82,6 +82,7 @@ code{font-family:var(--mono);font-size:.85em}
     <a href="#trip">Trip</a>
     <a href="#console">Console</a>
     <a href="#alerts">Alerts</a>
+    <a href="#alerts-repo">Alerts: PRs, branches</a>
     <a href="#tour">Tour mode</a>
     <a href="#work">Work mode</a>
   </nav>
@@ -100,9 +101,9 @@ code{font-family:var(--mono);font-size:.85em}
       <li><span class="n">3</span><span class="c">Passport</span><span class="f">Your trips, stamps and travel memories.</span><span class="k">Opens your Passport. Key <kbd>P</kbd>.</span></li>
       <li><span class="n">4</span><span class="c">Capture my workplace</span><span class="f">The view and the dashboard as they are now.</span><span class="k">Saves a picture, with private details left out. Key <kbd>C</kbd>.</span></li>
       <li><span class="n">5</span><span class="c">Sound</span><span class="f">Your sound setting.</span><span class="k">Turns the tour's sound on or off: engine, road, weather and the Focus Mix. The radio has its own power and volume. Key <kbd>M</kbd>.</span></li>
-      <li><span class="n">6</span><span class="c">Settings</span><span class="f">This screen’s settings.</span><span class="k">Opens Settings: display, alerts, sound, accessibility and performance. Key <kbd>S</kbd>; <kbd>?</kbd> lists every key.</span></li>
+      <li><span class="n">6</span><span class="c">Settings</span><span class="f">This screen’s settings.</span><span class="k">Opens Settings: display, alerts (a bell colour for each), sound, accessibility and performance. Key <kbd>S</kbd>; <kbd>?</kbd> lists every key.</span></li>
       <li><span class="n">7</span><span class="c">Rear-view mirror</span><span class="f">Nothing. It is a plain mirror, kept clear of text.</span><span class="k">Only its bell does anything.</span></li>
-      <li><span class="n">8</span><span class="c">Alerts bell</span><span class="f">The loudest alert: <em>red</em> when something stopped the car, <em>orange</em> when something needs you, <em>blue</em> for files not yet committed. Dark when there is nothing.</span><span class="k">Opens the dashboard on the Alerts tab.</span></li>
+      <li><span class="n">8</span><span class="c">Alerts bell</span><span class="f">The loudest colour lit. By default <em>red</em> when something stopped the car, <em>orange</em> when something needs you, <em>blue</em> for files not yet committed; open PRs and branches only once you pick them a colour in Settings › Alerts. Dark when there is nothing.</span><span class="k">Opens the dashboard on the Alerts tab.</span></li>
       <li><span class="n">9</span><span class="c">Activity</span><span class="f">Your coding: edits, saves, moving around and focus. Each one kicks the needle up; with nothing new the reading halves every 15 s. Like a speedometer, it reads 0 while the car is stopped. Red zone from 75%.</span><span class="k">Nothing to press.</span></li>
       <li><span class="n">10</span><span class="c">Agents</span><span class="f">How many agents are at work now: your agent and the sub-agents it starts, until each reports back. 0 to 8; six or more at once is the red zone, where your plan’s usage goes fastest.</span><span class="k">Nothing to press.</span></li>
       <li><span class="n">11</span><span class="c">Tools</span><span class="f">Tool calls and commands started in the last minute. Full at 30. No red zone: a busy agent is no fault.</span><span class="k">Nothing to press.</span></li>
@@ -127,7 +128,7 @@ code{font-family:var(--mono);font-size:.85em}
     </figure>
     <div class="head" aria-hidden="true"><span></span><span>Control</span><span>Fed by</span><span>Click or key</span></div>
     <ol class="key">
-      <li><span class="n">1</span><span class="c">Alerts bell</span><span class="f">The loudest alert: <em>red</em> when something stopped the car, <em>orange</em> when something needs you, <em>blue</em> for files not yet committed. Dark when there is nothing.</span><span class="k">Opens the dashboard on the Alerts tab.</span></li>
+      <li><span class="n">1</span><span class="c">Alerts bell</span><span class="f">The loudest colour lit. By default <em>red</em> when something stopped the car, <em>orange</em> when something needs you, <em>blue</em> for files not yet committed; open PRs and branches only once you pick them a colour in Settings › Alerts. Dark when there is nothing.</span><span class="k">Opens the dashboard on the Alerts tab.</span></li>
       <li><span class="n">2</span><span class="c">Stop pill</span><span class="f">Why the car stopped, coloured like the bells, and what resumes the drive: a question, a plan or approval, an agent that stopped, a failing build, your turn, a breather, refuelling, or parked. A long message wraps and the pill grows taller.</span><span class="k">Takes you where you act: the agent's terminal (else the editor), the PR on GitHub, or Problems. When parked, <em>Resume journey</em> sits under it.</span></li>
       <li><span class="n">3</span><span class="c">Stop pins</span><span class="f">Activity reads 0 while stopped. Each dial on the left leaves a white pin where its needle stood when the car stopped, until the drive resumes.</span><span class="k">Nothing to press.</span></li>
       <li><span class="n">4</span><span class="c">Gear</span><span class="f"><em>P</em> while stopped.</span><span class="k">Nothing to press.</span></li>
@@ -234,7 +235,7 @@ code{font-family:var(--mono);font-size:.85em}
       <li><span class="n">1</span><span class="c">PRs tab</span><span class="f">The number of open PRs; amber when one of yours needs you.</span><span class="k">Opens this list.</span></li>
       <li><span class="n">2</span><span class="c">On your branch</span><span class="f">A lit branch: the PR on the branch you are on, listed first.</span><span class="k">Opens it on GitHub.</span></li>
       <li><span class="n">3</span><span class="c">CI</span><span class="f">Its checks: passing, failing, running or none.</span><span class="k">Nothing to press.</span></li>
-      <li><span class="n">4</span><span class="c">Needs you</span><span class="f">Yours, with failing CI, a conflict or changes requested. It also lights the bells orange.</span><span class="k">Opens it on GitHub.</span></li>
+      <li><span class="n">4</span><span class="c">Needs you</span><span class="f">Yours, with failing CI, a conflict or changes requested. It also lights the bells, orange by default.</span><span class="k">Opens it on GitHub.</span></li>
       <li><span class="n">5</span><span class="c">Pull request</span><span class="f">GitHub: number, title, how far ahead and behind, when and by whom it was opened, draft, conflict, review.</span><span class="k">Opens it on GitHub.</span></li>
     </ol>
   </section>
@@ -275,7 +276,7 @@ code{font-family:var(--mono);font-size:.85em}
   <section id="alerts">
     <div class="eyebrow">Console tab</div>
     <h2>Alerts</h2>
-    <p class="intro">Everything that needs you on the left; the file you are in and the files not yet committed on the right. Each side scrolls on its own. The mirror’s bell opens this tab.</p>
+    <p class="intro">Everything that needs you on the left, then the open PRs and the branches beside main; the file you are in and the files not yet committed on the right. Each side scrolls on its own. The mirror’s bell opens this tab.</p>
     <figure>
       <a class="zoom" href="images/controls/alerts.png" target="_blank" rel="noopener"><img src="images/controls/alerts.png" alt="Alerts: the VibeTour dashboard with its controls numbered" width="1388" height="568" loading="lazy"></a>
       <figcaption>Close-up of the screen, demo display. Open the picture for full size.</figcaption>
@@ -283,9 +284,24 @@ code{font-family:var(--mono);font-size:.85em}
     <div class="head" aria-hidden="true"><span></span><span>Control</span><span>Fed by</span><span>Click or key</span></div>
     <ol class="key">
       <li><span class="n">1</span><span class="c">Alerts tab</span><span class="f">Lit like the mirror’s bell.</span><span class="k">Opens this tab.</span></li>
-      <li><span class="n">2</span><span class="c">Needs you</span><span class="f">One pill per alert while it holds, most urgent first: questions, plans, approvals, stops, your turn, PRs. Each kind has a switch in Settings › Alerts.</span><span class="k">Takes you where you act: the agent's terminal (else the editor), the PR on GitHub, or Problems.</span></li>
+      <li><span class="n">2</span><span class="c">Needs you</span><span class="f">One pill per alert while it holds, most urgent first: questions, plans, approvals, stops, your turn, PRs. Each kind has a bell colour in Settings › Alerts, and the pill shows it; <em>Off</em> hides it.</span><span class="k">Takes you where you act: the agent's terminal (else the editor), the PR on GitHub, or Problems.</span></li>
       <li><span class="n">3</span><span class="c">Editing</span><span class="f">The file open in your editor.</span><span class="k">Opens it in VS Code.</span></li>
-      <li><span class="n">4</span><span class="c">Changed</span><span class="f">Files changed and not committed, from Git. Names are hidden in Streaming Mode.</span><span class="k">Opens the file in VS Code.</span></li>
+      <li><span class="n">4</span><span class="c">Changed</span><span class="f">Files changed and not committed, from Git. Names are hidden in Streaming Mode. They light the bells blue by default.</span><span class="k">Opens the file in VS Code.</span></li>
+    </ol>
+  </section>
+  <section id="alerts-repo">
+    <div class="eyebrow">Console tab</div>
+    <h2>Alerts: open PRs and branches</h2>
+    <p class="intro">Further down the left side, under what needs you: the open PRs in green and the branches beside main in violet, each with its icon, so neither reads as a file. They light the bells only in a colour you pick for them in Settings › Alerts; both are <em>Off</em> to start.</p>
+    <figure>
+      <a class="zoom" href="images/controls/alerts-repo.png" target="_blank" rel="noopener"><img src="images/controls/alerts-repo.png" alt="Alerts: open PRs and branches: the VibeTour dashboard with its controls numbered" width="1388" height="568" loading="lazy"></a>
+      <figcaption>Close-up of the screen, demo display. Open the picture for full size.</figcaption>
+    </figure>
+    <div class="head" aria-hidden="true"><span></span><span>Control</span><span>Fed by</span><span>Click or key</span></div>
+    <ol class="key">
+      <li><span class="n">1</span><span class="c">Open PRs</span><span class="f">GitHub, once you connect it: the repository's open pull requests, in the PRs tab's order. Titles are hidden in Streaming Mode.</span><span class="k">Opens it on GitHub.</span></li>
+      <li><span class="n">2</span><span class="c">Your branch</span><span class="f">Git: the branch checked out here, in bold and listed first, with how many commits it is behind main (↓) and ahead of it (↑).</span><span class="k">Opens GitHub's comparison with main, once the branch is pushed.</span></li>
+      <li><span class="n">3</span><span class="c">Branch ahead of main</span><span class="f">Git: each local branch with commits main lacks, newest first, as <em>↓behind | ↑ahead</em>. Names are hidden in Streaming Mode.</span><span class="k">Opens GitHub's comparison with main. A branch that was never pushed isn't a button.</span></li>
     </ol>
   </section>
   <section id="tour">
@@ -299,7 +315,7 @@ code{font-family:var(--mono);font-size:.85em}
     <div class="head" aria-hidden="true"><span></span><span>Control</span><span>Fed by</span><span>Click or key</span></div>
     <ol class="key">
       <li><span class="n">1</span><span class="c">Top bar</span><span class="f">The same buttons as on the dashboard.</span><span class="k">See <em>The dashboard</em>, 1–6.</span></li>
-      <li><span class="n">2</span><span class="c">Alerts bell</span><span class="f">The loudest alert: <em>red</em> when something stopped the car, <em>orange</em> when something needs you, <em>blue</em> for files not yet committed. Dark when there is nothing.</span><span class="k">Opens the dashboard on the Alerts tab.</span></li>
+      <li><span class="n">2</span><span class="c">Alerts bell</span><span class="f">The loudest colour lit. By default <em>red</em> when something stopped the car, <em>orange</em> when something needs you, <em>blue</em> for files not yet committed; open PRs and branches only once you pick them a colour in Settings › Alerts. Dark when there is nothing.</span><span class="k">Opens the dashboard on the Alerts tab.</span></li>
     </ol>
   </section>
   <section id="work">

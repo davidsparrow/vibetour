@@ -1,13 +1,15 @@
 import { execFile } from 'node:child_process';
 import { basename } from 'node:path';
 import type { DevEventBody } from '../core/events';
+import { BranchTracker, gitBranchSource } from '../host/branches';
 import { CommitTracker, commitSubject, parsePorcelainStatus } from '../host/git';
+import { parseGitHubRemote } from '../host/github';
 
 /**
  * Polls `git` for the standalone companion (no editor Git API here): working
- * tree counts, branch switches and new commits. Commands run via execFile
- * without a shell and without taking Git's optional locks, so they never get
- * in the way of the user's own Git commands.
+ * tree counts, branch switches, new commits and the branches beside main.
+ * Commands run via execFile without a shell and without taking Git's optional
+ * locks, so they never get in the way of the user's own Git commands.
  */
 
 const RETRY_MS = 30_000;
@@ -30,13 +32,21 @@ export class GitPoller {
   private lastState = '';
   private repoName?: string;
   private failing = false;
+  private readonly branches: BranchTracker;
 
   constructor(
     private readonly dir: string,
     private readonly emit: (event: DevEventBody) => void,
     private readonly log: (msg: string) => void,
     private readonly intervalMs = 4_000,
-  ) {}
+  ) {
+    // The remote is read on each look, so one added while the companion runs still gets its links.
+    const source = gitBranchSource(
+      (args) => git(this.dir, args),
+      async () => !!parseGitHubRemote(await originUrl(this.dir)),
+    );
+    this.branches = new BranchTracker(source, (e) => this.emit(e), log);
+  }
 
   start(): void {
     void this.poll();
@@ -45,6 +55,12 @@ export class GitPoller {
   stop(): void {
     this.stopped = true;
     if (this.timer) clearTimeout(this.timer);
+    this.branches.dispose();
+  }
+
+  /** Resolves once the branches beside main are counted; for tests. */
+  branchesIdle(): Promise<void> {
+    return this.branches.idle();
   }
 
   /** One poll; exposed for tests. */
@@ -83,6 +99,7 @@ export class GitPoller {
       this.lastState = key;
       this.emit(state);
     }
+    this.branches.update(`${status.branch ?? ''}@${head ?? ''}`);
 
     const { branchChanged, committed } = this.commits.update({
       repo: this.dir,
