@@ -61,6 +61,22 @@ export interface DiagnosticRef {
   message: string;
 }
 
+/**
+ * A reply's prompt-cache reading. A prompt carries only its time: it starts a call,
+ * and every call keeps the cache warm. Times are epoch milliseconds, ttl is seconds.
+ */
+export interface CacheReading {
+  /** The reply's id: one reply can reach several hooks, and counts once. */
+  id?: string;
+  at: number;
+  /** Input tokens read from the cache, written to it, and sent uncached. */
+  read?: number;
+  write?: number;
+  fresh?: number;
+  /** How long the cache it wrote lasts: 300 or 3600. */
+  ttl?: number;
+}
+
 export type DevEventBody =
   | { type: 'editor.focus'; file: FileRef }
   | { type: 'editor.edit'; file: FileRef; origin: EditOrigin; magnitude: number }
@@ -97,6 +113,8 @@ export type DevEventBody =
       tool?: string;
       /** Context-window usage 0..1 when the provider reports it. */
       context?: number;
+      /** The last reply's prompt-cache reading, when the provider reports it. */
+      cache?: CacheReading;
       /** Set for background/sub-agents: the crew, counted on the Agents dial. */
       parentId?: string;
     }

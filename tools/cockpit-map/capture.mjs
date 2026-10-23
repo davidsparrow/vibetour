@@ -230,6 +230,7 @@ async function main() {
       console.log(`${state.id}: ${state.title}`);
       // Every picture at twice the pixels, so it stays sharp on a high-density screen and when opened full size.
       const page = await browser.newPage({ viewport: state.close ? CLOSE_VIEW : VIEW, deviceScaleFactor: 2 });
+      await state.init?.(page);
       await page.goto(state.needs === 'companion' ? companion.url : `${demo.url}${state.query ?? '?fresh&autopilot=0'}`);
       await state.setup(page);
       // The real coast behind the glass, not the low-poly scene the demo draws.

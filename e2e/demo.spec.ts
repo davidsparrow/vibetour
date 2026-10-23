@@ -373,7 +373,7 @@ test('fits a phone screen without horizontal scrolling', async ({ page }) => {
   expect(cardWidth).toBeLessThanOrEqual(390 - 32 + 1);
 });
 
-test('the context and battery gauges follow Settings', async ({ page }) => {
+test('the context gauge, cache dots and battery lights follow Settings', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(Navigator.prototype, 'getBattery', {
       configurable: true,
@@ -384,24 +384,45 @@ test('the context and battery gauges follow Settings', async ({ page }) => {
   await bookFirstJourney(page);
   const context = page.getByRole('meter', { name: 'Agent context window left' });
   const battery = page.getByRole('meter', { name: 'Battery', exact: true });
+  const hit = page.locator('.cache-dot').first();
+  const timer = page.locator('.cache-dot').nth(1);
   await expect(context).toBeVisible();
   await expect(context).toHaveAttribute('aria-valuetext', /No agent has reported/);
-  await expect(battery).toBeHidden();
+  await expect(hit).toBeHidden();
+  // The battery's lights are on by default: three of five at 42%.
+  await expect(battery).toBeVisible();
+  await expect(battery).toHaveAttribute('aria-valuetext', 'Battery 42 percent');
+  await expect(battery.locator('.battery-leds span.on')).toHaveCount(3);
 
   await page.locator('.demo-pill').click();
   await page.getByRole('button', { name: 'Agent edits' }).click();
   await expect(context).toHaveAttribute('aria-valuetext', /percent of the agent context window left/);
+  // Under it, beside the gear, the prompt cache: the session's hit share and the minutes until it goes cold.
+  await expect(hit).toHaveText(/^\d+%$/);
+  await expect(hit).toHaveAttribute('aria-label', /^Prompt cache: \d+% of this session's input read from the cache/);
+  await expect(hit).toHaveAttribute('data-level', 'ok');
+  await expect(timer).toHaveText(/^\d+m$/);
+  await expect(timer).toHaveAttribute('aria-label', /^Prompt cache goes cold in \d+ minutes \(1-hour cache\)$/);
 
+  // The dots' warnings are yours to set, and stay set.
   await page.keyboard.press('s');
-  await page.getByLabel(/Battery gauge/).check();
+  const hitWarn = page.getByRole('group', { name: 'Cache hit: orange under' });
+  await expect(hitWarn.getByRole('button', { name: '50%' })).toHaveAttribute('aria-pressed', 'true');
+  await hitWarn.getByRole('button', { name: '90%' }).click();
+  await page.getByLabel(/Battery lights/).uncheck();
   await page.getByLabel(/Context gauge/).uncheck();
   await page.getByRole('button', { name: 'Done' }).click();
-  await expect(battery).toBeVisible();
-  await expect(battery).toHaveAttribute('aria-valuetext', 'Battery 42 percent');
+  await expect(battery).toBeHidden();
   await expect(context).toBeHidden();
+  await expect(hit).toBeHidden();
+  await page.keyboard.press('s');
+  await expect(hitWarn.getByRole('button', { name: '90%' })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByLabel(/Context gauge/).check();
+  await page.getByRole('button', { name: 'Done' }).click();
+  await expect(hit).toBeVisible();
 });
 
-test('the battery gauge stays hidden, and says why, where the browser reports no battery', async ({ page }) => {
+test('the battery lights stay hidden, and say why, where the browser reports no battery', async ({ page }) => {
   await page.addInitScript(() => {
     delete (Navigator.prototype as { getBattery?: unknown }).getBattery;
   });
@@ -409,7 +430,7 @@ test('the battery gauge stays hidden, and says why, where the browser reports no
   await bookFirstJourney(page);
   await page.keyboard.press('s');
   await expect(page.locator('.battery-note')).toContainText('Always hidden in Safari and Firefox');
-  await page.getByLabel(/Battery gauge/).check();
+  await page.getByLabel(/Battery lights/).check();
   await expect(page.locator('.battery-note')).toContainText("Hidden on this screen: this browser doesn't report battery.");
   await page.getByRole('button', { name: 'Done' }).click();
   await expect(page.getByRole('meter', { name: 'Battery', exact: true })).toBeHidden();

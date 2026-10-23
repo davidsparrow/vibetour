@@ -68,7 +68,7 @@ code{font-family:var(--mono);font-size:.85em}
     <div class="brand">VibeTour</div>
     <h1>Cockpit Map</h1>
     <p class="lede">Every control on the dashboard, screen by screen. The numbers on each picture match its key: what feeds the control, and what a click or a key does.</p>
-    <div class="meta"><span>Made 2026-10-17</span><span>1280 × 760, 2× pixels</span><span>Re-make: npm run cockpit-map</span></div>
+    <div class="meta"><span>Made 2026-10-21</span><span>1280 × 760, 2× pixels</span><span>Re-make: npm run cockpit-map</span></div>
   </header>
   <nav aria-label="Screens">
     <a href="#dash">Dashboard</a>
@@ -107,12 +107,14 @@ code{font-family:var(--mono);font-size:.85em}
       <li><span class="n">10</span><span class="c">Agents</span><span class="f">How many agents are at work now: your agent and the sub-agents it starts, until each reports back. 0 to 8; six or more at once is the red zone, where your plan’s usage goes fastest.</span><span class="k">Nothing to press.</span></li>
       <li><span class="n">11</span><span class="c">Tools</span><span class="f">Tool calls and commands started in the last minute. Full at 30. No red zone: a busy agent is no fault.</span><span class="k">Nothing to press.</span></li>
       <li><span class="n">12</span><span class="c">Screen tabs</span><span class="f">Nav, Radio, PRs, Trip, Console, and the bell for Alerts. The PRs count turns amber when one needs you.</span><span class="k">Switches the screen. Each tab has its own section below. <kbd>R</kbd> opens Radio.</span></li>
-      <li><span class="n">13</span><span class="c">Journey</span><span class="f">How much of the journey is left, with the percent done. Full again after you refuel.</span><span class="k">Nothing to press.</span></li>
-      <li><span class="n">14</span><span class="c">Context</span><span class="f">How much of your agent's context window is left, as Claude Code reports it. Red under 25%.</span><span class="k">Nothing to press.</span></li>
+      <li><span class="n">13</span><span class="c">Context</span><span class="f">How much of your agent's context window is left, as Claude Code reports it. Red under 25%.</span><span class="k">Nothing to press.</span></li>
+      <li><span class="n">14</span><span class="c">Issues</span><span class="f">Errors and warnings in Problems, and failing checks. Red past three issues.</span><span class="k">Nothing to press.</span></li>
       <li><span class="n">15</span><span class="c">Changes</span><span class="f">Files changed and not committed, from Git, like the Source Control badge. ↑N: commits to push. Red past 20 files.</span><span class="k">Opens Source Control in VS Code.</span></li>
-      <li><span class="n">16</span><span class="c">Issues</span><span class="f">Errors and warnings in Problems, and failing checks. Red past three issues.</span><span class="k">Nothing to press.</span></li>
-      <li><span class="n">17</span><span class="c">Gear</span><span class="f"><em>P</em> stopped, <em>R</em> reviewing a diff, <em>N</em> thinking, <em>D</em> coding, an agent at work or verifying. The hint beside it says which.</span><span class="k">Nothing to press.</span></li>
-      <li><span class="n">18</span><span class="c">Glovebox</span><span class="f">Your project's docs: README, CONTRIBUTING, CHANGELOG and docs/. Pull the handle.</span><span class="k">Lists the docs; picking one opens it in VS Code, Markdown in its preview. Hidden on a phone.</span></li>
+      <li><span class="n">16</span><span class="c">Journey</span><span class="f">How far along the journey is, with the percent done: empty on the left as you set off, full on the right when you arrive. Empty again after you refuel. ∞ on a free drive.</span><span class="k">Nothing to press.</span></li>
+      <li><span class="n">17</span><span class="c">Battery</span><span class="f">This computer's battery: five lights, one per fifth of a charge. Amber at 25% and under, red at 10%; the top light pulses while charging. Hidden where the browser reports no battery.</span><span class="k">Nothing to press.</span></li>
+      <li><span class="n">18</span><span class="c">Prompt cache</span><span class="f">Claude's prompt cache for this session: how much of its input was read from the cache, and the minutes until the cache goes cold. Each dot turns <em>orange</em> under the level you set in Settings (50%, 15 min); the timer turns <em>red</em> at 0, when the next reply writes the cache again.</span><span class="k">Nothing to press.</span></li>
+      <li><span class="n">19</span><span class="c">Gear</span><span class="f"><em>P</em> stopped, <em>R</em> reviewing a diff, <em>N</em> thinking, <em>D</em> coding, an agent at work or verifying. The hint beside it says which.</span><span class="k">Nothing to press.</span></li>
+      <li><span class="n">20</span><span class="c">Glovebox</span><span class="f">Your project's docs: README, CONTRIBUTING, CHANGELOG and docs/. Pull the handle.</span><span class="k">Lists the docs; picking one opens it in VS Code, Markdown in its preview. Hidden on a phone.</span></li>
     </ol>
   </section>
   <section id="stopped">

@@ -14,6 +14,7 @@
   --red: #ff6b5b;
   --violet: #b79cff;
   --blue: #6f97ff;
+  --orange: #ff9240;
   --paper: #f6f0e4;
   --paper-ink: #1d1b18;
   --radius: 14px;
@@ -510,35 +511,106 @@ button.alert:focus-visible {
   width: clamp(72px, min(12.5vh, 7.6vw), 120px);
   height: clamp(72px, min(12.5vh, 7.6vw), 120px);
 }
-.mini-gauges {
+.instruments {
+  /* One dial size for the row, smaller once four dials share it. */
+  --dial: clamp(58px, min(8.2vh, 5.8vw), 84px);
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 4), auto);
+  column-gap: 16px;
+  row-gap: 8px;
+  align-items: start;
+  justify-items: center;
+}
+.instruments[data-count='4'] {
+  --dial: clamp(46px, min(7.4vh, 5.2vw), 76px);
+  column-gap: clamp(8px, 1vw, 13px);
+}
+.instruments .gauge-small .gauge-svg {
+  width: var(--dial);
+  height: var(--dial);
+}
+.instruments .gauge-label {
+  letter-spacing: 0.1em;
+  font-size: 0.64em;
+  white-space: nowrap;
+}
+.instruments [hidden] {
+  display: none !important;
+}
+/* The battery: five lights stacked a third of a dial high, a battery under them where the dials have their names. */
+.battery-meter {
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  align-items: center;
 }
-/* Context and battery can join Journey and Issues: smaller dials keep the row in the cluster. */
-.mini-gauges[data-count='3'] .gauge-small .gauge-svg {
-  width: clamp(60px, 8.2vh, 84px);
-  height: clamp(60px, 8.2vh, 84px);
+.battery-leds {
+  height: var(--dial);
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: center;
+  gap: calc(var(--dial) * 0.03);
 }
-.mini-gauges[data-count='4'] {
-  gap: 6px;
+.battery-leds span {
+  width: calc(var(--dial) * 0.22);
+  height: calc(var(--dial) * 0.045);
+  min-height: 2px;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.1);
 }
-.mini-gauges[data-count='4'] .gauge-small .gauge-svg {
-  width: clamp(54px, 7.4vh, 76px);
-  height: clamp(54px, 7.4vh, 76px);
+.battery-leds span.on {
+  background: var(--green);
+  box-shadow: 0 0 4px rgba(123, 224, 160, 0.7);
 }
-.mini-gauges[data-count='4'] .gauge-label {
-  letter-spacing: 0.12em;
+.battery-meter[data-level='low'] .battery-leds span.on {
+  background: var(--amber);
+  box-shadow: 0 0 4px rgba(255, 179, 92, 0.7);
 }
-.mini-gauges[data-count='5'] {
+.battery-meter[data-level='critical'] .battery-leds span.on {
+  background: var(--red);
+  box-shadow: 0 0 4px rgba(255, 107, 91, 0.8);
+}
+.battery-leds span.pulse {
+  animation: led-pulse 1.6s ease-in-out infinite;
+}
+@keyframes led-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+.battery-meter .gauge-label {
+  margin-top: -1px;
+}
+.battery-meter .gauge-label .icon {
+  margin: 0;
+  width: 1.5em;
+}
+/* The prompt cache's two dots, centred under Context, level with the gear: blue, orange under your threshold, red once cold. */
+.cache-dots {
+  grid-row: 2;
+  grid-column: 1;
+  align-self: center;
+  display: flex;
   gap: 4px;
 }
-.mini-gauges[data-count='5'] .gauge-small .gauge-svg {
-  width: clamp(48px, 6.6vh, 68px);
-  height: clamp(48px, 6.6vh, 68px);
+.cache-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid var(--blue);
+  box-shadow: 0 0 5px rgba(111, 151, 255, 0.35);
+  color: #fff;
+  font: 600 9px/1 var(--font);
+  font-variant-numeric: tabular-nums;
 }
-.mini-gauges[data-count='5'] .gauge-label {
-  letter-spacing: 0.08em;
-  font-size: 0.64em;
+.cache-dot[data-level='warn'] {
+  border-color: var(--orange);
+  box-shadow: 0 0 5px rgba(255, 146, 64, 0.5);
+}
+.cache-dot[data-level='cold'] {
+  border-color: var(--red);
+  box-shadow: 0 0 6px rgba(255, 107, 91, 0.6);
 }
 
 .gauge {
@@ -739,9 +811,16 @@ button.alert:focus-visible {
 }
 
 .gear-wrap {
+  grid-row: 2;
+  grid-column: 2 / -1;
+  justify-self: start;
+  align-self: center;
   display: flex;
   align-items: center;
   gap: 10px;
+}
+.instruments.no-context .gear-wrap {
+  grid-column: 1 / -1;
 }
 .gear {
   display: flex;
@@ -767,7 +846,7 @@ button.alert:focus-visible {
   color: var(--ink-dim);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  width: 7em;
+  white-space: nowrap;
 }
 /* The glovebox: a drawing of its lid and chrome handle, which opens the project's docs. */
 .glovebox-wrap {
@@ -2669,16 +2748,13 @@ button.problem:hover {
     width: 60px;
     height: 60px;
   }
-  /* Up to five dials, in one centred row. */
-  .mini-gauges {
-    justify-content: center;
-    gap: 2px 8px;
+  /* Up to four dials and the battery, in one centred row. */
+  .instruments,
+  .instruments[data-count] {
+    --dial: 50px;
+    column-gap: 10px;
   }
-  .mini-gauges[data-count] .gauge-small .gauge-svg {
-    width: 50px;
-    height: 50px;
-  }
-  .mini-gauges[data-count] .gauge-label {
+  .instruments .gauge-label {
     font-size: 0.6em;
     letter-spacing: 0.06em;
   }

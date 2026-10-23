@@ -7,7 +7,7 @@ import { isStationId, normalizeDeck, type DeckPrefs, type MusicState, type Radio
 import type { Behavior, JourneyPhase, StopReason } from './motion';
 import type { EnvParams, JourneyPack, Mood, SceneKind, TimeOfDay, Weather } from './packs';
 import type { LibraryEntry, PassportStats, Stamp, TravelMemory } from './passport';
-import type { HistoryKind, ResultInfo, SessionCounters } from './workspace';
+import type { CacheSnapshot, HistoryKind, ResultInfo, SessionCounters } from './workspace';
 
 /**
  * Messages between a VibeTour host (VS Code extension, standalone CLI, or the
@@ -54,6 +54,8 @@ export interface AgentSnapshot {
   since: number;
   parentId?: string;
   context?: number;
+  /** The session's prompt cache, when the agent reports it. */
+  cache?: CacheSnapshot;
 }
 
 export interface PullRequestSnapshot {
@@ -107,6 +109,8 @@ export interface TourSnapshot {
     warning: boolean;
     reviewing: boolean;
     context: number | null;
+    /** The prompt cache of the session the Context gauge shows. */
+    cache: CacheSnapshot | null;
     waitingAgent?: string;
     /** Why the car stopped for the waiting agent: a question, a plan or an approval. */
     waitingAsk?: AgentAsk;
@@ -229,7 +233,11 @@ export interface ClientPrefs {
   autoThrottle: boolean;
   /** Show a gauge for how much of the agent's context window is left. */
   contextGauge: boolean;
-  /** Show a gauge for this computer's battery, where the browser reports one. */
+  /** The prompt cache's dots beside the gear turn orange: the hit share under this percent… */
+  cacheHitWarn: number;
+  /** …and the time until it goes cold under this many minutes. */
+  cacheTimerWarn: number;
+  /** Show this computer's battery as a stack of lights, where the browser reports one. */
   batteryGauge: boolean;
   /** Show a gauge for the files changed and not yet committed. */
   changesGauge: boolean;
@@ -255,7 +263,9 @@ export const DEFAULT_PREFS: ClientPrefs = {
   lowGpu: false,
   autoThrottle: true,
   contextGauge: true,
-  batteryGauge: false,
+  cacheHitWarn: 50,
+  cacheTimerWarn: 15,
+  batteryGauge: true,
   changesGauge: true,
   hudAlerts: Object.fromEntries(ALERT_KINDS.map((k) => [k, true])) as Record<AlertKind, boolean>,
   alertOnChanges: true,
@@ -265,9 +275,13 @@ export const DEFAULT_PREFS: ClientPrefs = {
 };
 
 export function mergePrefs(saved: Partial<ClientPrefs> | undefined): ClientPrefs {
+  // Prefs saved before the battery became a stack of lights (they have no cache warnings yet) kept the old
+  // dial's default, off: the lights take their own default, on.
+  const { batteryGauge, ...rest } = saved ?? {};
   return {
     ...DEFAULT_PREFS,
-    ...(saved ?? {}),
+    ...rest,
+    ...(batteryGauge !== undefined && saved?.cacheHitWarn !== undefined ? { batteryGauge } : {}),
     audio: { ...DEFAULT_PREFS.audio, ...(saved?.audio ?? {}) },
     hudAlerts: { ...DEFAULT_PREFS.hudAlerts, ...(saved?.hudAlerts ?? {}) },
     deck: normalizeDeck({ ...DEFAULT_PREFS.deck, ...(saved?.deck ?? {}) }),

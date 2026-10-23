@@ -19,6 +19,11 @@
  * read from it. The transcript format is internal to Claude Code, so if it
  * changes this sends no reading rather than a wrong one.
  *
+ * Cache: with that reading goes the same reply's prompt-cache counts (read,
+ * written, uncached), its id and time, and whether the cache it wrote lasts
+ * 5 minutes or an hour. On UserPromptSubmit it sends just the time: a prompt
+ * starts a call, and every call keeps the cache warm.
+ *
  * Status line: `vibetour-hook.js --statusline [command]` is a Claude Code
  * `statusLine` command. It sends Claude Code's own exact context reading and
  * prints a status line: the given command's output (it gets the same JSON on
@@ -133,9 +138,25 @@ function contextShare(tokens, model) {
 }
 
 /**
+ * The last reply's prompt-cache reading: its id, its time, its tokens read from the
+ * cache, written to it and sent uncached, and how long the cache it wrote lasts
+ * (seconds). No reading without a time; no ttl when the reply wrote nothing.
+ */
+function cacheReading(entry, message, usage) {
+  const at = typeof entry.timestamp === 'string' ? Date.parse(entry.timestamp) : NaN;
+  if (!(at > 0)) return undefined;
+  const reading = { at, read: count(usage.cache_read_input_tokens), write: count(usage.cache_creation_input_tokens), fresh: count(usage.input_tokens) };
+  if (typeof message.id === 'string' && message.id) reading.id = message.id.slice(0, 80);
+  const created = usage.cache_creation && typeof usage.cache_creation === 'object' ? usage.cache_creation : {};
+  if (count(created.ephemeral_1h_input_tokens) > 0) reading.ttl = 3600;
+  else if (count(created.ephemeral_5m_input_tokens) > 0) reading.ttl = 300;
+  return reading;
+}
+
+/**
  * The context reading after the last reply in a Claude Code transcript: its input,
- * cache-write and cache-read tokens, as Claude Code counts them. Only the counts
- * and the model name are read.
+ * cache-write and cache-read tokens, as Claude Code counts them, and the reply's
+ * cache reading. Only the counts, the model name, the reply's id and its time are read.
  */
 function transcriptContext(file) {
   if (typeof file !== 'string' || !path.isAbsolute(file) || path.extname(file) !== '.jsonl') return undefined;
@@ -159,7 +180,7 @@ function transcriptContext(file) {
       const message = entry.message && typeof entry.message === 'object' ? entry.message : {};
       const usage = message.usage && typeof message.usage === 'object' ? message.usage : {};
       const tokens = count(usage.input_tokens) + count(usage.cache_creation_input_tokens) + count(usage.cache_read_input_tokens);
-      if (tokens > 0) return contextShare(tokens, message.model);
+      if (tokens > 0) return { context: contextShare(tokens, message.model), cache: cacheReading(entry, message, usage) };
     }
   } catch (_) {
     /* unreadable or changed format: no reading */
@@ -179,7 +200,7 @@ function transcriptContext(file) {
 function hookContext(raw) {
   const fromTranscript = transcriptContext(raw.transcript_path);
   if (fromTranscript !== undefined) return fromTranscript;
-  if (raw.hook_event_name === 'SessionStart' && count(raw.context_tokens) > 0) return contextShare(raw.context_tokens, raw.model);
+  if (raw.hook_event_name === 'SessionStart' && count(raw.context_tokens) > 0) return { context: contextShare(raw.context_tokens, raw.model) };
   return undefined;
 }
 
@@ -312,8 +333,11 @@ async function main() {
   const payload = sanitize(raw, args.provider);
   if (!payload.hook_event_name && !payload.type) return;
   if (CONTEXT_EVENTS.has(payload.hook_event_name)) {
-    const context = hookContext(raw);
-    if (context !== undefined) payload.context = context;
+    const reading = hookContext(raw);
+    if (reading !== undefined) payload.context = reading.context;
+    if (reading && reading.cache) payload.cache = reading.cache;
+  } else if (payload.hook_event_name === 'UserPromptSubmit') {
+    payload.cache = { at: Date.now() };
   }
   await deliver(JSON.stringify(payload));
 }

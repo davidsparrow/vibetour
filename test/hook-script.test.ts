@@ -175,6 +175,57 @@ describe('bin/vibetour-hook.js', () => {
     }
   });
 
+  it("adds the last reply's cache counts, id, time and lifetime, and on a prompt just the time", async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'vibetour-transcript-'));
+    const transcript = (name: string, entries: unknown[]) => {
+      const file = join(dir, `${name}.jsonl`);
+      writeFileSync(file, `${entries.map((e) => JSON.stringify(e)).join('\n')}\n`);
+      return file;
+    };
+    const at = '2026-10-21T08:24:43.186Z';
+    const reply = (id: string, created: Record<string, number> | undefined, extra: Record<string, unknown> = {}) => ({
+      type: 'assistant',
+      isSidechain: false,
+      timestamp: at,
+      ...extra,
+      message: {
+        id,
+        model: 'claude-opus-5-5',
+        content: [{ type: 'text', text: SECRET }],
+        usage: { input_tokens: 2, cache_creation_input_tokens: 382, cache_read_input_tokens: 88_818, output_tokens: 406, ...(created ? { cache_creation: created } : {}) },
+      },
+    });
+    const hook = async (event: string, file?: string) => {
+      received.length = 0;
+      const run = await runHook(home, { stdin: JSON.stringify({ hook_event_name: event, session_id: 'feedface', transcript_path: file, prompt: SECRET }) });
+      expect(run).toMatchObject({ code: 0, stdout: '', stderr: '' });
+      expect(JSON.stringify(received)).not.toContain(SECRET);
+      return received[0]?.[0] as { context?: number; cache?: Record<string, unknown> } | undefined;
+    };
+    try {
+      const expected = { id: 'msg_01', at: Date.parse(at), read: 88_818, write: 382, fresh: 2 };
+      // An hour-long cache write, then a five-minute one; the sub-agent's reply after it is not the session's.
+      const hour = transcript('hour', [reply('msg_01', { ephemeral_1h_input_tokens: 382, ephemeral_5m_input_tokens: 0 }), reply('msg_sub', { ephemeral_5m_input_tokens: 9 }, { isSidechain: true })]);
+      expect((await hook('Stop', hour))?.cache).toEqual({ ...expected, ttl: 3600 });
+      const five = transcript('five', [reply('msg_01', { ephemeral_1h_input_tokens: 0, ephemeral_5m_input_tokens: 382 })]);
+      expect((await hook('PostToolUse', five))?.cache).toEqual({ ...expected, ttl: 300 });
+      // No breakdown of the write: no lifetime. One reply over several entries is the same reply.
+      const split = transcript('split', [reply('msg_01', undefined), reply('msg_01', undefined)]);
+      expect((await hook('PostToolUse', split))?.cache).toEqual(expected);
+      // No time, or just after a compaction: no cache reading.
+      expect(await hook('Stop', transcript('untimed', [reply('msg_01', undefined, { timestamp: undefined })]))).not.toHaveProperty('cache');
+      expect(await hook('Stop', transcript('compacted', [reply('msg_01', undefined), { type: 'system', subtype: 'compact_boundary' }]))).not.toHaveProperty('cache');
+      // A prompt starts a call: the time, and nothing from the prompt.
+      const before = Date.now();
+      const prompt = await hook('UserPromptSubmit');
+      expect(prompt?.cache).toEqual({ at: expect.any(Number) });
+      expect(prompt?.cache?.at as number).toBeGreaterThanOrEqual(before);
+      expect(await hook('PreToolUse', hour)).not.toHaveProperty('cache');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("in status line mode, sends Claude Code's own reading and prints a status line", async () => {
     const input = JSON.stringify({ session_id: 'cafebabe-1234', model: { display_name: 'Opus 5.5' }, context_window: { used_percentage: 42, context_window_size: 1_000_000 } });
     const run = await runHook(home, { args: ['--statusline'], stdin: input });

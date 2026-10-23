@@ -7,7 +7,7 @@ import { DEFAULT_MOTION_CONFIG, MotionController, type MotionConfig, type Motion
 import { findVariant, freshSeed, placesStops, planPath, refuelStop, rng, stopAt, variantForHour, type JourneyPack, type ScenicStop } from './packs';
 import { makeStamp, passportStats, updateLibrary, type LibraryEntry, type Stamp, type TravelMemory } from './passport';
 import type { Catalog, ClientCommand, Gear, JourneySnapshot, PullRequestSnapshot, TourSnapshot } from './protocol';
-import { WorkspaceTracker, type HistoryItem } from './workspace';
+import { cacheSnapshot, WorkspaceTracker, type HistoryItem } from './workspace';
 
 /**
  * VibeTourSession composes the Activity, Motion and Journey engines with the
@@ -674,6 +674,7 @@ export class VibeTourSession {
         warning: a.warning,
         reviewing: a.reviewing,
         context: a.context,
+        cache: a.cache,
         waitingAgent: a.waitingAgent,
         waitingAsk: a.waitingAsk,
         waitingTool: s ? undefined : a.waitingTool,
@@ -719,6 +720,7 @@ export class VibeTourSession {
           since: ag.since,
           parentId: ag.parentId,
           context: ag.context,
+          cache: ag.cache ? cacheSnapshot(ag.cache) : undefined,
         })),
         pullRequests: { state: feed.state, items: pullRequests, fetchedAt: feed.fetchedAt },
         history: ws.history.slice(0, 12).map((h) => ({ at: h.at, kind: h.kind, label: this.historyLabel(h), tone: h.tone })),

@@ -1,4 +1,4 @@
-import type { AgentAsk, DevEventBody } from './events';
+import type { AgentAsk, CacheReading, DevEventBody } from './events';
 
 /**
  * Maps coding-agent hook payloads onto provider-neutral agent events
@@ -21,6 +21,8 @@ export interface AgentHookPayload {
   provider?: string;
   /** How full the session's context window is, 0..1, worked out by the forwarder. */
   context?: number;
+  /** The last reply's prompt-cache counts and time, or on a prompt just the time. */
+  cache?: CacheReading;
   /** `StopFailure`: the kind of API error that ended the turn, e.g. `rate_limit`. */
   error?: string;
 }
@@ -70,7 +72,26 @@ export function sanitizeHookPayload(raw: unknown): AgentHookPayload {
   // Only the error's kind, never its details or the message shown in the conversation.
   if (typeof src.error === 'string' && /^[a-z][a-z_]{0,39}$/.test(src.error)) out.error = src.error;
   if (typeof src.context === 'number' && src.context >= 0 && src.context <= 1) out.context = src.context;
+  out.cache = sanitizeCache(src.cache);
   for (const k of Object.keys(out) as Array<keyof AgentHookPayload>) if (out[k] === undefined) delete out[k];
+  return out;
+}
+
+/** A cache reading needs a time; its counts must be whole and non-negative, its ttl 5 minutes or an hour. */
+function sanitizeCache(raw: unknown): CacheReading | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const src = raw as Record<string, unknown>;
+  const n = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v >= 0;
+  if (!n(src.at) || !(Number(src.at) > 0)) return undefined;
+  const out: CacheReading = { at: src.at as number };
+  const counts = [src.read, src.write, src.fresh];
+  if (counts.every(n)) {
+    out.read = Math.round(src.read as number);
+    out.write = Math.round(src.write as number);
+    out.fresh = Math.round(src.fresh as number);
+  }
+  if (typeof src.id === 'string' && src.id) out.id = src.id.slice(0, 80);
+  if (src.ttl === 300 || src.ttl === 3600) out.ttl = src.ttl;
   return out;
 }
 
@@ -96,10 +117,12 @@ export class AgentHookMapper {
 
   map(payload: AgentHookPayload): DevEventBody[] {
     const events = this.mapEvent(payload);
-    const ctx = payload.context;
-    if (ctx === undefined) return events;
-    // The reading belongs to the co-pilot whose session sent it, never to its crew.
-    return events.map((e) => (e.type === 'agent' && e.role === 'copilot' ? { ...e, context: ctx } : e));
+    const { context, cache } = payload;
+    if (context === undefined && cache === undefined) return events;
+    // The readings belong to the co-pilot whose session sent them, never to its crew.
+    return events.map((e) =>
+      e.type === 'agent' && e.role === 'copilot' ? { ...e, ...(context !== undefined ? { context } : {}), ...(cache ? { cache } : {}) } : e,
+    );
   }
 
   private mapEvent(payload: AgentHookPayload): DevEventBody[] {

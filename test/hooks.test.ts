@@ -219,6 +219,55 @@ describe('context readings', () => {
   });
 });
 
+describe('cache readings', () => {
+  const T = Date.UTC(2026, 9, 21, 9, 0);
+  const reply = (id: string, at: number, read: number, write: number, ttl?: number) => ({ id, at, read, write, fresh: 2, ...(ttl ? { ttl } : {}) });
+
+  it("adds up the session's hit share once per reply, keeps the latest call, and follows the Context gauge's session", () => {
+    const { session, clock, emit } = makeSession();
+    const mapper = new AgentHookMapper();
+    const hook = (payload: Record<string, unknown>, sessionId = SESSION) => {
+      const events = mapper.map(sanitizeHookPayload({ session_id: sessionId, ...payload }));
+      for (const e of events) emit(e);
+      clock.advance(250);
+      return events;
+    };
+    const cache = () => session.latestSnapshot!.activity.cache;
+
+    hook({ hook_event_name: 'SessionStart' });
+    expect(cache()).toBeNull();
+    // A prompt brings only the time: no hit share yet, and no lifetime to count down.
+    hook({ hook_event_name: 'UserPromptSubmit', cache: { at: T } });
+    expect(cache()).toEqual({ hit: null, at: T });
+
+    // A cold first reply writes everything; the crew never gets the reading.
+    const pre = hook({ hook_event_name: 'PostToolUse', tool_name: 'Read', context: 0.1, cache: reply('msg_1', T + 5_000, 0, 9_998, 3600) });
+    expect(pre.filter((e) => e.type === 'agent' && e.role !== 'copilot').some((e) => 'cache' in e)).toBe(false);
+    expect(cache()).toEqual({ hit: 0, at: T + 5_000, ttl: 3600 });
+    // Parallel tool calls bring the same reply back: it counts once.
+    hook({ hook_event_name: 'PostToolUse', tool_name: 'Grep', context: 0.1, cache: reply('msg_1', T + 5_000, 0, 9_998, 3600) });
+    expect(cache()?.hit).toBe(0);
+    // The next reply reads it all back and writes only its new turn; a reply that writes nothing keeps the lifetime.
+    hook({ hook_event_name: 'PostToolUse', tool_name: 'Edit', context: 0.11, cache: reply('msg_2', T + 9_000, 10_000, 0) });
+    expect(cache()).toEqual({ hit: 0.5, at: T + 9_000, ttl: 3600 });
+    hook({ hook_event_name: 'Stop', context: 0.12, cache: reply('msg_3', T + 12_000, 10_000, 1_998, 3600) });
+    expect(cache()?.hit).toBeCloseTo(20_000 / 32_000, 3);
+    expect(session.latestSnapshot!.ide.agents.find((a) => a.id === 'claude:f00dcafe')?.cache).toEqual(cache());
+
+    // Another session with a fuller window takes both readouts; a new session starts from nothing.
+    hook({ hook_event_name: 'Stop', context: 0.6, cache: reply('msg_9', T + 20_000, 900, 98, 300) }, 'beefbeef-1');
+    expect(cache()).toEqual({ hit: 0.9, at: T + 20_000, ttl: 300 });
+  });
+
+  it('keeps only well-formed readings', () => {
+    expect(sanitizeHookPayload({ hook_event_name: 'Stop', cache: { id: 'msg_1', at: T, read: 5, write: 1, fresh: 2, ttl: 3600 } }).cache).toEqual({ id: 'msg_1', at: T, read: 5, write: 1, fresh: 2, ttl: 3600 });
+    // A reading needs a time; bad counts are dropped together; a lifetime is 5 minutes or an hour.
+    for (const cache of [{ read: 5 }, { at: -1 }, { at: 'now' }, 'cache', null]) expect(sanitizeHookPayload({ hook_event_name: 'Stop', cache })).not.toHaveProperty('cache');
+    expect(sanitizeHookPayload({ hook_event_name: 'Stop', cache: { at: T, read: -5, write: 1, fresh: 2, ttl: 60 } }).cache).toEqual({ at: T });
+    expect(sanitizeHookPayload({ hook_event_name: 'Stop', cache: { at: T, id: 'x'.repeat(200) } }).cache?.id).toHaveLength(80);
+  });
+});
+
 describe('sanitizeHookPayload', () => {
   it('keeps metadata and drops prompts, tool inputs and outputs', () => {
     const clean = sanitizeHookPayload({

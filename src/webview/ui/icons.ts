@@ -25,6 +25,11 @@ export function bellIcon(): SVGSVGElement {
   return icon('icon-bell', s('path', { d: 'M4 11.5V7.2a4 4 0 0 1 8 0v4.3l1.2 1.3H2.8zM6.6 14.2a1.5 1.5 0 0 0 2.8 0' }));
 }
 
+/** A battery on its side, terminal to the right: the label under the battery's lights. */
+export function batteryIcon(): SVGSVGElement {
+  return icon('icon-battery', s('rect', { x: 1.5, y: 4.5, width: 11, height: 7, rx: 1.5 }), s('path', { d: 'M14.5 6.8v2.4' }));
+}
+
 /** A branch's head flowing back into its base. */
 export function pullRequestIcon(): SVGSVGElement {
   return icon(
@@ -52,6 +57,8 @@ export function gloveboxArt(): SVGSVGElement {
       stops('gb-lid', [0, '#20242d'], [1, '#0e1116']),
       stops('gb-pocket', [0, '#020304'], [1, '#161a21']),
       stops('gb-chrome', [0, '#f3f5f8'], [0.45, '#aab2bc'], [0.56, '#69717d'], [1, '#c6ccd3']),
+      // The lock is lit from the top left, with no band across it: a band and the slot read as a +.
+      s('radialGradient', { id: 'gb-lock', cx: 0.36, cy: 0.3, r: 0.75 }, s('stop', { offset: 0, 'stop-color': '#f6f8fa' }), s('stop', { offset: 0.55, 'stop-color': '#a9b1bb' }), s('stop', { offset: 1, 'stop-color': '#5f6670' })),
     ),
     s('rect', { class: 'gb-lid', x: 1, y: 1, width: 158, height: 54, rx: 9, fill: 'url(#gb-lid)' }),
     // Light catching the lid's top edge.
@@ -64,8 +71,8 @@ export function gloveboxArt(): SVGSVGElement {
       s('rect', { x: 51, y: 16.5, width: 58, height: 10, rx: 5, fill: 'url(#gb-chrome)', stroke: 'rgba(255,255,255,0.45)', 'stroke-width': 0.6 }),
       s('path', { d: 'M55.5 18.6h49', stroke: 'rgba(255,255,255,0.8)', 'stroke-width': 1, 'stroke-linecap': 'round' }),
     ),
-    // The lock.
-    s('circle', { cx: 128, cy: 22, r: 4, fill: 'url(#gb-chrome)', stroke: 'rgba(0,0,0,0.5)', 'stroke-width': 0.6 }),
-    s('rect', { x: 127.3, y: 19.6, width: 1.4, height: 4.8, rx: 0.7, fill: '#2a2f37' }),
+    // The lock: a chrome barrel with an upright key slot.
+    s('circle', { cx: 128, cy: 22, r: 5.2, fill: 'url(#gb-lock)', stroke: 'rgba(0,0,0,0.55)', 'stroke-width': 0.7 }),
+    s('rect', { x: 127.1, y: 18.9, width: 1.8, height: 6.2, rx: 0.9, fill: '#1f242b' }),
   );
 }

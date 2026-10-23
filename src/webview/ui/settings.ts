@@ -8,7 +8,7 @@ import { clear, h } from './dom';
 /** The battery gauge's fixed hiding rules, plus why it's hidden on this screen right now. */
 function batteryNote(hiddenBecause: string | null): string {
   const rules =
-    "Always hidden in Safari and Firefox, which don't report battery, and on computers without one. A laptop that's plugged in and full looks like a desktop, so the gauge appears once its battery starts to drain.";
+    "Always hidden in Safari and Firefox, which don't report battery, and on computers without one. A laptop that's plugged in and full looks like a desktop, so the lights appear once its battery starts to drain.";
   return hiddenBecause ? `${rules} Hidden on this screen: ${hiddenBecause}.` : rules;
 }
 
@@ -67,9 +67,11 @@ export class SettingsPanel {
           h(
             'p',
             { class: 'small muted' },
-            "Filled by Claude Code's hooks, or by any agent that reports its context window (the HTTP API's context field). Until one does, it reads —.",
+            "Filled by Claude Code's hooks, or by any agent that reports its context window (the HTTP API's context field). Until one does, it reads —. The two dots under it are Claude's prompt cache: how much of the session's input came from the cache, and the minutes until it goes cold. Each turns orange below the level you set here.",
           ),
-          toggleRow('Battery gauge', "This computer's battery", p.batteryGauge, (pr, v) => (pr.batteryGauge = v)),
+          segmented<number>('Cache hit: orange under', [[30, '30%'], [50, '50%'], [70, '70%'], [90, '90%']], p.cacheHitWarn, (pr, v) => (pr.cacheHitWarn = v)),
+          segmented<number>('Cache timer: orange under', [[5, '5 min'], [10, '10 min'], [15, '15 min'], [30, '30 min']], p.cacheTimerWarn, (pr, v) => (pr.cacheTimerWarn = v)),
+          toggleRow('Battery lights', "This computer's battery, as five lights beside Journey", p.batteryGauge, (pr, v) => (pr.batteryGauge = v)),
           h('p', { class: 'small muted battery-note' }, batteryNote(p.batteryGauge ? batteryHiddenReason(this.ctx.battery) : null)),
           toggleRow('Changes gauge', 'Files changed and not yet committed; click it for Source Control', p.changesGauge, (pr, v) => (pr.changesGauge = v)),
         ),
