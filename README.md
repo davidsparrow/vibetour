@@ -83,7 +83,7 @@ Not in the standard yet:
   | Changes | Files changed and not committed, like the Source Control badge; click it to open Source Control |
   | Journey | How far along the journey is: empty as you set off, full on arrival |
   | Battery | Laptop battery as five lights, where the browser reports it |
-  | Alerts (bell) | What needs you now: a question, a plan, an approval, an agent that stopped, a failing build, your turn, a PR of yours with failing CI, a conflict or requested changes, and changed files. The bells light red, orange or blue; the Alerts tab lists them, and the alert that stopped the car rides on the stop card. One click goes there |
+  | Alerts (bell) | What needs you now: a question, a plan, an approval, an agent that stopped, a failing build, your turn, a PR of yours with failing CI, a conflict or requested changes, and changed files. The bells light red, orange or blue, and each screen picks the colour for each thing in Settings › Alerts. The Alerts tab lists them, then the open PRs and the branches ahead of main, each with how far it is behind and ahead; the alert that stopped the car rides on the stop card. One click goes there |
   | Radio | Internet radio and your agents on CB |
   | PRs | The repository's open pull requests, with a lit branch on the ones on your branch (after you connect GitHub) |
   | Console | Running commands, and recent activity and your Git timeline |

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Attention } from '../src/core/attention';
 import { DEFAULT_PREFS, mergePrefs } from '../src/core/protocol';
-import { alertClickable, alertLevel, shownAlerts } from '../src/webview/ui/alerts';
+import { alertClickable, alertLevel, alertTone, litBells, orderedPullRequests, shownAlerts } from '../src/webview/ui/alerts';
 import { batteryHiddenReason, batteryStatus } from '../src/webview/ui/battery';
 import { batteryLit, cacheDots, changesDial, issuesDial } from '../src/webview/ui/cockpit';
 import { formatDuration, formatElapsed } from '../src/webview/ui/dom';
@@ -56,21 +56,74 @@ describe('HUD alerts', () => {
     target: kind === 'pr' ? { type: 'pr', number: 1 } : { type: 'agent', agentId: id },
   });
 
-  it('lists the kinds this display switched on', () => {
+  const ide = (changes: number, more: { prs?: number; unmerged?: number } = {}) =>
+    ({
+      git: { changes, staged: 0, ahead: 0, behind: 0 },
+      pullRequests: { state: 'ok', items: Array.from({ length: more.prs ?? 0 }, (_, i) => ({ number: i + 1 })) },
+      branches: more.unmerged === undefined ? undefined : { base: 'main', count: more.unmerged + 1, unmerged: more.unmerged },
+    }) as never;
+
+  it('gives each alert its own colour, uncommitted files blue, and open PRs and branches none, by default', () => {
+    expect(DEFAULT_PREFS.bells).toEqual({
+      problem: 'blocking',
+      build: 'blocking',
+      question: 'blocking',
+      plan: 'blocking',
+      approval: 'blocking',
+      turn: 'moderate',
+      pr: 'moderate',
+      changes: 'general',
+      openPrs: 'off',
+      branches: 'off',
+    });
+  });
+
+  it('carries the old on/off switches over to bell colours, and ignores colours it does not know', () => {
+    const old = mergePrefs({ hudAlerts: { pr: false, turn: false }, alertOnChanges: false });
+    expect(old.bells).toMatchObject({ question: 'blocking', pr: 'off', turn: 'off', changes: 'off', openPrs: 'off' });
+    expect(old).not.toHaveProperty('hudAlerts');
+    expect(old).not.toHaveProperty('alertOnChanges');
+    const picked = mergePrefs({ bells: { turn: 'general', openPrs: 'general', branches: 'pink', question: 7 } as never });
+    expect(picked.bells).toMatchObject({ turn: 'general', openPrs: 'general', branches: 'off', question: 'blocking' });
+    // A colour picked since wins over the old switch.
+    expect(mergePrefs({ hudAlerts: { turn: false }, bells: { turn: 'moderate' } as never }).bells.turn).toBe('moderate');
+  });
+
+  it('lists the kinds this display gave a colour', () => {
     const list = [alert('q', 'question'), alert('p', 'pr'), alert('t', 'turn'), alert('a', 'approval'), alert('x', 'problem'), alert('y', 'plan')];
     expect(shownAlerts(list, DEFAULT_PREFS)).toHaveLength(6);
-    const prefs = mergePrefs({ hudAlerts: { pr: false, turn: false } as never });
-    expect(prefs.hudAlerts).toMatchObject({ question: true, pr: false, turn: false, build: true });
+    const prefs = mergePrefs({ bells: { pr: 'off', turn: 'off' } as never });
     expect(shownAlerts(list, prefs).map((a) => a.id)).toEqual(['q', 'a', 'x', 'y']);
   });
 
   it('lights the bell red for a stop, orange for something that needs you, blue for changed files', () => {
-    const ide = (changes: number) => ({ git: { changes, staged: 0, ahead: 0, behind: 0 } }) as never;
     expect(alertLevel({ attention: [alert('t', 'turn'), alert('q', 'question')], ide: ide(3) }, DEFAULT_PREFS)).toBe('blocking');
     expect(alertLevel({ attention: [alert('p', 'pr')], ide: ide(3) }, DEFAULT_PREFS)).toBe('moderate');
     expect(alertLevel({ attention: [], ide: ide(3) }, DEFAULT_PREFS)).toBe('general');
-    expect(alertLevel({ attention: [], ide: ide(3) }, mergePrefs({ alertOnChanges: false }))).toBeUndefined();
-    expect(alertLevel({ attention: [alert('q', 'question')], ide: ide(0) }, mergePrefs({ hudAlerts: { question: false } as never }))).toBeUndefined();
+    expect(alertLevel({ attention: [], ide: ide(3) }, mergePrefs({ bells: { changes: 'off' } as never }))).toBeUndefined();
+    expect(alertLevel({ attention: [alert('q', 'question')], ide: ide(0) }, mergePrefs({ bells: { question: 'off' } as never }))).toBeUndefined();
+  });
+
+  it('lights the colour the driver picked, and the pill shows it too', () => {
+    const prefs = mergePrefs({ bells: { question: 'general', changes: 'moderate' } as never });
+    expect(alertLevel({ attention: [alert('q', 'question')], ide: ide(0) }, prefs)).toBe('general');
+    expect(alertTone('question', prefs)).toBe('general');
+    expect(alertTone('turn', prefs)).toBe('moderate');
+    expect(alertLevel({ attention: [alert('q', 'question')], ide: ide(2) }, prefs)).toBe('moderate');
+  });
+
+  it('lights for open PRs and branches ahead of main only when they have a colour and are there', () => {
+    expect(litBells({ attention: [], ide: ide(0, { prs: 3, unmerged: 2 }) }, DEFAULT_PREFS)).toEqual([]);
+    const prefs = mergePrefs({ bells: { openPrs: 'general', branches: 'moderate' } as never });
+    expect(litBells({ attention: [], ide: ide(0, { prs: 3, unmerged: 2 }) }, prefs)).toEqual(['general', 'moderate']);
+    // The checkout with nothing ahead of main lists, but lights nothing.
+    expect(litBells({ attention: [], ide: ide(0, { prs: 0, unmerged: 0 }) }, prefs)).toEqual([]);
+    expect(litBells({ attention: [alert('t', 'turn')], ide: ide(1, { prs: 1 }) }, prefs)).toEqual(['moderate', 'general', 'general']);
+  });
+
+  it('orders open PRs as the PRs tab does: on your branch, then yours, then the newest', () => {
+    const pr = (number: number, createdAt: number, onBranch = false, mine = false) => ({ number, createdAt, onBranch, mine }) as never;
+    expect(orderedPullRequests([pr(1, 10), pr(2, 30), pr(3, 20, false, true), pr(4, 5, true)]).map((p: { number: number }) => p.number)).toEqual([4, 3, 2, 1]);
   });
 
   it('makes a chip a button only where the host can act on it', () => {

@@ -1027,6 +1027,9 @@ button.alert:focus-visible {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  /* As wide as the column, never its longest pill: a long name ends in … instead of running off the edge. */
+  align-self: stretch;
+  min-width: 0;
 }
 .file-pill {
   max-width: 100%;
@@ -1054,6 +1057,52 @@ button.file-pill:hover {
 .file-pill.file-active::before {
   content: '◇ ';
   color: var(--amber);
+}
+/* Open PRs in green and branches in violet, each with its icon, so neither reads as a file. */
+.alerts-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: stretch;
+  gap: 6px;
+  min-width: 0;
+}
+.alerts-group[hidden] {
+  display: none;
+}
+.file-pill-pr,
+.file-pill-branch {
+  --pill: 123, 224, 160;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(var(--pill), 0.08);
+  border-color: rgba(var(--pill), 0.42);
+}
+.file-pill-branch {
+  --pill: 183, 156, 255;
+}
+button.file-pill-pr:hover,
+button.file-pill-branch:hover {
+  border-color: rgba(var(--pill), 0.85);
+}
+.file-pill .icon {
+  width: 1.1em;
+  height: 1.1em;
+  flex-shrink: 0;
+  color: rgb(var(--pill));
+}
+.file-pill .pill-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.file-pill .pill-counts {
+  flex-shrink: 0;
+  color: var(--ink-dim);
+}
+.file-pill.branch-current .pill-text {
+  font-weight: 600;
 }
 
 .tab-badge:not(:empty) {
@@ -1742,6 +1791,21 @@ button.pr-row:hover {
 .seg button.on {
   background: var(--amber);
   color: #120d06;
+}
+/* Settings › Alerts: the picker stays on the right and the hint wraps; each colour lights in its own colour when picked. */
+.tone-row > span {
+  flex: 1 1 11em;
+  min-width: 0;
+}
+.tone-row .seg button.on.tone-off {
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--ink);
+}
+.tone-row .seg button.on.tone-general {
+  background: var(--blue);
+}
+.tone-row .seg button.on.tone-blocking {
+  background: var(--red);
 }
 
 :focus-visible {

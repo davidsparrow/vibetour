@@ -111,6 +111,16 @@ export class DemoHost {
     window.setInterval(() => this.session.tick(), 250);
     this.ev({ type: 'window.focus', focused: true });
     this.ev({ type: 'git', branch: 'feature/onboarding', repo: 'atlas', changes: 0, staged: 0, ahead: 0, behind: 0 });
+    // The branches beside main: two pushed, so GitHub can compare them, and one that never left this computer.
+    this.ev({
+      type: 'git.branches',
+      base: 'main',
+      items: [
+        { name: 'feature/onboarding', ahead: 4, behind: 1, current: true, link: true },
+        { name: 'feat/dark-mode', ahead: 7, behind: 12, current: false, link: true },
+        { name: 'spike/offline-cache', ahead: 2, behind: 30, current: false, link: false },
+      ],
+    });
     this.ev({ type: 'editor.focus', file: fileRef(FILES[0], 'TypeScript React') });
     if (autopilot) this.startPhase(0);
   }
@@ -168,6 +178,10 @@ export class DemoHost {
     }
     if (cmd.type === 'openPullRequest') {
       this.listener?.({ type: 'toast', text: `In VS Code this opens PR #${cmd.number} on GitHub.` });
+      return;
+    }
+    if (cmd.type === 'openBranchCompare') {
+      this.listener?.({ type: 'toast', text: `In VS Code this compares ${cmd.branch} with main on GitHub.` });
       return;
     }
     if (cmd.type === 'connectGitHub') {

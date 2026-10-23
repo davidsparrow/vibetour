@@ -6,6 +6,7 @@ import type { DevEventBody } from '../core/events';
 import { normalizeDeck } from '../core/music';
 import type { ClientCommand, ClientPrefs, DisplayMode, HostInfo, HostMessage } from '../core/protocol';
 import { VibeTourSession, type KeyValueStore, type SessionOptions } from '../core/session';
+import { compareUrl } from '../host/github';
 import { PrWatcher } from '../host/prWatcher';
 import { RadioService } from '../host/radio/service';
 import { VERSION } from '../host/version';
@@ -351,6 +352,12 @@ class VibeTourHost implements CommandHost {
       case 'openPullRequest': {
         const url = this.session.pullRequestUrl(cmd.number);
         if (url && /^https:\/\/github\.com\//.test(url)) await vscode.env.openExternal(vscode.Uri.parse(url));
+        return;
+      }
+      case 'openBranchCompare': {
+        const b = this.session.comparableBranch(cmd.branch);
+        const repo = this.git.githubRepo();
+        if (b && repo) await vscode.env.openExternal(vscode.Uri.parse(compareUrl(repo, b.base, b.branch), true));
         return;
       }
       case 'connectGitHub':

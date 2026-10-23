@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { attentionOf, loudest, severityOf, type AttentionInput } from '../src/core/attention';
 import type { DevEventBody, PullRequestRef } from '../src/core/events';
 import { isClientCommand } from '../src/core/protocol';
-import { applyComparisons, compareQuery, fetchPullRequests, GitHubError, parseGitHubRemote, parsePullRequests, type FetchLike } from '../src/host/github';
+import { applyComparisons, compareQuery, compareUrl, fetchPullRequests, GitHubError, parseGitHubRemote, parsePullRequests, type FetchLike } from '../src/host/github';
 import { PrWatcher } from '../src/host/prWatcher';
 import { makeSession } from './helpers';
 
@@ -257,12 +257,72 @@ describe('pull requests in the session', () => {
   });
 });
 
+describe('branches in the session', () => {
+  it('lists the branches beside main, opens only the ones it listed, and hides the names when streaming', () => {
+    const { session, clock, emit } = makeSession();
+    emit({
+      type: 'git.branches',
+      base: 'main',
+      items: [
+        { name: 'feat/secret-merger', ahead: 2, behind: 1, current: true, link: true },
+        { name: 'spike', ahead: 0, behind: 3, current: false, link: false },
+      ],
+    });
+    clock.advance(250);
+    expect(session.latestSnapshot!.ide.branches).toEqual({
+      base: 'main',
+      count: 2,
+      unmerged: 1,
+      items: [
+        { name: 'feat/secret-merger', ahead: 2, behind: 1, current: true, link: true },
+        { name: 'spike', ahead: 0, behind: 3, current: false, link: false },
+      ],
+    });
+    expect(session.comparableBranch('feat/secret-merger')).toEqual({ base: 'main', branch: 'feat/secret-merger' });
+    // Not pushed, or not one it listed: a display can't open a link it made up.
+    expect(session.comparableBranch('spike')).toBeUndefined();
+    expect(session.comparableBranch('evil')).toBeUndefined();
+
+    session.setStreaming(true);
+    clock.advance(250);
+    expect(session.latestSnapshot!.ide.branches).toEqual({ base: 'main', count: 2, unmerged: 1, items: undefined });
+    expect(JSON.stringify(session.latestSnapshot)).not.toContain('secret-merger');
+
+    emit({ type: 'git.branches', items: [] });
+    clock.advance(250);
+    expect(session.latestSnapshot!.ide.branches).toBeUndefined();
+  });
+
+  it("links to GitHub's comparison, one encoded segment at a time", () => {
+    expect(compareUrl({ owner: 'davidsparrow', name: 'vibetour' }, 'main', 'footage/fx-24')).toBe('https://github.com/davidsparrow/vibetour/compare/main...footage/fx-24');
+    expect(compareUrl({ owner: 'a', name: 'b' }, 'main', 'feat/a#b?c')).toBe('https://github.com/a/b/compare/main...feat/a%23b%3Fc');
+  });
+});
+
 describe('display commands', () => {
   it('accepts the new clicks and nothing malformed', () => {
-    for (const cmd of [{ type: 'focusAgent' }, { type: 'focusAgent', agentId: 'claude:1' }, { type: 'openSourceControl' }, { type: 'openProblems' }, { type: 'openPullRequest', number: 9 }, { type: 'connectGitHub' }]) {
+    for (const cmd of [
+      { type: 'focusAgent' },
+      { type: 'focusAgent', agentId: 'claude:1' },
+      { type: 'openSourceControl' },
+      { type: 'openProblems' },
+      { type: 'openPullRequest', number: 9 },
+      { type: 'connectGitHub' },
+      { type: 'openBranchCompare', branch: 'footage/fx-24' },
+    ]) {
       expect(isClientCommand(cmd), JSON.stringify(cmd)).toBe(true);
     }
-    for (const cmd of [{ type: 'openPullRequest', number: '9' }, { type: 'openPullRequest', number: 0 }, { type: 'openPullRequest', number: 1.5 }, { type: 'focusAgent', agentId: 7 }]) {
+    for (const cmd of [
+      { type: 'openPullRequest', number: '9' },
+      { type: 'openPullRequest', number: 0 },
+      { type: 'openPullRequest', number: 1.5 },
+      { type: 'focusAgent', agentId: 7 },
+      { type: 'openBranchCompare' },
+      { type: 'openBranchCompare', branch: '--upload-pack=evil' },
+      { type: 'openBranchCompare', branch: 'a..b' },
+      { type: 'openBranchCompare', branch: 'a b' },
+      { type: 'openBranchCompare', branch: 'x'.repeat(256) },
+    ]) {
       expect(isClientCommand(cmd), JSON.stringify(cmd)).toBe(false);
     }
   });

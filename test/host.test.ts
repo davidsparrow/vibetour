@@ -282,7 +282,8 @@ describe.skipIf(!hasGit)('GitPoller', () => {
       writeFileSync(join(dir, 'b.txt'), 'b');
 
       const events: DevEventBody[] = [];
-      const poller = new GitPoller(dir, (e) => events.push(e), () => undefined, 60_000);
+      // The branches beside main arrive on their own; the test below covers them.
+      const poller = new GitPoller(dir, (e) => e.type !== 'git.branches' && events.push(e), () => undefined, 60_000);
       await poller.poll();
       expect(events).toEqual([{ type: 'git', branch: 'main', repo: dir.split(/[\\/]/).pop(), changes: 1, staged: 0, ahead: 0, behind: 0, files: ['b.txt'] }]);
 
@@ -298,6 +299,48 @@ describe.skipIf(!hasGit)('GitPoller', () => {
       await poller.poll();
       expect(events.at(-1)).toEqual({ type: 'git.branch', branch: 'feature' });
       poller.stop();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('lists the branches with commits main lacks, and the checkout', async () => {
+    const dir = temp('branches');
+    const git = (...args: string[]) => execFileSync('git', args, { cwd: dir, stdio: 'ignore' });
+    const commit = (file: string) => {
+      writeFileSync(join(dir, file), file);
+      git('add', '.');
+      git('commit', '-qm', file);
+    };
+    try {
+      git('init', '-q', '-b', 'main');
+      git('config', 'user.email', 'dev@example.com');
+      git('config', 'user.name', 'Dev');
+      commit('a.txt');
+      git('branch', 'merged');
+      git('checkout', '-qb', 'feature');
+      commit('b.txt');
+      commit('c.txt');
+      git('checkout', '-q', 'main');
+      commit('d.txt');
+      git('checkout', '-q', 'merged');
+
+      const events: DevEventBody[] = [];
+      const poller = new GitPoller(dir, (e) => events.push(e), () => undefined, 60_000);
+      await poller.poll();
+      await poller.branchesIdle();
+      poller.stop();
+      // No origin here: main itself is the base, and nothing has a GitHub link.
+      expect(events.filter((e) => e.type === 'git.branches')).toEqual([
+        {
+          type: 'git.branches',
+          base: 'main',
+          items: [
+            { name: 'merged', ahead: 0, behind: 1, current: true, link: false },
+            { name: 'feature', ahead: 2, behind: 1, current: false, link: false },
+          ],
+        },
+      ]);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

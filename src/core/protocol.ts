@@ -1,6 +1,6 @@
 import type { ActivityState } from './activity';
-import { ALERT_KINDS, type AlertKind, type Attention } from './attention';
-import type { AgentAsk, AgentStatus, AgentRole, ProcessKind, PullRequestFeedState } from './events';
+import { ALERT_KINDS, severityOf, type AlertKind, type AlertSeverity, type Attention } from './attention';
+import type { AgentAsk, AgentStatus, AgentRole, BranchRef, ProcessKind, PullRequestFeedState } from './events';
 import type { LocationInfo, ScopeId, ScopeInfo } from './journey';
 import type { Moment } from './moments';
 import { isStationId, normalizeDeck, type DeckPrefs, type MusicState, type RadioStation } from './music';
@@ -150,6 +150,16 @@ export interface TourSnapshot {
     agents: AgentSnapshot[];
     /** The repository's open pull requests, once the user connects GitHub. */
     pullRequests: { state: PullRequestFeedState; items: PullRequestSnapshot[]; fetchedAt?: number };
+    /** The local branches with commits main lacks, and the one checked out, from Git. */
+    branches?: {
+      /** What they're compared with, e.g. `main`. */
+      base: string;
+      count: number;
+      /** How many have commits main lacks: the checkout may have none. */
+      unmerged: number;
+      /** Hidden in streaming mode; the counts still show. */
+      items?: BranchRef[];
+    };
     history: Array<{ at: number; kind: HistoryKind; label: string; tone: 'good' | 'bad' | 'neutral' | 'agent' }>;
     session: SessionCounters & { filesChanged: number; startedAt: number };
   };
@@ -241,14 +251,47 @@ export interface ClientPrefs {
   batteryGauge: boolean;
   /** Show a gauge for the files changed and not yet committed. */
   changesGauge: boolean;
-  /** Which kinds of alert this display lists in its Alerts tab and lights its bells for. */
-  hudAlerts: Record<AlertKind, boolean>;
-  /** Uncommitted files light the bells blue. */
-  alertOnChanges: boolean;
+  /** The bell colour each thing in the Alerts tab lights on this display. Off hides an alert; files, PRs and branches still show. */
+  bells: Record<BellItem, BellTone>;
   captureIncludeProject: boolean;
   audio: AudioPrefs;
   /** The car radio's band, station, tone controls and presets. */
   deck: DeckPrefs;
+}
+
+/** Everything in the Alerts tab that can light the bells: each kind of alert, then the changed files, open PRs and branches. */
+export const BELL_ITEMS = [...ALERT_KINDS, 'changes', 'openPrs', 'branches'] as const;
+export type BellItem = (typeof BELL_ITEMS)[number];
+/** The bell colour a thing lights: red (blocking), orange (moderate), blue (general), or none. */
+export type BellTone = AlertSeverity | 'off';
+const BELL_TONES: readonly BellTone[] = ['off', 'general', 'moderate', 'blocking'];
+
+/**
+ * Each alert lights its own colour, uncommitted files blue. Open PRs and
+ * branches ahead of main are nearly always there, so they light nothing
+ * until the driver picks a colour for them.
+ */
+export const DEFAULT_BELLS: Readonly<Record<BellItem, BellTone>> = {
+  ...(Object.fromEntries(ALERT_KINDS.map((k) => [k, severityOf(k)])) as Record<AlertKind, BellTone>),
+  changes: 'general',
+  openPrs: 'off',
+  branches: 'off',
+};
+
+/** Before the bell colours, each kind of alert had an on/off switch, and changed files one more. */
+interface LegacyAlertPrefs {
+  hudAlerts?: Partial<Record<AlertKind, boolean>>;
+  alertOnChanges?: boolean;
+}
+
+/** Saved bell colours over the defaults; a display's prefs are untrusted, so anything else keeps its default. */
+function mergeBells(saved: (Partial<ClientPrefs> & LegacyAlertPrefs) | undefined): Record<BellItem, BellTone> {
+  const bells = { ...DEFAULT_BELLS };
+  for (const k of ALERT_KINDS) if (saved?.hudAlerts?.[k] === false) bells[k] = 'off';
+  if (saved?.alertOnChanges === false) bells.changes = 'off';
+  const chosen: Record<string, unknown> = saved?.bells && typeof saved.bells === 'object' ? saved.bells : {};
+  for (const k of BELL_ITEMS) if (BELL_TONES.includes(chosen[k] as BellTone)) bells[k] = chosen[k] as BellTone;
+  return bells;
 }
 
 export const DEFAULT_PREFS: ClientPrefs = {
@@ -267,23 +310,22 @@ export const DEFAULT_PREFS: ClientPrefs = {
   cacheTimerWarn: 15,
   batteryGauge: true,
   changesGauge: true,
-  hudAlerts: Object.fromEntries(ALERT_KINDS.map((k) => [k, true])) as Record<AlertKind, boolean>,
-  alertOnChanges: true,
+  bells: { ...DEFAULT_BELLS },
   captureIncludeProject: false,
   audio: { enabled: false, master: 0.6, engine: 0.5, road: 0.5, wind: 0.4, weather: 0.6, ambience: 0.6, music: 0.35 },
   deck: normalizeDeck(undefined),
 };
 
-export function mergePrefs(saved: Partial<ClientPrefs> | undefined): ClientPrefs {
+export function mergePrefs(saved: (Partial<ClientPrefs> & LegacyAlertPrefs) | undefined): ClientPrefs {
   // Prefs saved before the battery became a stack of lights (they have no cache warnings yet) kept the old
   // dial's default, off: the lights take their own default, on.
-  const { batteryGauge, ...rest } = saved ?? {};
+  const { batteryGauge, hudAlerts: _hudAlerts, alertOnChanges: _alertOnChanges, ...rest } = saved ?? {};
   return {
     ...DEFAULT_PREFS,
     ...rest,
     ...(batteryGauge !== undefined && saved?.cacheHitWarn !== undefined ? { batteryGauge } : {}),
     audio: { ...DEFAULT_PREFS.audio, ...(saved?.audio ?? {}) },
-    hudAlerts: { ...DEFAULT_PREFS.hudAlerts, ...(saved?.hudAlerts ?? {}) },
+    bells: mergeBells(saved),
     deck: normalizeDeck({ ...DEFAULT_PREFS.deck, ...(saved?.deck ?? {}) }),
   };
 }
@@ -319,6 +361,8 @@ export type ClientCommand =
   | { type: 'openSourceControl' }
   | { type: 'openProblems' }
   | { type: 'openPullRequest'; number: number }
+  /** Open GitHub's comparison of this branch with main. */
+  | { type: 'openBranchCompare'; branch: string }
   | { type: 'connectGitHub' }
   | { type: 'savePrefs'; prefs: ClientPrefs }
   | { type: 'saveCapture'; dataUrl: string; fileName: string }
@@ -345,6 +389,11 @@ export const MOOD_LABELS: Record<Mood | 'anywhere' | 'surprise', string> = {
 const isStr = (v: unknown, max = 200): v is string => typeof v === 'string' && v.length <= max;
 const SCOPE_IDS = ['coffee-run', 'day-trip', 'scenic-drive', 'road-trip', 'expedition', 'free-drive'];
 
+/** A name Git would accept for a branch, and that can never be read as a command-line option. */
+export function isBranchName(name: unknown): name is string {
+  return typeof name === 'string' && name.length > 0 && name.length <= 255 && !name.startsWith('-') && !/[\s~^:?*[\\\x00-\x1f\x7f]|\.\.|@\{|\/\/|^\/|\/$|\.lock$|\.$/.test(name);
+}
+
 /** Validates a command from an untrusted display (e.g. a companion browser tab). */
 export function isClientCommand(raw: unknown): raw is ClientCommand {
   if (!raw || typeof raw !== 'object') return false;
@@ -367,6 +416,8 @@ export function isClientCommand(raw: unknown): raw is ClientCommand {
       return c.agentId === undefined || isStr(c.agentId, 120);
     case 'openPullRequest':
       return Number.isInteger(c.number) && (c.number as number) > 0;
+    case 'openBranchCompare':
+      return isBranchName(c.branch);
     case 'startJourney':
       return (
         isStr(c.packId, 64) &&

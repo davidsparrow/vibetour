@@ -148,7 +148,10 @@ test('the Alerts bell sits on the mirror glass and in the middle of its tab, and
   await expect(files).toHaveClass(/more-below/);
   await files.evaluate((el) => el.scrollTo(0, el.scrollHeight));
   await expect(files).not.toHaveClass(/more-below/);
-  await expect(page.locator('.alerts-list')).not.toHaveClass(/more-below/);
+  // The left column scrolls on its own too, with the open PRs and branches under Needs you.
+  const list = page.locator('.alerts-list');
+  await list.evaluate((el) => el.scrollTo(0, el.scrollHeight));
+  await expect(list).not.toHaveClass(/more-below/);
 });
 
 test('the PRs tab lists open pull requests, lights the ones on this branch and raises an alert', async ({ page }) => {
@@ -178,12 +181,66 @@ test('the PRs tab lists open pull requests, lights the ones on this branch and r
   const alert = page.getByRole('region', { name: 'Needs you' }).getByRole('button', { name: 'PR #42 · CI failing' });
   await expect(alert).toHaveClass(/alert-moderate/);
 
-  // Each kind of alert has its own switch on each screen.
+  // Each kind of alert has its own bell colour on each screen; Off hides it.
   await page.keyboard.press('s');
-  await page.getByLabel(/Pull requests/).uncheck();
+  await page.getByRole('group', { name: 'PRs that need you: bell colour' }).getByRole('button', { name: 'Off' }).click();
   await page.getByRole('button', { name: 'Done' }).click();
   await expect(alert).toBeHidden();
   await expect(page.locator('.alert-bell')).not.toHaveClass(/lit-/);
+  await page.evaluate(() => localStorage.removeItem('vibetour.prefs.demo'));
+});
+
+test('the Alerts tab lists open PRs and the branches beside main under what needs you', async ({ page }) => {
+  await page.goto('/?fresh&autopilot=0');
+  await bookFirstJourney(page);
+  await page.locator('.tab-alerts').click();
+  const prs = page.getByRole('region', { name: 'Open PRs' });
+  const branches = page.getByRole('region', { name: 'Branches' });
+  // Below Needs you, in the same column.
+  const needs = await page.getByRole('region', { name: 'Needs you' }).boundingBox();
+  expect((await prs.boundingBox())!.y).toBeGreaterThan(needs!.y);
+  expect((await branches.boundingBox())!.y).toBeGreaterThan((await prs.boundingBox())!.y);
+  await expect(prs).toContainText('Connect GitHub in the PRs tab');
+
+  // The checkout first, then the newest; each with how far it is behind and ahead of main.
+  await expect(branches.locator('h4')).toHaveText(/Branches vs main · 3/i);
+  const pills = branches.locator('.file-pill-branch');
+  await expect(pills.locator('.pill-text')).toHaveText(['feature/onboarding', 'feat/dark-mode', 'spike/offline-cache']);
+  await expect(pills.locator('.pill-counts')).toHaveText(['↓1 | ↑4', '↓12 | ↑7', '↓30 | ↑2']);
+  await expect(pills.nth(2)).toContainText('30 behind | 2 ahead of main');
+  await expect(pills.first()).toHaveAttribute('aria-label', /^feature\/onboarding, checked out here: 1 behind \| 4 ahead of main\./);
+  await expect(pills.first()).toHaveClass(/branch-current/);
+  await expect(pills.first().locator('.icon-branch')).toBeVisible();
+  // Never pushed, so there is nothing on GitHub to compare: not a button.
+  await expect(branches.getByRole('button')).toHaveCount(2);
+  await pills.nth(1).click();
+  await expect(page.locator('.toast')).toContainText('compares feat/dark-mode with main on GitHub');
+
+  // Open PRs once GitHub is connected, as the PRs tab orders them.
+  await page.getByRole('tab', { name: /PRs/ }).click();
+  await page.getByRole('button', { name: 'Connect GitHub' }).click();
+  await page.locator('.tab-alerts').click();
+  await expect(prs.locator('h4')).toHaveText(/Open PRs · 3/i);
+  await expect(prs.locator('.file-pill-pr')).toHaveText(['#42 Onboarding flow', '#41 Faster session refresh', '#39 Dark mode tokens']);
+  await expect(prs.locator('.file-pill-pr .icon-pr')).toHaveCount(3);
+  await prs.getByRole('button', { name: /#41/ }).click();
+  await expect(page.locator('.toast')).toContainText('opens PR #41 on GitHub');
+
+  // Open PRs and branches light nothing until the driver picks a colour.
+  await page.keyboard.press('s');
+  await page.getByRole('group', { name: 'PRs that need you: bell colour' }).getByRole('button', { name: 'Off' }).click();
+  await page.getByRole('button', { name: 'Done' }).click();
+  await expect(page.locator('.alert-bell')).not.toHaveClass(/lit-/);
+  await page.keyboard.press('s');
+  const openPrs = page.getByRole('group', { name: 'Open PRs: bell colour' });
+  await expect(openPrs.getByRole('button', { name: 'Off' })).toHaveAttribute('aria-pressed', 'true');
+  await openPrs.getByRole('button', { name: 'Blue' }).click();
+  await page.getByRole('button', { name: 'Done' }).click();
+  await expect(page.locator('.alert-bell')).toHaveClass(/lit-general/);
+  await page.keyboard.press('s');
+  await page.getByRole('group', { name: 'Branches ahead of main: bell colour' }).getByRole('button', { name: 'Red' }).click();
+  await page.getByRole('button', { name: 'Done' }).click();
+  await expect(page.locator('.alert-bell')).toHaveClass(/lit-blocking/);
   await page.evaluate(() => localStorage.removeItem('vibetour.prefs.demo'));
 });
 

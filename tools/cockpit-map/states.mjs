@@ -13,10 +13,15 @@ const TOP_BAR = [
   { sel: '.top-btn[aria-label="Passport"]', name: 'Passport', fed: 'Your trips, stamps and travel memories.', click: 'Opens your Passport. Key `P`.' },
   { sel: '.top-btn[aria-label="Capture my workplace"]', name: 'Capture my workplace', fed: 'The view and the dashboard as they are now.', click: 'Saves a picture, with private details left out. Key `C`.' },
   { sel: '.top-btn.sound-btn', name: 'Sound', fed: 'Your sound setting.', click: "Turns the tour's sound on or off: engine, road, weather and the Focus Mix. The radio has its own power and volume. Key `M`." },
-  { sel: '.top-btn[aria-label="Settings"]', name: 'Settings', fed: 'This screen’s settings.', click: 'Opens Settings: display, alerts, sound, accessibility and performance. Key `S`; `?` lists every key.' },
+  { sel: '.top-btn[aria-label="Settings"]', name: 'Settings', fed: 'This screen’s settings.', click: 'Opens Settings: display, alerts (a bell colour for each), sound, accessibility and performance. Key `S`; `?` lists every key.' },
 ];
 
-const BELL = { sel: '.alert-bell', name: 'Alerts bell', fed: 'The loudest alert: *red* when something stopped the car, *orange* when something needs you, *blue* for files not yet committed. Dark when there is nothing.', click: 'Opens the dashboard on the Alerts tab.' };
+const BELL = {
+  sel: '.alert-bell',
+  name: 'Alerts bell',
+  fed: 'The loudest colour lit. By default *red* when something stopped the car, *orange* when something needs you, *blue* for files not yet committed; open PRs and branches only once you pick them a colour in Settings › Alerts. Dark when there is nothing.',
+  click: 'Opens the dashboard on the Alerts tab.',
+};
 
 export const STATES = [
   {
@@ -215,7 +220,7 @@ export const STATES = [
       { sel: '.tab-prs', name: 'PRs tab', fed: 'The number of open PRs; amber when one of yours needs you.', click: 'Opens this list.' },
       { sel: '.pr-row.on-branch', name: 'On your branch', fed: 'A lit branch: the PR on the branch you are on, listed first.', click: 'Opens it on GitHub.' },
       { sel: '.pr-row .pr-ci', name: 'CI', fed: 'Its checks: passing, failing, running or none.', click: NONE },
-      { sel: '.pr-row.needs-you', name: 'Needs you', fed: 'Yours, with failing CI, a conflict or changes requested. It also lights the bells orange.', click: 'Opens it on GitHub.' },
+      { sel: '.pr-row.needs-you', name: 'Needs you', fed: 'Yours, with failing CI, a conflict or changes requested. It also lights the bells, orange by default.', click: 'Opens it on GitHub.' },
       { sel: '.pr-row:not(.on-branch):not(.needs-you)', name: 'Pull request', fed: 'GitHub: number, title, how far ahead and behind, when and by whom it was opened, draft, conflict, review.', click: 'Opens it on GitHub.' },
     ],
   },
@@ -271,7 +276,7 @@ export const STATES = [
     short: 'Alerts',
     group: 'tab',
     title: 'Alerts',
-    intro: 'Everything that needs you on the left; the file you are in and the files not yet committed on the right. Each side scrolls on its own. The mirror’s bell opens this tab.',
+    intro: 'Everything that needs you on the left, then the open PRs and the branches beside main; the file you are in and the files not yet committed on the right. Each side scrolls on its own. The mirror’s bell opens this tab.',
     async setup(page) {
       await depart(page);
       await demo(page, 'Agent edits', 'Agent edits', 'Agent edits', 'Agent asks');
@@ -282,9 +287,52 @@ export const STATES = [
     },
     items: [
       { sel: '.tab-alerts', name: 'Alerts tab', fed: 'Lit like the mirror’s bell.', click: 'Opens this tab.' },
-      { sel: '.alerts-list .alert', name: 'Needs you', fed: 'One pill per alert while it holds, most urgent first: questions, plans, approvals, stops, your turn, PRs. Each kind has a switch in Settings › Alerts.', click: "Takes you where you act: the agent's terminal (else the editor), the PR on GitHub, or Problems." },
+      { sel: '.alerts-list .alert', name: 'Needs you', fed: 'One pill per alert while it holds, most urgent first: questions, plans, approvals, stops, your turn, PRs. Each kind has a bell colour in Settings › Alerts, and the pill shows it; *Off* hides it.', click: "Takes you where you act: the agent's terminal (else the editor), the PR on GitHub, or Problems." },
       { sel: '.file-pill.file-active', name: 'Editing', fed: 'The file open in your editor.', click: 'Opens it in VS Code.' },
-      { sel: '.alerts-files .file-pills', name: 'Changed', fed: 'Files changed and not committed, from Git. Names are hidden in Streaming Mode.', click: 'Opens the file in VS Code.' },
+      { sel: '.alerts-files .file-pills', name: 'Changed', fed: 'Files changed and not committed, from Git. Names are hidden in Streaming Mode. They light the bells blue by default.', click: 'Opens the file in VS Code.' },
+    ],
+  },
+  {
+    id: 'alerts-repo',
+    close: '.screen',
+    short: 'Alerts: PRs, branches',
+    group: 'tab',
+    title: 'Alerts: open PRs and branches',
+    intro: 'Further down the left side, under what needs you: the open PRs in green and the branches beside main in violet, each with its icon, so neither reads as a file. They light the bells only in a colour you pick for them in Settings › Alerts; both are *Off* to start.',
+    async setup(page) {
+      await depart(page);
+      await mode(page, 'd');
+      await tab(page, 'prs');
+      await page.locator('.prs .btn-primary').click().catch(() => {});
+      await page.locator('.pr-row').first().waitFor({ timeout: 10_000 }).catch(() => {});
+      await tab(page, 'alerts');
+      await settle(page, 600);
+      // Scroll the left side so Open PRs is at its top.
+      await page.locator('.alerts-list').evaluate((list) => {
+        const group = list.querySelector('[aria-label="Open PRs"]');
+        if (group) list.scrollTop += group.getBoundingClientRect().top - list.getBoundingClientRect().top;
+      });
+      await settle(page, 400);
+    },
+    items: [
+      {
+        sel: '.alerts-group[aria-label="Open PRs"] .file-pills',
+        name: 'Open PRs',
+        fed: "GitHub, once you connect it: the repository's open pull requests, in the PRs tab's order. Titles are hidden in Streaming Mode.",
+        click: 'Opens it on GitHub.',
+      },
+      {
+        sel: '.file-pill-branch.branch-current',
+        name: 'Your branch',
+        fed: 'Git: the branch checked out here, in bold and listed first, with how many commits it is behind main (↓) and ahead of it (↑).',
+        click: "Opens GitHub's comparison with main, once the branch is pushed.",
+      },
+      {
+        sel: '.file-pill-branch:not(.branch-current)',
+        name: 'Branch ahead of main',
+        fed: 'Git: each local branch with commits main lacks, newest first, as *↓behind | ↑ahead*. Names are hidden in Streaming Mode.',
+        click: "Opens GitHub's comparison with main. A branch that was never pushed isn't a button.",
+      },
     ],
   },
   {

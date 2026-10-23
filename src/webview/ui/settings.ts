@@ -1,6 +1,5 @@
-import { ALERT_KINDS } from '../../core/attention';
-import type { AudioPrefs, ClientPrefs, DisplayMode } from '../../core/protocol';
-import { ALERT_LABELS } from './alerts';
+import { BELL_ITEMS, type AudioPrefs, type BellItem, type BellTone, type ClientPrefs, type DisplayMode } from '../../core/protocol';
+import { BELL_LABELS } from './alerts';
 import { batteryHiddenReason } from './battery';
 import type { AppContext } from './context';
 import { clear, h } from './dom';
@@ -48,6 +47,23 @@ export class SettingsPanel {
         h('span', {}, h('strong', {}, label)),
         h('div', { class: 'seg' }, ...options.map(([v, l]) => h('button', { class: v === value ? 'on' : '', 'aria-pressed': v === value ? 'true' : 'false', onclick: () => set((pr) => change(pr, v)) }, l))),
       );
+    // One bell colour per thing in the Alerts tab, each button lit in its own colour when picked.
+    const tones: Array<[BellTone, string]> = [['off', 'Off'], ['general', 'Blue'], ['moderate', 'Orange'], ['blocking', 'Red']];
+    const toneRow = (item: BellItem) => {
+      const { label, hint } = BELL_LABELS[item];
+      return h(
+        'div',
+        { class: 'set-row seg-row tone-row', role: 'group', 'aria-label': `${label}: bell colour` },
+        h('span', {}, h('strong', {}, label), h('em', {}, hint)),
+        h(
+          'div',
+          { class: 'seg' },
+          ...tones.map(([v, l]) =>
+            h('button', { class: `tone-${v}${v === p.bells[item] ? ' on' : ''}`, 'aria-pressed': v === p.bells[item] ? 'true' : 'false', onclick: () => set((pr) => (pr.bells = { ...pr.bells, [item]: v })) }, l),
+          ),
+        ),
+      );
+    };
     const st = this.stats();
     const host = this.ctx.host;
 
@@ -82,12 +98,9 @@ export class SettingsPanel {
           h(
             'p',
             { class: 'small muted' },
-            'What the Alerts tab lists and what lights its bells, on this screen: red when something stopped the car, orange when something needs you, blue for uncommitted files. The alert that stopped the car always shows on the stop card.',
+            'The bell colour each thing in the Alerts tab lights, on this screen. Off hides an alert from the tab; changed files, open PRs and branches always show there, and Off only keeps the bells dark for them. Each bell shows the loudest colour lit. The alert that stopped the car always shows on the stop card, in its own colour.',
           ),
-          ...ALERT_KINDS.map((kind) =>
-            toggleRow(ALERT_LABELS[kind].label, ALERT_LABELS[kind].hint, p.hudAlerts[kind], (pr, v) => (pr.hudAlerts = { ...pr.hudAlerts, [kind]: v })),
-          ),
-          toggleRow('Changed files', 'Uncommitted files light the bells blue', p.alertOnChanges, (pr, v) => (pr.alertOnChanges = v)),
+          ...BELL_ITEMS.map(toneRow),
         ),
         h(
           'section',

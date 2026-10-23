@@ -21,6 +21,12 @@ export function parseGitHubRemote(url: string | undefined): GitHubRepo | undefin
   return m ? { owner: m[1], name: m[2] } : undefined;
 }
 
+/** GitHub's comparison of a branch with its base: the commits and changes it would bring. */
+export function compareUrl(repo: GitHubRepo, base: string, branch: string): string {
+  const path = (ref: string) => ref.split('/').map(encodeURIComponent).join('/');
+  return `https://github.com/${repo.owner}/${repo.name}/compare/${path(base)}...${path(branch)}`;
+}
+
 export class GitHubError extends Error {
   constructor(
     message: string,
