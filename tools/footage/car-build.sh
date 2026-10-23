@@ -36,6 +36,7 @@ cv2.imwrite(out, (cv2.GaussianBlur(side, (0, 0), 0.8) * 255).astype(np.uint8))
 print(f"side window: {int(side.sum())} px")
 PY
 # Wheel and hands: where the two stills differ, connected to the wheel (wheel.py), so the hands and forearms are whole.
+[ -f "$C/hands-mask.png" ] && export HANDS="$C/hands-mask.png"   # gloved hands (handpaste.py): the matte uses this mask, not a skin test
 CLUSTER="$CLUSTER" "$V" "$T/wheel.py" "$C/cockpit.png" "$C/cabin.png" "$HX" "$HY" "$WR" "$W/wheel-mask.png"
 ffmpeg -v error -y -i "$C/cockpit.png" -i "$W/wheel-mask.png" -filter_complex "[0:v]format=rgba,pad=iw+2:ih+2:1:1:color=black,chromakey=$KEY,crop=iw-2:ih-2:1:1,despill=type=green:mix=0.6:expand=0,format=rgba,alphaextract,format=gray[ca];[1:v]format=gray[m];[ca][m]blend=all_mode=multiply,format=gray[am];[0:v]format=rgba[c2];[c2][am]alphamerge" -frames:v 1 "$C/wheel.png"
 # Dust, smudges and wiper arcs on the windshield, lit in the composite by whatever bright light is behind the glass.

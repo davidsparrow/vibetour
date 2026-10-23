@@ -20,6 +20,9 @@ disc = (xx - hx) ** 2 + (yy - hy) ** 2 < r * r
 ycc = cv2.cvtColor(a, cv2.COLOR_BGR2YCrCb)
 skin = cv2.inRange(ycc, (40, 133, 77), (255, 180, 135))
 skin = cv2.dilate(cv2.morphologyEx(skin, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8)), np.ones((7, 7), np.uint8)) > 0
+# Gloved hands and sleeves are not skin-coloured: HANDS=<mask.png> (from handpaste.py) says where they are instead.
+if os.environ.get("HANDS"):
+    skin = cv2.dilate(cv2.imread(os.environ["HANDS"], cv2.IMREAD_GRAYSCALE), np.ones((7, 7), np.uint8)) > 64
 m = np.where(disc, d > 7, (d > 12) & skin).astype(np.uint8)
 # Inside the instrument cluster (CLUSTER=x:y:w:h from car.json) the cabin edit re-draws the dials a little differently,
 # and a bezel that differs by a few units would turn with the wheel: there only clear differences count for bright

@@ -34,11 +34,18 @@ skill, read the standard's Review checklist, `git status`, `git fetch`, check bo
 hold: prove nothing else changed (`regress.py`, baseline `review/fx-24-california-coast-full-trip-v7.inputs.json`), `qa.py` on
 every clip, `joins.py` for every join, the 1 fps strip, and list every flaw, old and new, before showing a build.
 
-**Still open from the fx-24 brief:** e) the driving gloves (OpenRouter is topped up now, 10.49 on 21 October): one or two image
-edits of `cars/grand-tourer/cockpit.png` ("dark brown leather driving gloves on both hands, covering all skin to the cuff; same
-grip, same wheel, everything else pixel for pixel"; a plain dark cuff), two `still.sh` mocks (a cruise plate, the overlook) shown
-to the user before any rebuild, then `car-build.sh` with `wheel.py` taught the glove colour (its skin test, a YCrCb range, keeps
-the forearms; add a `GLOVES=1` range or test "differs from the cabin and is connected to the wheel"). Keep the originals in `cars-src`.
+**e) The driving gloves: mocks made (23 October), waiting for the user's pick.** Two image edits of `cars/grand-tourer/cockpit.png`
+(dark leather driving gloves and plain charcoal knit sleeves, so no skin shows; `cars-src/grand-tourer/gloves/`, prompt in
+`gloves.prompt.txt`, 0.20): take a has gloves with a wrist strap and knuckle cut-outs, take b plain gloves. New tool
+`tools/footage/handpaste.py` pastes only the hands and arms of the edit into the still (an edit re-renders dial numerals and
+wood grain elsewhere) and writes `hands-mask.png`; `car-build.sh` hands that to `wheel.py` as `HANDS` in place of its skin test.
+Trial cars built in `cars-src/grand-tourer/gloves/car-a` and `car-b`; mocks `review/fx-24-08-gloves-{a,b}-cruise.png` (wheel
+turned 8 degrees, so the matte is proven) and `fx-24-09-gloves-{a,b}-overlook.png`. When the user picks one: copy the current
+`cars/grand-tourer/cockpit.png`, `wheel.png` to `cars-src/grand-tourer/pre-gloves/`, then copy the chosen car's `cockpit.png`,
+`hands-mask.png` and `wheel.png` into `cars/grand-tourer/`, add a "gloves" line to `car.json`'s `source`, rebuild the tour (the
+regression will show every clip changed in the cockpit region only; compare the windshield as usual) and commit the car. Also
+redo the 2K source later for the hi-res release (`cars-src/grand-tourer/cockpit-2k.png` lacks the later edits: the mirror move,
+the screen paste, the door mirror paint; the gloves edit on it would need the same region pastes).
 
 **The sign reading time, still short (the honest state):** the three sign plates (freeway-1, freeway-2, Bixby) drive at half the
 pack's pace, so paced they are 6 to 8 s and their signs pass in 1 to 3 s. Two kinds of retake failed on 21 October (below). The
