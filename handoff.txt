@@ -28,32 +28,24 @@ looks for them, and don't call for attention.
 
 ## Your job in the next session: the user's review of fx-24, then step 2 (the IDE test)
 
-Read "fx-24: done" below first. The user reviews `review/fx-24-california-coast-full-trip-v7.mp4` and sends a list. Work on
+Read "fx-24: done" below first. The user reviews `review/fx-24-california-coast-full-trip-v8.mp4` (v7 through the gloved car, 27 October) and sends a list. Work on
 `footage/fx-24` (rebased onto main after PR #19; open its PR when the user says). Before starting: load the `journey-footage`
 skill, read the standard's Review checklist, `git status`, `git fetch`, check both budgets (Money, below). The rules of 18 October
-hold: prove nothing else changed (`regress.py`, baseline `review/fx-24-california-coast-full-trip-v7.inputs.json`), `qa.py` on
+hold: prove nothing else changed (`regress.py`, baseline `review/fx-24-california-coast-full-trip-v8.inputs.json`), `qa.py` on
 every clip, `joins.py` for every join, the 1 fps strip, and list every flaw, old and new, before showing a build.
 
-**e) Two wheel options, mocks made, waiting for the user's pick (asked 27 October: gloved hands or no hands, two takes of
-each).** No hands: two image edits of `cars/grand-tourer/cockpit.png` that remove the hands and forearms and paint the rim at 9
-and 3 and the lap (`cars-src/grand-tourer/no-hands/`, prompt in `no-hands.prompt.txt`, 0.20); the two takes are near identical
-and both clean. Trial cars `no-hands/car-a` and `car-b` (built with `handpaste.py`, which pastes only the old hands region, then
-an all-black `hands-mask.png` so `wheel.py` takes nothing outside the disc: the skin test had let a strip of repainted lap trail
-off the rim); mocks `review/fx-24-10-nohands-{a,b}-cruise.png` (wheel turned 8 degrees) and `fx-24-11-nohands-{a,b}-overlook.png`.
-The plan if both are wanted: two car folders, `cars/grand-tourer` (gloves) and `cars/grand-tourer-no-hands`, sharing everything
-but `cockpit.png`, `hands-mask.png`, `wheel.png` and a `source` line; `CAR=` picks one at build time (the app reads no cars yet);
-the README's car table lists both; the user says which is the default for the fx-24 rebuild. The gloves, as of 23 October: Two image edits of `cars/grand-tourer/cockpit.png`
-(dark leather driving gloves and plain charcoal knit sleeves, so no skin shows; `cars-src/grand-tourer/gloves/`, prompt in
-`gloves.prompt.txt`, 0.20): take a has gloves with a wrist strap and knuckle cut-outs, take b plain gloves. New tool
-`tools/footage/handpaste.py` pastes only the hands and arms of the edit into the still (an edit re-renders dial numerals and
-wood grain elsewhere) and writes `hands-mask.png`; `car-build.sh` hands that to `wheel.py` as `HANDS` in place of its skin test.
-Trial cars built in `cars-src/grand-tourer/gloves/car-a` and `car-b`; mocks `review/fx-24-08-gloves-{a,b}-cruise.png` (wheel
-turned 8 degrees, so the matte is proven) and `fx-24-09-gloves-{a,b}-overlook.png`. When the user picks one: copy the current
-`cars/grand-tourer/cockpit.png`, `wheel.png` to `cars-src/grand-tourer/pre-gloves/`, then copy the chosen car's `cockpit.png`,
-`hands-mask.png` and `wheel.png` into `cars/grand-tourer/`, add a "gloves" line to `car.json`'s `source`, rebuild the tour (the
-regression will show every clip changed in the cockpit region only; compare the windshield as usual) and commit the car. Also
-redo the 2K source later for the hi-res release (`cars-src/grand-tourer/cockpit-2k.png` lacks the later edits: the mirror move,
-the screen paste, the door mirror paint; the gloves edit on it would need the same region pastes).
+**e) Done, 27 October: two wheel options, the gloves the default.** The user picked the plain gloves (take b; the cut-out
+gloves showed skin) and no-hands take b, with the gloved car as the default tour. `cars/grand-tourer` now has the gloved
+`cockpit.png`, `hands-mask.png` and `wheel.png` (the bare-handed still and matte are in `cars-src/grand-tourer/pre-gloves/`);
+`cars/grand-tourer-no-hands` is a copy with the hands edited out and an all-black `hands-mask.png` (wheel.py: no hands, disc
+only); `CAR=cars/grand-tourer-no-hands` picks it; both have a `source.gloves` note and a row in `cars/README.md`. The tour was
+rebuilt as `review/fx-24-california-coast-full-trip-v8.mp4` (14 min, same 37 clips, 5 min 55 s); `fx-24-v8-regression.txt`
+against v7: no clip changed, 37 windshields compared, worst 2.1 of 255, ALL OK; the QA table is v7's (the input clips are the
+same). The no-hands car has not been through a full build, only the two mocks (`review/fx-24-10-nohands-b-cruise.png`,
+`fx-24-11-nohands-b-overlook.png`); build it with `CAR=` when a no-hands tour is wanted. Sources: `cars-src/grand-tourer/gloves/`
+and `no-hands/` (the edits, prompts, trial cars `car-a`, `car-b`, 0.40 in all). Still to do for the hi-res release: redo the
+2K source (`cars-src/grand-tourer/cockpit-2k.png` lacks the mirror move, the screen paste, the door mirror paint and now the
+gloves; the no-hands car needs the same at 2K).
 
 **The sign reading time, still short (the honest state):** the three sign plates (freeway-1, freeway-2, Bixby) drive at half the
 pack's pace, so paced they are 6 to 8 s and their signs pass in 1 to 3 s. Two kinds of retake failed on 21 October (below). The

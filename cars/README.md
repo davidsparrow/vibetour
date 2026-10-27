@@ -6,7 +6,8 @@ VibeTour can't play video packs yet, so nothing in the app reads this folder. To
 
 | Car | Look |
 | --- | --- |
-| [`grand-tourer`](grand-tourer/car.json) | Cognac and ivory nappa leather with contrast stitching, polished walnut burl, knurled metal, a wood-and-leather wheel, a hooded twin-dial cluster and a tall screen in the centre of the dash for the radio. A slim rear-view mirror hangs from the top edge of the frame, so the view is mostly view. The default car. |
+| [`grand-tourer`](grand-tourer/car.json) | Cognac and ivory nappa leather with contrast stitching, polished walnut burl, knurled metal, a wood-and-leather wheel, a hooded twin-dial cluster and a tall screen in the centre of the dash for the radio. A slim rear-view mirror hangs from the top edge of the frame, so the view is mostly view. The default car. Since 27 October the driver wears dark leather driving gloves and charcoal sleeves, so no skin shows. |
+| [`grand-tourer-no-hands`](grand-tourer-no-hands/car.json) | The same car with nobody at the wheel: the hands and forearms are edited out, the rim is whole. Pick it with `CAR=cars/grand-tourer-no-hands`. |
 | [`touring-sedan`](touring-sedan/car.json) | Tan saddle leather, open-pore walnut, brushed aluminium and a backlit three-dial cluster. The first car, from the October 2026 bake-off; its mirror console covers a large part of the view. |
 
 ## What a car folder holds
