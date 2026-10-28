@@ -26,6 +26,37 @@ on the windshield while the car just drives. Speak up when input is needed (the 
 says why, the bell lights) and when a phase ends (your turn, arrived, refuel). Dials and tabs are there when someone
 looks for them, and don't call for attention.
 
+## IN PROGRESS, 27-28 October: fx-24 round 3 (the user's v8 review), build v9 running
+
+The user's v8 list (27 Oct) and what was done for each. The build `review/fx-24-california-coast-full-trip-v9.mp4` was started
+28 Oct (`build_trip.sh`, log `review/fx-24-v9-build.log`; about 45 min: every plate is re-paced with minterpolate, then the
+14 min composite). If it is not there, run it again (the paced plates in `plates-v1/paced/` are kept and reused). Then:
+`regress.py` against v8 with EXPECT = every moving clip (all were re-paced) so only the holds and the gas approach are compared
+frame for frame; `qa.py` over the new inputs; the speed chart (`buildflow.py`, in the session scratchpad, copied below if lost:
+it runs pace.py's measure over the build's windshield band 0.50:0.59 and draws seconds vs speed with the joins ticked; TOP=6)
+for v9 beside `review/fx-24-12-v8-flow-per-second.png`; 4 fps strips at every join; the 1 fps strip; a full watch. Then commit
+(tools and cars are in git; the pack scripts are not) and report with the flaw list.
+a) Door mirror: bright frozen reflection (the housing painted across its glass on 18 Oct). DONE: its keyed glass is back in
+   `cockpit.png`/`cabin.png` of both cars (from `cars-src/grand-tourer/*-1200-mirror-glass.png`, only the key inside the side
+   box) and `composite.sh` draws the same dark auto-dimmed gradient in the side box as in the rear-view. Mock
+   `review/fx-24-13-door-mirror-dark.png`. Trial copies in `cars-src/grand-tourer/mirror-dark/`.
+b/c/e and the "cruise control" note: the car sped up and slowed down all tour. DIAGNOSED and REBUILT: pace.py's measure was the
+   band's plain mean of the optical flow, which depends on where texture is; plates with equal means ran at true speeds 2.5x
+   apart (freeway 8, carmel-golf 21). pace.py now measures the forward speed normalised for the ground's geometry (flow at row y
+   divided by (y - horizon)^2, median over textured pixels), target 17 (`build_trip.sh` pins the default: it was 3.5 and the
+   first v9 attempt slowed every plate to 0.35x before this was seen), SMOOTH 36, and every retimed plate is motion-interpolated
+   (sped-up plates picked from source frames alone juddered). `review/fx-24-12-v8-flow-per-second.png` is v8 by the new measure.
+   The dissolves (1 s) still read as a hiccup at a join; untouched this round.
+g) Hurricane Point sign stood far behind the Vista Point sign and read as a board poking up beside it. DONE: `weather/
+   wipe_far_sign.py` paints it out along a predicted track (frames 40-113, fading back in) and `fix_weather.sh` runs it; sign.py
+   gained ERASE_UNTIL (paint a tracked sign out). Old clip kept as `rain-descent-1-fixed-v1.mp4` and `-v2-unwiped.mp4`.
+h) Point Sur sign shaky, two boards coming apart (four chained repaint passes slipping). DONE: one pass from frame 96 only
+   (`signs/fix_signs.sh`); the old clip is `pointsur-sign-far-fixed-v1.mp4`.
+i) Arrival hold parked "below ground": DONE: `stops-arrival/v5`: an edit of arrival-v4b raising the camera about 40 cm (two takes
+   0.2, v5a used; `review/fx-24-14-arrival-v5{a,b}-through-cockpit.png`) and a Seedance hold from it (0.91, QA pass, heads
+   +11.8%). The user also says the cruise plates overall feel too high ("a truck"): NOT addressed; it would mean remaking plates.
+d, f) praise (mist, fog). Costs this round: 0.2 + 0.2 + 0.91 = 1.31 (costs.log). OpenRouter after: about 5.1 by the log.
+
 ## Your job in the next session: the user's review of fx-24, then step 2 (the IDE test)
 
 Read "fx-24: done" below first. The user reviews `review/fx-24-california-coast-full-trip-v8.mp4` (v7 through the gloved car, 27 October) and sends a list. Work on

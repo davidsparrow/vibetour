@@ -29,7 +29,9 @@ stands in the last frame, so the next clip can start it there (run a clip revers
 
 TRACK=colour follows a plain board (a shop's blank sign board, which gives a template nothing to hold) as the patch of
 its own colour, from the start frame on; GROW=<factor> paints the face that much bigger, so a slip never shows the
-model's board beside it.
+model's board beside it. ERASE_UNTIL=<frame> paints the sign out (filled from its surroundings, post and all) instead of
+redrawing it on the frames before that one, -1 on every frame: for a far sign that stands in front of a nearer one until
+the nearer one has passed, or a repaint that will not sit still.
 
 KIND picks the sign and SIGN sets its text (lines joined by ";"):
   distance  Caltrans green, "place|miles" lines (the default: "Big Sur|19;San Simeon|85")
@@ -613,6 +615,26 @@ def smooth(quads, n):
     return out
 
 
+ERASE_UNTIL = int(os.environ.get("ERASE_UNTIL", 0))   # frames before this get the sign painted out instead (ERASE_UNTIL=-1: all)
+if ERASE_UNTIL < 0:
+    ERASE_UNTIL = 10 ** 9
+
+
+def erase(f, q):
+    """Paint the sign out: its face (grown a quarter) and the post below it are filled from their surroundings. For a
+    far sign that would stand in front of a nearer one, or a repaint that will not sit still; while it is small the fill
+    is invisible, so erase a sign that grows large only until it matters (ERASE_UNTIL)."""
+    H, W = f.shape[:2]
+    q = np.float32(q); c = q.mean(0); big = (q - c) * 1.25 + c
+    mask = np.zeros((H, W), np.uint8)
+    cv2.fillPoly(mask, [np.int32(np.round(big))], 255)
+    w = float(np.ptp(q[:, 0])); h = float(np.ptp(q[:, 1]))
+    x0, x1 = int(c[0] - 0.2 * w), int(c[0] + 0.2 * w)
+    cv2.rectangle(mask, (max(x0, 0), int(q[:, 1].max())), (min(x1, W - 1), min(int(q[:, 1].max() + 1.3 * h), H - 1)), 255, -1)
+    mask = cv2.dilate(mask, np.ones((3, 3), np.uint8))
+    return cv2.inpaint(f, mask, 5, cv2.INPAINT_TELEA)
+
+
 def fix(src, out, box=None, start=0, first=0, last=None):
     fr, fps = frames(src)
     wr, n, done = Writer(out, fps), 0, 0
@@ -712,7 +734,7 @@ def fix(src, out, box=None, start=0, first=0, last=None):
                 if os.environ.get("DEBUG"):
                     print(k, np.round(q.mean(0)).tolist(), w, h)
                 if 4 <= w < W0 and 2 <= h < H0:
-                    f = draw(f, q, w, h, gamut)
+                    f = erase(f, q) if k < ERASE_UNTIL else draw(f, q, w, h, gamut)
                     done += 1
             wr.write(f)
     wr.close()

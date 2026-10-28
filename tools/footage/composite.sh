@@ -80,13 +80,15 @@ if [ -n "$FLARE" ]; then EXTRA="$EXTRA -i $FLARE"; FL=$N; N=$((N+1)); FLARE_FC="
 # The mirrors (18 Oct 2026): no generated view in any mirror. The plates only look forward at a road that doesn't exist, so
 # there is nothing true to show behind, and the user agreed nobody will miss it. The rear-view glass is dark auto-dimmed
 # glass: a blue-grey tint with a soft vertical gradient and a faint sky sheen along the top, darker with the cabin light at
-# night; the Alerts bell goes on it in the app. The door mirror's glass is gone from the car still (housing only), so its box
-# in car.json keys nothing. FEED=none (session.sh's default) draws that; a feed file (mirrorfeed.py) still works for a car that wants one.
+# night; the Alerts bell goes on it in the app. The door mirror's glass gets the same dark glass (27 Oct 2026: the housing
+# painted across it read as a bright, frozen reflection), where the car still keys it. FEED=none (session.sh's default) draws that; a feed file (mirrorfeed.py) still works for a car that wants one.
 if [ -z "$FEED" ] || [ "$FEED" = "none" ]; then
   FEEDIN="-f lavfi -i color=c=black:s=16x16:d=1"; MG=$(python3 -c "print(round(0.5 + 0.5 * $CABIN, 3))")
   MIRROR_FC="gradients=s=${RW}x${RH}:c0=0x3a4452:c1=0x262c36:c2=0x141820:nb_colors=3:x0=0:y0=0:x1=0:y1=${RH}:d=${T}:r=24,format=rgb24,lutrgb=r=val*${MG}:g=val*${MG}:b=val*${MG}[rear];
+gradients=s=${SW}x${SH}:c0=0x3a4452:c1=0x262c36:c2=0x141820:nb_colors=3:x0=0:y0=0:x1=0:y1=${SH}:d=${T}:r=24,format=rgb24,lutrgb=r=val*${MG}:g=val*${MG}:b=val*${MG}[side];
 color=c=black:s=1200x896:d=${T},format=rgb24[cv];
-[cv][rear]overlay=${RX}:${RY}:format=auto,format=rgb24[mirrors];"
+[cv][rear]overlay=${RX}:${RY}:format=auto[cv1];
+[cv1][side]overlay=${SX}:${SY}:format=auto,format=rgb24[mirrors];"
 else
   FEEDIN="-i $FEED"
   MIRROR_FC="[1:v]scale=320:180,setpts=PTS-STARTPTS,split=2[f1][f2];
