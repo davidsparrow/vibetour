@@ -26,16 +26,21 @@ on the windshield while the car just drives. Speak up when input is needed (the 
 says why, the bell lights) and when a phase ends (your turn, arrived, refuel). Dials and tabs are there when someone
 looks for them, and don't call for attention.
 
-## IN PROGRESS, 27-28 October: fx-24 round 3 (the user's v8 review), build v9 running
+## DONE 28 October: fx-24 round 3 (the user's v8 review), build v9 for the user to review
 
-The user's v8 list (27 Oct) and what was done for each. The build `review/fx-24-california-coast-full-trip-v9.mp4` was started
-28 Oct (`build_trip.sh`, log `review/fx-24-v9-build.log`; about 45 min: every plate is re-paced with minterpolate, then the
-14 min composite). If it is not there, run it again (the paced plates in `plates-v1/paced/` are kept and reused). Then:
-`regress.py` against v8 with EXPECT = every moving clip (all were re-paced) so only the holds and the gas approach are compared
-frame for frame; `qa.py` over the new inputs; the speed chart (`buildflow.py`, in the session scratchpad, copied below if lost:
-it runs pace.py's measure over the build's windshield band 0.50:0.59 and draws seconds vs speed with the joins ticked; TOP=6)
-for v9 beside `review/fx-24-12-v8-flow-per-second.png`; 4 fps strips at every join; the 1 fps strip; a full watch. Then commit
-(tools and cars are in git; the pack scripts are not) and report with the flaw list.
+The user reviews `review/fx-24-california-coast-full-trip-v9.mp4` (5 min 39 s, 37 clips; v8 was 5 min 55 s). Proofs beside it:
+`fx-24-v9-regression.txt` (against v8: every re-paced clip changed as expected, the 6 untouched holds and the gas approach at
+noise, ALL OK), `fx-24-v9-qa-table.txt` (37 pass), `fx-24-v9-pace-table.txt` (pace.py measure on every moving clip: most read
+15 to 17 at start, middle and end; the freeway and sign clips read 8 to 11 because the measure saturates on sparse freeway
+texture when sped up, checked by dropping every other frame of freeway-1: 2x read as 1.1 to 1.45x), the speed charts
+`fx-24-12-v8-flow-per-second.png` and `fx-24-15-v9-flow-per-second.png` (tools/footage/buildspeed.py over the build's
+windshield band just below the horizon: a noisier instrument than the plate table, use it for joins and stops),
+`fx-24-v9-joins/` (36 joins at 4 fps), `fx-24-full-trip-v9-every-1s.jpg`. Known flaws in v9, told to the user: the 1 s dissolves
+still read as a hiccup at a join; the freeway sign clips, sped up 1.5 to 2x, pass their signs in about 1.5 s (the sign reading
+time was short before; the fix is retakes with the signs pasted farther, not pacing); the cruise plates' camera height (the
+user: "a truck") is untouched. The first v9 attempt (27 Oct) slowed every plate to 0.35x because `build_trip.sh` pinned
+TARGET=3.5 from the old measure; it pins 17 now. Costs this round 1.31; OpenRouter about 5.1.
+The user's v8 list and what was done for each:
 a) Door mirror: bright frozen reflection (the housing painted across its glass on 18 Oct). DONE: its keyed glass is back in
    `cockpit.png`/`cabin.png` of both cars (from `cars-src/grand-tourer/*-1200-mirror-glass.png`, only the key inside the side
    box) and `composite.sh` draws the same dark auto-dimmed gradient in the side box as in the rear-view. Mock
